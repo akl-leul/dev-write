@@ -52,6 +52,7 @@ export type Database = {
       }
       comments: {
         Row: {
+          approved: boolean
           author_id: string
           content_markdown: string
           created_at: string
@@ -61,6 +62,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approved?: boolean
           author_id: string
           content_markdown: string
           created_at?: string
@@ -70,6 +72,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approved?: boolean
           author_id?: string
           content_markdown?: string
           created_at?: string
