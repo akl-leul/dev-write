@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PenSquare, User, LogOut, Home } from 'lucide-react';
+import { PenSquare, User, LogOut, Home, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +54,13 @@ export const Header = () => {
 
           {user ? (
             <>
+              <Link to="/my-posts">
+                <Button variant="ghost" size="sm">
+                  <FileText className="mr-2 h-4 w-4" />
+                  My Posts
+                </Button>
+              </Link>
+              
               <Link to="/create">
                 <Button size="sm" className="bg-gradient-accent">
                   <PenSquare className="mr-2 h-4 w-4" />
