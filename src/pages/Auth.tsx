@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -123,7 +123,15 @@ const Auth = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="signin-password">Password</Label>
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs text-muted-foreground hover:text-accent transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                   <Input
                     id="signin-password"
                     type="password"
@@ -134,9 +142,16 @@ const Auth = () => {
                   )}
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full bg-gradient-accent" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
+
+                <div className="text-center text-sm text-muted-foreground">
+                  Don't have an account?{' '}
+                  <Link to="/auth?mode=signup" className="text-accent hover:underline font-medium">
+                    Create one now
+                  </Link>
+                </div>
               </form>
             </TabsContent>
             
@@ -239,6 +254,13 @@ const Auth = () => {
                 <Button type="submit" className="w-full bg-gradient-accent" disabled={loading}>
                   {loading ? 'Creating account...' : 'Create Account'}
                 </Button>
+
+                <div className="text-center text-sm text-muted-foreground">
+                  Already have an account?{' '}
+                  <Link to="/auth" className="text-accent hover:underline font-medium">
+                    Sign in instead
+                  </Link>
+                </div>
               </form>
             </TabsContent>
           </Tabs>

@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Loader2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Camera, Loader2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,6 +25,10 @@ const Profile = () => {
     age: 18,
     gender: '',
     profile_image_url: '',
+  });
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: '',
   });
 
   const { data: profile, isLoading } = useQuery({
@@ -73,6 +78,33 @@ const Profile = () => {
     },
   });
 
+  const updatePassword = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('Not authenticated');
+      
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        throw new Error('Passwords do not match');
+      }
+      
+      if (passwordData.newPassword.length < 6) {
+        throw new Error('Password must be at least 6 characters');
+      }
+      
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setPasswordData({ newPassword: '', confirmPassword: '' });
+      toast.success('Password updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update password');
+    },
+  });
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !user) return;
     
@@ -106,6 +138,11 @@ const Profile = () => {
     updateProfile.mutate(formData);
   };
 
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updatePassword.mutate();
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen">
@@ -121,11 +158,11 @@ const Profile = () => {
     <div className="min-h-screen">
       <Header />
       
-      <main className="container py-12">
-        <div className="max-w-2xl mx-auto">
+      <main className="container py-12 px-4">
+        <div className="max-w-2xl mx-auto space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-3xl font-serif">Edit Profile</CardTitle>
+              <CardTitle className="text-2xl sm:text-3xl font-serif">Edit Profile</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -224,6 +261,51 @@ const Profile = () => {
                   disabled={updateProfile.isPending}
                 >
                   {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Password Update Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl sm:text-3xl font-serif flex items-center gap-2">
+                <Lock className="h-6 w-6" />
+                Change Password
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    placeholder="Enter new password (min 6 characters)"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    placeholder="Confirm new password"
+                    required
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-accent"
+                  disabled={updatePassword.isPending || !passwordData.newPassword || !passwordData.confirmPassword}
+                >
+                  {updatePassword.isPending ? 'Updating...' : 'Update Password'}
                 </Button>
               </form>
             </CardContent>
