@@ -51,6 +51,7 @@ const MyPosts = () => {
           slug,
           created_at,
           status,
+          post_images (url),
           comments (
             id,
             content_markdown,
@@ -157,10 +158,10 @@ const MyPosts = () => {
     <div className="min-h-screen">
       <Header />
       
-      <main className="container py-12">
+      <main className="container py-6 sm:py-12 px-4">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-5xl font-serif font-bold mb-2">My Posts</h1>
-          <p className="text-xl text-muted-foreground mb-12">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold mb-2">My Posts</h1>
+          <p className="text-base sm:text-xl text-muted-foreground mb-8 sm:mb-12">
             Manage your posts and moderate comments
           </p>
 
@@ -244,21 +245,31 @@ const MyPosts = () => {
                   
                   return (
                     <Card key={post.id}>
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-2xl font-serif font-bold">{post.title}</h3>
-                              <Badge variant={post.status === 'published' ? 'default' : 'secondary'}>
+                      <CardContent className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row items-start gap-4">
+                          {(post as any).post_images?.[0] && (
+                            <div className="w-full sm:w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden">
+                              <img
+                                src={(post as any).post_images[0].url}
+                                alt={post.title}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                              <h3 className="text-lg sm:text-xl md:text-2xl font-serif font-bold truncate">{post.title}</h3>
+                              <Badge variant={post.status === 'published' ? 'default' : 'secondary'} className="flex-shrink-0">
                                 {post.status}
                               </Badge>
                             </div>
                             
-                            <p className="text-sm text-muted-foreground mb-4">
+                            <p className="text-xs sm:text-sm text-muted-foreground mb-3">
                               Created {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
                             </p>
                             
-                            <div className="flex items-center gap-4 text-sm">
+                            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm mb-4">
                               <span className="text-muted-foreground">
                                 {approvedCount} approved comment{approvedCount !== 1 ? 's' : ''}
                               </span>
@@ -268,33 +279,33 @@ const MyPosts = () => {
                                 </Badge>
                               )}
                             </div>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <Link to={`/post/${post.slug}`}>
-                              <Button variant="outline" size="sm">
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
+                            
+                            <div className="flex flex-wrap gap-2">
+                              <Link to={`/post/${post.slug}`}>
+                                <Button variant="outline" size="sm">
+                                  <Eye className="h-4 w-4 sm:mr-1" />
+                                  <span className="hidden sm:inline">View</span>
+                                </Button>
+                              </Link>
+                              <Link to={`/create?edit=${post.id}`}>
+                                <Button variant="outline" size="sm">
+                                  <Edit className="h-4 w-4 sm:mr-1" />
+                                  <span className="hidden sm:inline">Edit</span>
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+                                    deletePost.mutate(post.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 sm:mr-1" />
+                                <span className="hidden sm:inline">Delete</span>
                               </Button>
-                            </Link>
-                            <Link to={`/create?edit=${post.id}`}>
-                              <Button variant="outline" size="sm">
-                                <Edit className="h-4 w-4 mr-1" />
-                                Edit
-                              </Button>
-                            </Link>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
-                                  deletePost.mutate(post.id);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete
-                            </Button>
+                            </div>
                           </div>
                         </div>
                       </CardContent>

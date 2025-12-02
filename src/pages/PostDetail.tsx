@@ -5,12 +5,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Trash2, Edit } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin } from 'lucide-react';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CommentSection } from '@/components/blog/CommentSection';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const PostDetail = () => {
   const { slug } = useParams();
@@ -121,15 +127,43 @@ const PostDetail = () => {
 
   const isLiked = post.likes?.some((like: any) => like.user_id === user?.id);
   const isAuthor = user?.id === post.author_id;
+  const postUrl = window.location.href;
+
+  const handleShare = (platform: string) => {
+    const shareUrls = {
+      twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(post.title)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}`,
+    };
+    
+    if (platform === 'copy') {
+      navigator.clipboard.writeText(postUrl);
+      toast.success('Link copied to clipboard!');
+    } else {
+      window.open(shareUrls[platform as keyof typeof shareUrls], '_blank');
+    }
+  };
 
   return (
     <div className="min-h-screen">
       <Header />
       
-      <article className="container py-12">
+      <article className="container py-6 sm:py-12 px-4">
         <div className="max-w-4xl mx-auto">
-          {/* Author info */}
-          <div className="flex items-center justify-between mb-8">
+          {/* Meta info bar */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground mb-6">
+            <div className="flex items-center gap-2">
+              <Heart className="h-4 w-4" />
+              <span>{post.likes?.length || 0} likes</span>
+            </div>
+            <span>•</span>
+            <span>{format(new Date(post.created_at), 'MMMM dd, yyyy')}</span>
+            <span>•</span>
+            <span className="font-medium text-foreground">{post.title}</span>
+          </div>
+
+          {/* Author info and actions */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-4">
               <Avatar className="h-12 w-12">
                 <AvatarImage src={post.profiles?.profile_image_url || ''} />
@@ -140,41 +174,70 @@ const PostDetail = () => {
               <div>
                 <p className="font-medium text-lg">{post.profiles?.full_name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                  {format(new Date(post.created_at), 'PPP')}
                 </p>
               </div>
             </div>
             
-            {isAuthor && (
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => toast.info('Edit feature coming soon')}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    if (confirm('Are you sure you want to delete this post?')) {
-                      deletePost.mutate();
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
-            )}
+            <div className="flex gap-2 w-full sm:w-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleShare('copy')}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare('twitter')}>
+                    <Twitter className="h-4 w-4 mr-2" />
+                    Share on Twitter
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare('facebook')}>
+                    <Facebook className="h-4 w-4 mr-2" />
+                    Share on Facebook
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare('linkedin')}>
+                    <Linkedin className="h-4 w-4 mr-2" />
+                    Share on LinkedIn
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {isAuthor && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/create?edit=${post.id}`)}>
+                    <Edit className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Edit</span>
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this post?')) {
+                        deletePost.mutate();
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Delete</span>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Title */}
-          <h1 className="text-5xl md:text-6xl font-serif font-bold mb-8 text-balance">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold mb-8 text-balance">
             {post.title}
           </h1>
 
           {/* Main image if exists */}
           {post.post_images && post.post_images.length > 0 && (
-            <div className="mb-12 rounded-2xl overflow-hidden shadow-lift">
+            <div className="mb-8 sm:mb-12 rounded-xl sm:rounded-2xl overflow-hidden shadow-lift">
               <img
                 src={post.post_images[0].url}
                 alt={post.post_images[0].alt_text || post.title}
@@ -184,15 +247,13 @@ const PostDetail = () => {
           )}
 
           {/* Content */}
-          <div className="prose prose-lg prose-slate max-w-none mb-12">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {post.content_markdown}
-            </ReactMarkdown>
+          <div className="prose prose-sm sm:prose-base lg:prose-lg prose-slate max-w-none mb-8 sm:mb-12">
+            <div dangerouslySetInnerHTML={{ __html: post.content_markdown }} />
           </div>
 
           {/* Additional images */}
           {post.post_images && post.post_images.length > 1 && (
-            <div className="grid grid-cols-2 gap-4 mb-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 sm:mb-12">
               {post.post_images.slice(1).map((image: any, index: number) => (
                 <div key={index} className="rounded-lg overflow-hidden shadow-elegant">
                   <img

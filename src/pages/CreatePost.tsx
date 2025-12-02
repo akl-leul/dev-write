@@ -1,24 +1,52 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { RichTextEditor } from '@/components/editor/RichTextEditor';
 
 const CreatePost = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+  
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [status, setStatus] = useState<'draft' | 'published' | 'archived'>('published');
   const [images, setImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  // Load existing post if editing
+  useQuery({
+    queryKey: ['post-edit', editId],
+    queryFn: async () => {
+      if (!editId || !user) return null;
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', editId)
+        .eq('author_id', user.id)
+        .single();
+      
+      if (error) throw error;
+      if (data) {
+        setTitle(data.title);
+        setContent(data.content_markdown);
+        setStatus(data.status as 'draft' | 'published' | 'archived');
+      }
+      return data;
+    },
+    enabled: !!editId && !!user,
+  });
 
   const createPost = useMutation({
     mutationFn: async () => {
@@ -32,13 +60,30 @@ const CreatePost = () => {
 
       setUploading(true);
 
+      // If editing, update existing post
+      if (editId) {
+        const { error: updateError } = await supabase
+          .from('posts')
+          .update({
+            title,
+            content_markdown: content,
+            excerpt: content.replace(/<[^>]*>/g, '').slice(0, 200),
+            status,
+          })
+          .eq('id', editId)
+          .eq('author_id', user.id);
+
+        if (updateError) throw updateError;
+        return { id: editId, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-') };
+      }
+
       // Create slug from title
       const slug = title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') + `-${Date.now()}`;
 
-      // Create post
+      // Create new post
       const { data: post, error: postError } = await supabase
         .from('posts')
         .insert({
@@ -46,7 +91,8 @@ const CreatePost = () => {
           title,
           slug,
           content_markdown: content,
-          excerpt: content.slice(0, 200),
+          excerpt: content.replace(/<[^>]*>/g, '').slice(0, 200),
+          status,
         })
         .select()
         .single();
@@ -82,8 +128,8 @@ const CreatePost = () => {
       return post;
     },
     onSuccess: (post) => {
-      toast.success('Post created successfully');
-      navigate(`/post/${post.slug}`);
+      toast.success(editId ? 'Post updated successfully' : 'Post created successfully');
+      navigate(status === 'published' ? `/post/${post.slug}` : '/my-posts');
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to create post');
@@ -127,7 +173,7 @@ const CreatePost = () => {
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle className="text-3xl font-serif">Write Your Story</CardTitle>
+              <CardTitle className="text-3xl font-serif">{editId ? 'Edit Your Story' : 'Write Your Story'}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -138,25 +184,35 @@ const CreatePost = () => {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Give your story a compelling title..."
-                    className="text-2xl font-serif"
+                    className="text-xl sm:text-2xl font-serif"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="content">Content (Markdown)</Label>
-                  <Textarea
-                    id="content"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Tell your story... (Markdown supported)"
-                    rows={20}
-                    className="font-mono"
-                    required
-                  />
+                  <Label htmlFor="status">Status</Label>
+                  <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <p className="text-sm text-muted-foreground">
-                    You can use markdown formatting: **bold**, *italic*, [links](url), etc.
+                    Only published posts are visible to others
                   </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="content">Content</Label>
+                  <RichTextEditor
+                    content={content}
+                    onChange={setContent}
+                    placeholder="Tell your story..."
+                  />
                 </div>
 
                 <div className="space-y-4">
@@ -209,10 +265,10 @@ const CreatePost = () => {
                   {uploading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Publishing...
+                      {editId ? 'Updating...' : 'Publishing...'}
                     </>
                   ) : (
-                    'Publish Post'
+                    editId ? 'Update Post' : 'Publish Post'
                   )}
                 </Button>
               </form>
