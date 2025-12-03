@@ -2,9 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Search } from 'lucide-react';
+import { Heart, MessageCircle, Eye, Clock } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
@@ -24,7 +23,8 @@ const Feed = () => {
           profiles:author_id (full_name, profile_image_url),
           likes (count),
           comments (count),
-          post_images (url)
+          post_images (url),
+          categories:category_id (name, slug)
         `)
         .eq('status', 'published')
         .order('created_at', { ascending: false });
@@ -120,7 +120,13 @@ const Feed = () => {
                       </p>
                     )}
                     
-                    <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
+                    {post.categories && (
+                      <span className="inline-block px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium mb-3">
+                        {post.categories.name}
+                      </span>
+                    )}
+                    
+                    <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <Heart className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span>{post.likes?.[0]?.count || 0}</span>
@@ -128,6 +134,14 @@ const Feed = () => {
                       <div className="flex items-center gap-2">
                         <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span>{post.comments?.[0]?.count || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span>{post.views || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span>{post.read_time || 5} min</span>
                       </div>
                     </div>
                   </CardContent>

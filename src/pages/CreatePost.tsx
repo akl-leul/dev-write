@@ -7,11 +7,14 @@ import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Upload, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
+import { format } from 'date-fns';
 
 const CreatePost = () => {
   const { user } = useAuth();
@@ -21,9 +24,28 @@ const CreatePost = () => {
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [excerpt, setExcerpt] = useState('');
   const [status, setStatus] = useState<'draft' | 'published' | 'archived'>('published');
+  const [isPublished, setIsPublished] = useState(true);
+  const [categoryId, setCategoryId] = useState<string>('');
+  const [readTime, setReadTime] = useState(5);
+  const [featuredImage, setFeaturedImage] = useState<File | null>(null);
+  const [featuredImageUrl, setFeaturedImageUrl] = useState<string>('');
   const [images, setImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  // Fetch categories
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // Load existing post if editing
   useQuery({
@@ -41,12 +63,30 @@ const CreatePost = () => {
       if (data) {
         setTitle(data.title);
         setContent(data.content_markdown);
+        setExcerpt(data.excerpt || '');
         setStatus(data.status as 'draft' | 'published' | 'archived');
+        setIsPublished(data.status === 'published');
+        setCategoryId(data.category_id || '');
+        setReadTime(data.read_time || 5);
+        setFeaturedImageUrl(data.featured_image || '');
       }
       return data;
     },
     enabled: !!editId && !!user,
   });
+
+  // Generate slug from title and date
+  const generateSlug = () => {
+    const now = new Date();
+    const day = format(now, 'dd');
+    const month = format(now, 'MM');
+    const year = format(now, 'yyyy');
+    const titleSlug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    return `${day}/${month}/${year}/${titleSlug}`;
+  };
 
   const createPost = useMutation({
     mutationFn: async () => {
@@ -60,6 +100,28 @@ const CreatePost = () => {
 
       setUploading(true);
 
+      // Upload featured image if exists
+      let uploadedFeaturedImageUrl = featuredImageUrl;
+      if (featuredImage) {
+        const fileExt = featuredImage.name.split('.').pop();
+        const fileName = `${user.id}/featured/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('post-images')
+          .upload(fileName, featuredImage);
+        
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(fileName);
+        
+        uploadedFeaturedImageUrl = publicUrl;
+      }
+
+      const finalStatus = isPublished ? 'published' : status;
+      const finalExcerpt = excerpt.trim() || content.replace(/<[^>]*>/g, '').slice(0, 200);
+
       // If editing, update existing post
       if (editId) {
         const { error: updateError } = await supabase
@@ -67,21 +129,29 @@ const CreatePost = () => {
           .update({
             title,
             content_markdown: content,
-            excerpt: content.replace(/<[^>]*>/g, '').slice(0, 200),
-            status,
+            excerpt: finalExcerpt,
+            status: finalStatus,
+            category_id: categoryId || null,
+            read_time: readTime,
+            featured_image: uploadedFeaturedImageUrl || null,
           })
           .eq('id', editId)
           .eq('author_id', user.id);
 
         if (updateError) throw updateError;
-        return { id: editId, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-') };
+        
+        // Get existing slug for navigation
+        const { data: existingPost } = await supabase
+          .from('posts')
+          .select('slug')
+          .eq('id', editId)
+          .single();
+        
+        return { id: editId, slug: existingPost?.slug };
       }
 
-      // Create slug from title
-      const slug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '') + `-${Date.now()}`;
+      // Create slug from title and date
+      const slug = generateSlug();
 
       // Create new post
       const { data: post, error: postError } = await supabase
@@ -91,8 +161,11 @@ const CreatePost = () => {
           title,
           slug,
           content_markdown: content,
-          excerpt: content.replace(/<[^>]*>/g, '').slice(0, 200),
-          status,
+          excerpt: finalExcerpt,
+          status: finalStatus,
+          category_id: categoryId || null,
+          read_time: readTime,
+          featured_image: uploadedFeaturedImageUrl || null,
         })
         .select()
         .single();
@@ -129,7 +202,7 @@ const CreatePost = () => {
     },
     onSuccess: (post) => {
       toast.success(editId ? 'Post updated successfully' : 'Post created successfully');
-      navigate(status === 'published' ? `/post/${post.slug}` : '/my-posts');
+      navigate(isPublished ? `/post/${post.slug}` : '/my-posts');
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to create post');
@@ -151,8 +224,19 @@ const CreatePost = () => {
     setImages([...images, ...newFiles]);
   };
 
+  const handleFeaturedImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    setFeaturedImage(e.target.files[0]);
+    setFeaturedImageUrl(URL.createObjectURL(e.target.files[0]));
+  };
+
   const removeImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
+  };
+
+  const removeFeaturedImage = () => {
+    setFeaturedImage(null);
+    setFeaturedImageUrl('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -169,45 +253,160 @@ const CreatePost = () => {
     <div className="min-h-screen">
       <Header />
       
-      <main className="container py-12">
+      <main className="container py-12 px-4">
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle className="text-3xl font-serif">{editId ? 'Edit Your Story' : 'Write Your Story'}</CardTitle>
+              <CardTitle className="text-2xl sm:text-3xl font-serif">{editId ? 'Edit Your Story' : 'Write Your Story'}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Title */}
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
+                  <Label htmlFor="title">Title *</Label>
                   <Input
                     id="title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Give your story a compelling title..."
-                    className="text-xl sm:text-2xl font-serif"
+                    className="text-lg sm:text-xl font-serif"
                     required
                   />
                 </div>
 
+                {/* Slug preview */}
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={status} onValueChange={(value: any) => setStatus(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                      <SelectItem value="archived">Archived</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground">
-                    Only published posts are visible to others
+                  <Label>Slug *</Label>
+                  <Input
+                    value={title ? generateSlug().split('/').pop() : ''}
+                    readOnly
+                    className="bg-muted"
+                    placeholder="auto-generated-from-title"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Full URL: /post/{title ? generateSlug() : 'dd/mm/yyyy/your-title'}
                   </p>
                 </div>
 
+                {/* Excerpt */}
                 <div className="space-y-2">
-                  <Label htmlFor="content">Content</Label>
+                  <Label htmlFor="excerpt">Excerpt *</Label>
+                  <Textarea
+                    id="excerpt"
+                    value={excerpt}
+                    onChange={(e) => setExcerpt(e.target.value)}
+                    placeholder="Write a brief summary of your post..."
+                    className="min-h-[80px]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    If left empty, the first 200 characters of content will be used
+                  </p>
+                </div>
+
+                {/* Featured Image */}
+                <div className="space-y-2">
+                  <Label>Featured Image</Label>
+                  {featuredImageUrl ? (
+                    <div className="relative w-full max-w-md">
+                      <img
+                        src={featuredImageUrl}
+                        alt="Featured"
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeFeaturedImage}
+                        className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <label htmlFor="featured-upload" className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-md cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors">
+                        <ImageIcon className="h-4 w-4" />
+                        Upload Featured Image
+                      </label>
+                      <input
+                        id="featured-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFeaturedImageSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Category */}
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category ID</Label>
+                    <Select value={categoryId} onValueChange={setCategoryId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories?.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Read Time */}
+                  <div className="space-y-2">
+                    <Label htmlFor="readTime">Read Time (minutes) *</Label>
+                    <Input
+                      id="readTime"
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={readTime}
+                      onChange={(e) => setReadTime(parseInt(e.target.value) || 5)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Status */}
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="published">Published</SelectItem>
+                        <SelectItem value="archived">Archived</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Published Toggle */}
+                  <div className="space-y-2">
+                    <Label>Published</Label>
+                    <div className="flex items-center gap-3 pt-2">
+                      <Switch
+                        checked={isPublished}
+                        onCheckedChange={(checked) => {
+                          setIsPublished(checked);
+                          if (checked) setStatus('published');
+                        }}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {isPublished ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="space-y-2">
+                  <Label htmlFor="content">Blog Post Content</Label>
                   <RichTextEditor
                     content={content}
                     onChange={setContent}
@@ -215,8 +414,9 @@ const CreatePost = () => {
                   />
                 </div>
 
+                {/* Additional Images */}
                 <div className="space-y-4">
-                  <Label>Images (Max 5)</Label>
+                  <Label>Additional Images (Max 5)</Label>
                   
                   {images.length < 5 && (
                     <div>
