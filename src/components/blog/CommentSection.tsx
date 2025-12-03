@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,6 +11,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface CommentSectionProps {
   postId: string;
@@ -31,12 +42,14 @@ interface Comment {
 
 export const CommentSection = ({ postId }: CommentSectionProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const { data: comments, isLoading } = useQuery({
     queryKey: ['comments', postId],
@@ -183,6 +196,31 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
     return null;
   };
 
+  const handleCommentAction = () => {
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
+    createComment.mutate({ content: newComment });
+  };
+
+  const handleLikeClick = (commentId: string) => {
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
+    likeComment.mutate(commentId);
+  };
+
+  const handleReplyClick = (commentId: string) => {
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
+    setReplyTo(commentId);
+    setReplyContent('');
+  };
+
   const renderComment = (comment: Comment, depth: number = 0) => {
     const isLiked = comment.comment_likes?.some(like => like.user_id === user?.id);
     const isAuthor = user?.id === comment.author_id;
@@ -243,25 +281,20 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
             
             <div className="flex items-center gap-4 text-sm">
               <button
-                onClick={() => user ? likeComment.mutate(comment.id) : null}
+                onClick={() => handleLikeClick(comment.id)}
                 className={`flex items-center gap-1 ${isLiked ? 'text-accent' : 'text-muted-foreground'} hover:text-accent transition-colors`}
               >
                 <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
                 <span>{comment.comment_likes?.length || 0}</span>
               </button>
               
-              {user && (
-                <button
-                  onClick={() => {
-                    setReplyTo(comment.id);
-                    setReplyContent('');
-                  }}
-                  className="flex items-center gap-1 text-muted-foreground hover:text-accent transition-colors"
-                >
-                  <Reply className="h-4 w-4" />
-                  Reply
-                </button>
-              )}
+              <button
+                onClick={() => handleReplyClick(comment.id)}
+                className="flex items-center gap-1 text-muted-foreground hover:text-accent transition-colors"
+              >
+                <Reply className="h-4 w-4" />
+                Reply
+              </button>
               
               {isAuthor && (
                 <>
@@ -337,23 +370,23 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
         Comments ({comments?.length || 0})
       </h2>
       
-      {user && (
-        <div className="mb-8">
-          <Textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Share your thoughts..."
-            className="mb-3 min-h-[120px]"
-          />
-          <Button
-            onClick={() => createComment.mutate({ content: newComment })}
-            disabled={!newComment.trim()}
-            className="bg-gradient-accent"
-          >
-            Post Comment
-          </Button>
-        </div>
-      )}
+      {/* Comment input - show for all users */}
+      <div className="mb-8">
+        <Textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder={user ? "Share your thoughts..." : "Log in to comment..."}
+          className="mb-3 min-h-[120px]"
+          onClick={() => !user && setShowAuthDialog(true)}
+        />
+        <Button
+          onClick={handleCommentAction}
+          disabled={!newComment.trim()}
+          className="bg-gradient-accent"
+        >
+          Post Comment
+        </Button>
+      </div>
       
       {isLoading ? (
         <div className="space-y-4">
@@ -377,6 +410,24 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           No comments yet. Be the first to share your thoughts!
         </p>
       )}
+
+      {/* Auth Required Dialog */}
+      <AlertDialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Account Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please create an account to comment on this post. Join our community to share your thoughts and engage with others.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate('/auth')}>
+              Create Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

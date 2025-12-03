@@ -5,10 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin } from 'lucide-react';
+import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin, Eye, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { CommentSection } from '@/components/blog/CommentSection';
+import { useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,10 +25,13 @@ import {
 } from '@/components/ui/carousel';
 
 const PostDetail = () => {
-  const { slug } = useParams();
+  const { '*': slugPath } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Extract the slug from path (handles both old and new format)
+  const slug = slugPath || '';
 
   const { data: post, isLoading } = useQuery({
     queryKey: ['post', slug],
@@ -39,15 +43,32 @@ const PostDetail = () => {
           profiles:author_id (full_name, profile_image_url),
           post_images (url, alt_text, order_index),
           likes (user_id),
-          comments (count)
+          comments (count),
+          categories:category_id (name, slug)
         `)
         .eq('slug', slug)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;
     },
   });
+
+  // Increment view count when post is loaded
+  useEffect(() => {
+    const incrementViews = async () => {
+      if (post?.id) {
+        await supabase
+          .from('posts')
+          .update({ views: (post.views || 0) + 1 })
+          .eq('id', post.id);
+      }
+    };
+    
+    if (post) {
+      incrementViews();
+    }
+  }, [post?.id]);
 
   const likePost = useMutation({
     mutationFn: async () => {
@@ -133,6 +154,7 @@ const PostDetail = () => {
   const isLiked = post.likes?.some((like: any) => like.user_id === user?.id);
   const isAuthor = user?.id === post.author_id;
   const postUrl = window.location.href;
+  const postDate = new Date(post.created_at);
 
   const handleShare = (platform: string) => {
     const shareUrls = {
@@ -155,16 +177,34 @@ const PostDetail = () => {
       
       <article className="container py-6 sm:py-12 px-4">
         <div className="max-w-4xl mx-auto">
-          {/* Meta info bar */}
+          {/* Meta info bar - likes/date/month/year/title */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground mb-6">
             <div className="flex items-center gap-2">
               <Heart className="h-4 w-4" />
               <span>{post.likes?.length || 0} likes</span>
             </div>
             <span>•</span>
-            <span>{format(new Date(post.created_at), 'MMMM dd, yyyy')}</span>
+            <div className="flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              <span>{post.views || 0} views</span>
+            </div>
+            <span>•</span>
+            <span>{format(postDate, 'dd')} / {format(postDate, 'MM')} / {format(postDate, 'yyyy')}</span>
             <span>•</span>
             <span className="font-medium text-foreground">{post.title}</span>
+          </div>
+
+          {/* Category and Read Time */}
+          <div className="flex flex-wrap items-center gap-4 mb-6">
+            {post.categories && (
+              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                {post.categories.name}
+              </span>
+            )}
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>{post.read_time || 5} min read</span>
+            </div>
           </div>
 
           {/* Author info and actions */}
@@ -179,7 +219,7 @@ const PostDetail = () => {
               <div>
                 <p className="font-medium text-lg">{post.profiles?.full_name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {format(new Date(post.created_at), 'PPP')}
+                  {format(postDate, 'PPP')}
                 </p>
               </div>
             </div>
@@ -240,36 +280,48 @@ const PostDetail = () => {
             {post.title}
           </h1>
 
-          {/* Image Carousel */}
-          {post.post_images && post.post_images.length > 0 && (
+          {/* Featured Image or Image Carousel */}
+          {(post.featured_image || (post.post_images && post.post_images.length > 0)) && (
             <div className="mb-8 sm:mb-12">
-              <Carousel className="w-full">
-                <CarouselContent>
-                  {post.post_images
-                    .sort((a: any, b: any) => a.order_index - b.order_index)
-                    .map((image: any, index: number) => (
-                      <CarouselItem key={index}>
-                        <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lift">
-                          <img
-                            src={image.url}
-                            alt={image.alt_text || `${post.title} - Image ${index + 1}`}
-                            className="w-full h-auto max-h-[600px] object-cover"
-                          />
-                        </div>
-                      </CarouselItem>
-                    ))}
-                </CarouselContent>
-                {post.post_images.length > 1 && (
-                  <>
-                    <CarouselPrevious className="left-2 sm:left-4" />
-                    <CarouselNext className="right-2 sm:right-4" />
-                  </>
-                )}
-              </Carousel>
-              {post.post_images.length > 1 && (
-                <p className="text-center text-sm text-muted-foreground mt-2">
-                  {post.post_images.length} images
-                </p>
+              {post.featured_image ? (
+                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lift">
+                  <img
+                    src={post.featured_image}
+                    alt={post.title}
+                    className="w-full h-auto max-h-[600px] object-cover"
+                  />
+                </div>
+              ) : post.post_images && post.post_images.length > 0 && (
+                <>
+                  <Carousel className="w-full">
+                    <CarouselContent>
+                      {post.post_images
+                        .sort((a: any, b: any) => a.order_index - b.order_index)
+                        .map((image: any, index: number) => (
+                          <CarouselItem key={index}>
+                            <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lift">
+                              <img
+                                src={image.url}
+                                alt={image.alt_text || `${post.title} - Image ${index + 1}`}
+                                className="w-full h-auto max-h-[600px] object-cover"
+                              />
+                            </div>
+                          </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    {post.post_images.length > 1 && (
+                      <>
+                        <CarouselPrevious className="left-2 sm:left-4" />
+                        <CarouselNext className="right-2 sm:right-4" />
+                      </>
+                    )}
+                  </Carousel>
+                  {post.post_images.length > 1 && (
+                    <p className="text-center text-sm text-muted-foreground mt-2">
+                      {post.post_images.length} images
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -293,6 +345,11 @@ const PostDetail = () => {
             <div className="flex items-center gap-2 text-muted-foreground">
               <MessageCircle className="h-5 w-5" />
               <span>{post.comments?.[0]?.count || 0} comments</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Eye className="h-5 w-5" />
+              <span>{post.views || 0} views</span>
             </div>
           </div>
 

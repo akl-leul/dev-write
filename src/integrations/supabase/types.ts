@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       comment_likes: {
         Row: {
           comment_id: string
@@ -179,36 +200,48 @@ export type Database = {
       posts: {
         Row: {
           author_id: string
+          category_id: string | null
           content_markdown: string
           created_at: string
           excerpt: string | null
+          featured_image: string | null
           id: string
+          read_time: number
           slug: string
           status: string
           title: string
           updated_at: string
+          views: number
         }
         Insert: {
           author_id: string
+          category_id?: string | null
           content_markdown: string
           created_at?: string
           excerpt?: string | null
+          featured_image?: string | null
           id?: string
+          read_time?: number
           slug: string
           status?: string
           title: string
           updated_at?: string
+          views?: number
         }
         Update: {
           author_id?: string
+          category_id?: string | null
           content_markdown?: string
           created_at?: string
           excerpt?: string | null
+          featured_image?: string | null
           id?: string
+          read_time?: number
           slug?: string
           status?: string
           title?: string
           updated_at?: string
+          views?: number
         }
         Relationships: [
           {
@@ -216,6 +249,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
