@@ -8,8 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { CommentSection } from '@/components/blog/CommentSection';
 import {
   DropdownMenu,
@@ -17,6 +15,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 
 const PostDetail = () => {
   const { slug } = useParams();
@@ -235,14 +240,37 @@ const PostDetail = () => {
             {post.title}
           </h1>
 
-          {/* Main image if exists */}
+          {/* Image Carousel */}
           {post.post_images && post.post_images.length > 0 && (
-            <div className="mb-8 sm:mb-12 rounded-xl sm:rounded-2xl overflow-hidden shadow-lift">
-              <img
-                src={post.post_images[0].url}
-                alt={post.post_images[0].alt_text || post.title}
-                className="w-full h-auto"
-              />
+            <div className="mb-8 sm:mb-12">
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {post.post_images
+                    .sort((a: any, b: any) => a.order_index - b.order_index)
+                    .map((image: any, index: number) => (
+                      <CarouselItem key={index}>
+                        <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lift">
+                          <img
+                            src={image.url}
+                            alt={image.alt_text || `${post.title} - Image ${index + 1}`}
+                            className="w-full h-auto max-h-[600px] object-cover"
+                          />
+                        </div>
+                      </CarouselItem>
+                    ))}
+                </CarouselContent>
+                {post.post_images.length > 1 && (
+                  <>
+                    <CarouselPrevious className="left-2 sm:left-4" />
+                    <CarouselNext className="right-2 sm:right-4" />
+                  </>
+                )}
+              </Carousel>
+              {post.post_images.length > 1 && (
+                <p className="text-center text-sm text-muted-foreground mt-2">
+                  {post.post_images.length} images
+                </p>
+              )}
             </div>
           )}
 
@@ -250,21 +278,6 @@ const PostDetail = () => {
           <div className="prose prose-sm sm:prose-base lg:prose-lg prose-slate max-w-none mb-8 sm:mb-12">
             <div dangerouslySetInnerHTML={{ __html: post.content_markdown }} />
           </div>
-
-          {/* Additional images */}
-          {post.post_images && post.post_images.length > 1 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 sm:mb-12">
-              {post.post_images.slice(1).map((image: any, index: number) => (
-                <div key={index} className="rounded-lg overflow-hidden shadow-elegant">
-                  <img
-                    src={image.url}
-                    alt={image.alt_text || `Image ${index + 2}`}
-                    className="w-full h-auto"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
 
           {/* Engagement bar */}
           <div className="flex items-center gap-6 py-6 border-y">
