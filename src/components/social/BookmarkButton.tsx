@@ -5,14 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Bookmark, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils'; // Assuming you have standard shadcn utils, if not remove this wrapper
 
 interface BookmarkButtonProps {
   postId: string;
   size?: 'sm' | 'default' | 'lg' | 'icon';
   variant?: 'default' | 'outline' | 'ghost';
+  className?: string; // Added to allow external layout overrides
 }
 
-export const BookmarkButton = ({ postId, size = 'sm', variant = 'outline' }: BookmarkButtonProps) => {
+export const BookmarkButton = ({ 
+  postId, 
+  size = 'sm', 
+  variant = 'ghost', // Changed default to ghost for cleaner look in feeds
+  className 
+}: BookmarkButtonProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -61,10 +68,11 @@ export const BookmarkButton = ({ postId, size = 'sm', variant = 'outline' }: Boo
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['is-bookmarked', user?.id, postId] });
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
-      toast.success(isBookmarked ? 'Removed from bookmarks' : 'Added to bookmarks');
+      // Shorter, cleaner toasts
+      toast.success(isBookmarked ? 'Removed' : 'Saved');
     },
     onError: () => {
-      toast.error('Failed to update bookmark');
+      toast.error('Could not update bookmark');
     },
   });
 
@@ -73,27 +81,49 @@ export const BookmarkButton = ({ postId, size = 'sm', variant = 'outline' }: Boo
     e.stopPropagation();
     
     if (!user) {
-      navigate('/auth');
+      // Optional: Add a mode=signup query param if you want them to go straight to signup
+      navigate('/auth?mode=signup'); 
       return;
     }
     
     toggleBookmark.mutate();
   };
 
+  const isLoading = toggleBookmark.isPending || checkingBookmark;
+
   return (
     <Button
       size={size}
-      variant={isBookmarked ? 'default' : variant}
+      variant={variant}
       onClick={handleClick}
-      disabled={toggleBookmark.isPending || checkingBookmark}
-      className={isBookmarked ? 'bg-accent' : ''}
+      disabled={isLoading}
+      // UI Customization Logic
+      className={cn(
+        "group transition-all duration-300 ease-in-out",
+        // Active State (Blue brand color)
+        isBookmarked 
+          ? "text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 border-blue-100" 
+          : "text-slate-400 hover:text-slate-900 hover:bg-slate-100",
+        className
+      )}
     >
-      {toggleBookmark.isPending || checkingBookmark ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+      {isLoading ? (
+        <Loader2 className="h-4 w-4 animate-spin opacity-50" />
       ) : (
         <>
-          <Bookmark className={`h-4 w-4 ${size !== 'icon' ? 'mr-2' : ''} ${isBookmarked ? 'fill-current' : ''}`} />
-          {size !== 'icon' && (isBookmarked ? 'Saved' : 'Save')}
+          <Bookmark 
+            className={cn(
+              "h-4 w-4 transition-transform duration-300 group-active:scale-90",
+              size !== 'icon' && "mr-2",
+              // Filled icon when bookmarked
+              isBookmarked ? "fill-blue-600" : "fill-transparent"
+            )} 
+          />
+          {size !== 'icon' && (
+            <span className={cn(isBookmarked ? "font-medium" : "font-normal")}>
+              {isBookmarked ? 'Saved' : 'Save'}
+            </span>
+          )}
         </>
       )}
     </Button>
