@@ -140,6 +140,11 @@ const Index = () => {
                 <Button size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-14 px-8 text-lg shadow-lg shadow-blue-600/20">
                   Start Writing Free
                 </Button>
+              </Link> 
+              <Link to="/feed" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto bg-transparent outline-2 outline-blue-600 hover:bg-blue-100 text-blue-700 rounded-xl h-14 px-8 text-lg shadow-lg shadow-blue-600/20">
+                  Read Now
+                </Button>
               </Link>
             </div>
           </div>
