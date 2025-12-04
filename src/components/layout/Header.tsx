@@ -10,10 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PenSquare, User, LogOut, Home, FileText, Search, Menu, X } from 'lucide-react';
+import { PenSquare, User, LogOut, Home, FileText, Search, Menu, X, BarChart3, Bookmark } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 export const Header = () => {
   const { user, signOut } = useAuth();
@@ -89,12 +90,28 @@ export const Header = () => {
                 </Button>
               </Link>
               
+              <Link to="/analytics">
+                <Button variant="ghost" size="sm">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Analytics
+                </Button>
+              </Link>
+              
+              <Link to="/bookmarks">
+                <Button variant="ghost" size="sm">
+                  <Bookmark className="mr-2 h-4 w-4" />
+                  Bookmarks
+                </Button>
+              </Link>
+              
               <Link to="/create">
                 <Button size="sm" className="bg-gradient-accent">
                   <PenSquare className="mr-2 h-4 w-4" />
                   Write
                 </Button>
               </Link>
+
+              <NotificationDropdown />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -119,6 +136,14 @@ export const Header = () => {
                     <User className="mr-2 h-4 w-4" />
                     Profile
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/analytics')}>
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Analytics
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/bookmarks')}>
+                    <Bookmark className="mr-2 h-4 w-4" />
+                    Bookmarks
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
@@ -140,14 +165,16 @@ export const Header = () => {
         </nav>
 
         {/* Mobile Menu Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="md:hidden"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
+        <div className="flex items-center gap-2 md:hidden">
+          {user && <NotificationDropdown />}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
@@ -182,6 +209,20 @@ export const Header = () => {
                     <Button variant="ghost" size="sm" className="w-full justify-start">
                       <FileText className="mr-2 h-4 w-4" />
                       My Posts
+                    </Button>
+                  </Link>
+                  
+                  <Link to="/analytics" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      Analytics
+                    </Button>
+                  </Link>
+                  
+                  <Link to="/bookmarks" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Bookmark className="mr-2 h-4 w-4" />
+                      Bookmarks
                     </Button>
                   </Link>
                   

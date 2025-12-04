@@ -9,7 +9,7 @@ import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Li
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { CommentSection } from '@/components/blog/CommentSection';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import { BookmarkButton } from '@/components/social/BookmarkButton';
+import { FollowButton } from '@/components/social/FollowButton';
 
 const PostDetail = () => {
   const { '*': slugPath } = useParams();
@@ -54,10 +56,12 @@ const PostDetail = () => {
     },
   });
 
-  // Increment view count when post is loaded
+  // Increment view count when post is loaded (works for all users)
+  const viewIncremented = useRef(false);
   useEffect(() => {
     const incrementViews = async () => {
-      if (post?.id) {
+      if (post?.id && !viewIncremented.current) {
+        viewIncremented.current = true;
         await supabase
           .from('posts')
           .update({ views: (post.views || 0) + 1 })
@@ -216,8 +220,11 @@ const PostDetail = () => {
                   {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <p className="font-medium text-lg">{post.profiles?.full_name}</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <p className="font-medium text-lg">{post.profiles?.full_name}</p>
+                  <FollowButton userId={post.author_id} />
+                </div>
                 <p className="text-sm text-muted-foreground">
                   {format(postDate, 'PPP')}
                 </p>
@@ -225,6 +232,8 @@ const PostDetail = () => {
             </div>
             
             <div className="flex gap-2 w-full sm:w-auto">
+              <BookmarkButton postId={post.id} />
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
