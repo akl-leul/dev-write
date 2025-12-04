@@ -7,9 +7,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Check, FileText, Heart, MessageCircle, UserPlus } from 'lucide-react';
+import { Bell, Check, FileText, Heart, MessageCircle, UserPlus, Sparkles } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
@@ -38,7 +37,7 @@ export const NotificationDropdown = () => {
       return data;
     },
     enabled: !!user,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
   });
 
   const markAsRead = useMutation({
@@ -76,15 +75,35 @@ export const NotificationDropdown = () => {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'new_post':
-        return <FileText className="h-4 w-4 text-accent" />;
+        return (
+          <div className="p-2 bg-purple-50 text-purple-600 rounded-full shrink-0">
+            <FileText className="h-4 w-4" />
+          </div>
+        );
       case 'like':
-        return <Heart className="h-4 w-4 text-red-500" />;
+        return (
+          <div className="p-2 bg-red-50 text-red-500 rounded-full shrink-0">
+            <Heart className="h-4 w-4 fill-current" />
+          </div>
+        );
       case 'comment':
-        return <MessageCircle className="h-4 w-4 text-primary" />;
+        return (
+          <div className="p-2 bg-blue-50 text-blue-600 rounded-full shrink-0">
+            <MessageCircle className="h-4 w-4" />
+          </div>
+        );
       case 'follow':
-        return <UserPlus className="h-4 w-4 text-green-500" />;
+        return (
+          <div className="p-2 bg-green-50 text-green-600 rounded-full shrink-0">
+            <UserPlus className="h-4 w-4" />
+          </div>
+        );
       default:
-        return <Bell className="h-4 w-4" />;
+        return (
+          <div className="p-2 bg-slate-100 text-slate-600 rounded-full shrink-0">
+            <Bell className="h-4 w-4" />
+          </div>
+        );
     }
   };
 
@@ -103,24 +122,34 @@ export const NotificationDropdown = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
+        <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl w-10 h-10 transition-colors">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-accent text-accent-foreground text-xs flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
+            <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-white"></span>
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
-        <div className="flex items-center justify-between px-3 py-2 border-b">
-          <span className="font-semibold">Notifications</span>
+      
+      <DropdownMenuContent align="end" className="w-80 sm:w-96 max-h-[85vh] overflow-y-auto rounded-2xl border-slate-100 shadow-xl p-0 bg-white">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-slate-100 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-900">Notifications</span>
+            {unreadCount > 0 && (
+              <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                {unreadCount} new
+              </span>
+            )}
+          </div>
           {unreadCount > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs"
-              onClick={() => markAllAsRead.mutate()}
+              className="text-xs h-7 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+              onClick={(e) => {
+                e.preventDefault();
+                markAllAsRead.mutate();
+              }}
             >
               <Check className="h-3 w-3 mr-1" />
               Mark all read
@@ -128,35 +157,51 @@ export const NotificationDropdown = () => {
           )}
         </div>
         
-        {notifications?.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground">
-            No notifications yet
-          </div>
-        ) : (
-          notifications?.map((notification: any) => (
-            <DropdownMenuItem
-              key={notification.id}
-              className={`flex items-start gap-3 p-3 cursor-pointer ${!notification.read ? 'bg-accent/10' : ''}`}
-              onClick={() => handleNotificationClick(notification)}
-            >
-              <div className="mt-1">
+        <div className="py-2">
+          {notifications?.length === 0 ? (
+            <div className="py-12 px-4 text-center">
+              <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <p className="text-slate-900 font-medium">No notifications yet</p>
+              <p className="text-sm text-slate-500">We'll let you know when something arrives.</p>
+            </div>
+          ) : (
+            notifications?.map((notification: any) => (
+              <DropdownMenuItem
+                key={notification.id}
+                className={`flex items-start gap-4 px-4 py-3 cursor-pointer focus:bg-slate-50 transition-colors border-l-2 ${
+                  !notification.read 
+                    ? 'border-blue-500 bg-blue-50/10' 
+                    : 'border-transparent'
+                }`}
+                onClick={() => handleNotificationClick(notification)}
+              >
                 {getNotificationIcon(notification.type)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{notification.title}</p>
-                {notification.message && (
-                  <p className="text-xs text-muted-foreground truncate">{notification.message}</p>
+                
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="text-sm text-slate-900 leading-snug">
+                    <span className="font-semibold">{notification.title}</span>
+                  </p>
+                  
+                  {notification.message && (
+                    <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
+                      {notification.message}
+                    </p>
+                  )}
+                  
+                  <p className="text-xs text-slate-400 font-medium pt-1">
+                    {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                  </p>
+                </div>
+                
+                {!notification.read && (
+                  <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 self-center" />
                 )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                </p>
-              </div>
-              {!notification.read && (
-                <div className="w-2 h-2 rounded-full bg-accent mt-2" />
-              )}
-            </DropdownMenuItem>
-          ))
-        )}
+              </DropdownMenuItem>
+            ))
+          )}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

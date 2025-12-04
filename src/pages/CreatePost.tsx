@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Loader2, Image as ImageIcon, PenLine, FileText, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { format } from 'date-fns';
@@ -250,180 +250,196 @@ const CreatePost = () => {
   }
 
   return (
-    <div className="min-h-screen">
-      <Header />
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100">
       
-      <main className="container py-12 px-4">
-        <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl sm:text-3xl font-serif">{editId ? 'Edit Your Story' : 'Write Your Story'}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Title */}
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Give your story a compelling title..."
-                    className="text-lg sm:text-xl font-serif"
-                    required
-                  />
-                </div>
+      {/* Background Dot Pattern */}
+      <div className="fixed inset-0 z-0 pointer-events-none" 
+           style={{
+             backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
+             backgroundSize: '24px 24px'
+           }}>
+      </div>
 
-                {/* Slug preview */}
-                <div className="space-y-2">
-                  <Label>Slug *</Label>
-                  <Input
-                    value={title ? generateSlug().split('/').pop() : ''}
-                    readOnly
-                    className="bg-muted"
-                    placeholder="auto-generated-from-title"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Full URL: /post/{title ? generateSlug() : 'dd/mm/yyyy/your-title'}
-                  </p>
-                </div>
+      <div className="relative z-10">
+        <Header />
+        
+        <main className="container mx-auto py-12 px-4">
+          <div className="max-w-4xl mx-auto">
+            
+            {/* Header Section */}
+            <div className="mb-8 flex items-center gap-3">
+              <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center text-blue-600">
+                <PenLine size={24} />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+                  {editId ? 'Edit Your Story' : 'Write Your Story'}
+                </h1>
+                <p className="text-slate-500">Share your thoughts with the world</p>
+              </div>
+            </div>
 
-                {/* Excerpt */}
-                <div className="space-y-2">
-                  <Label htmlFor="excerpt">Excerpt *</Label>
-                  <Textarea
-                    id="excerpt"
-                    value={excerpt}
-                    onChange={(e) => setExcerpt(e.target.value)}
-                    placeholder="Write a brief summary of your post..."
-                    className="min-h-[80px]"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    If left empty, the first 200 characters of content will be used
-                  </p>
-                </div>
-
-                {/* Featured Image */}
-                <div className="space-y-2">
-                  <Label>Featured Image</Label>
-                  {featuredImageUrl ? (
-                    <div className="relative w-full max-w-md">
-                      <img
-                        src={featuredImageUrl}
-                        alt="Featured"
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                      <button
-                        type="button"
-                        onClick={removeFeaturedImage}
-                        className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <label htmlFor="featured-upload" className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-md cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors">
-                        <ImageIcon className="h-4 w-4" />
-                        Upload Featured Image
-                      </label>
-                      <input
-                        id="featured-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFeaturedImageSelect}
-                        className="hidden"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Category */}
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category ID</Label>
-                    <Select value={categoryId} onValueChange={setCategoryId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories?.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* Main Metadata Card */}
+              <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-2 text-slate-900 font-semibold">
+                    <FileText className="w-4 h-4 text-blue-500" />
+                    Story Details
                   </div>
-
-                  {/* Read Time */}
+                </CardHeader>
+                <CardContent className="pt-6 space-y-6">
+                  {/* Title */}
                   <div className="space-y-2">
-                    <Label htmlFor="readTime">Read Time (minutes) *</Label>
+                    <Label htmlFor="title" className="text-slate-700 font-medium">Title</Label>
                     <Input
-                      id="readTime"
-                      type="number"
-                      min={1}
-                      max={60}
-                      value={readTime}
-                      onChange={(e) => setReadTime(parseInt(e.target.value) || 5)}
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Give your story a compelling title..."
+                      className="text-lg bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 py-6"
+                      required
                     />
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Status */}
+                  {/* Slug preview */}
                   <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select value={status} onValueChange={(value: any) => setStatus(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="published">Published</SelectItem>
-                        <SelectItem value="archived">Archived</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Published Toggle */}
-                  <div className="space-y-2">
-                    <Label>Published</Label>
-                    <div className="flex items-center gap-3 pt-2">
-                      <Switch
-                        checked={isPublished}
-                        onCheckedChange={(checked) => {
-                          setIsPublished(checked);
-                          if (checked) setStatus('published');
-                        }}
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        {isPublished ? 'Yes' : 'No'}
+                    <Label className="text-slate-700 font-medium flex items-center gap-2">
+                      <Globe className="w-3 h-3 text-slate-400" /> URL Preview
+                    </Label>
+                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-sm text-slate-500">
+                      <span className="select-none text-slate-400">chronicle.com/post/</span>
+                      <span className="text-slate-700 font-medium truncate ml-1">
+                        {title ? generateSlug() : 'dd/mm/yyyy/your-title'}
                       </span>
                     </div>
                   </div>
-                </div>
 
-                {/* Content */}
-                <div className="space-y-2">
-                  <Label htmlFor="content">Blog Post Content</Label>
-                  <RichTextEditor
+                  {/* Excerpt */}
+                  <div className="space-y-2">
+                    <Label htmlFor="excerpt" className="text-slate-700 font-medium">Excerpt</Label>
+                    <Textarea
+                      id="excerpt"
+                      value={excerpt}
+                      onChange={(e) => setExcerpt(e.target.value)}
+                      placeholder="Write a brief summary of your post..."
+                      className="min-h-[80px] bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
+                    />
+                    <p className="text-xs text-slate-400">
+                      If left empty, the first 200 characters of content will be used
+                    </p>
+                  </div>
+
+                  {/* Featured Image */}
+                  <div className="space-y-3">
+                    <Label className="text-slate-700 font-medium">Featured Image</Label>
+                    
+                    {featuredImageUrl ? (
+                      <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 group">
+                        <img
+                          src={featuredImageUrl}
+                          alt="Featured"
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={removeFeaturedImage}
+                            className="rounded-full"
+                          >
+                            <X className="h-4 w-4 mr-2" /> Remove Image
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:bg-slate-50 hover:border-blue-300 transition-colors">
+                        <input
+                          id="featured-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFeaturedImageSelect}
+                          className="hidden"
+                        />
+                        <label htmlFor="featured-upload" className="cursor-pointer flex flex-col items-center gap-3">
+                          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                            <ImageIcon className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">Click to upload cover image</p>
+                            <p className="text-xs text-slate-500">SVG, PNG, JPG or GIF (max. 800x400px)</p>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Settings Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    {/* Category */}
+                    <div className="space-y-2">
+                      <Label htmlFor="category" className="text-slate-700 font-medium">Category</Label>
+                      <Select value={categoryId} onValueChange={setCategoryId}>
+                        <SelectTrigger className="bg-slate-50 border-slate-200">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories?.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Read Time */}
+                    <div className="space-y-2">
+                      <Label htmlFor="readTime" className="text-slate-700 font-medium">Read Time (minutes)</Label>
+                      <Input
+                        id="readTime"
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={readTime}
+                        onChange={(e) => setReadTime(parseInt(e.target.value) || 5)}
+                        className="bg-slate-50 border-slate-200"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Editor Section */}
+              <div className="space-y-2">
+                <Label htmlFor="content" className="text-lg font-bold text-slate-900 pl-1">Story Content</Label>
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                   <RichTextEditor
                     content={content}
                     onChange={setContent}
-                    placeholder="Tell your story..."
+                    placeholder="Start writing your story here..."
                   />
                 </div>
+              </div>
 
-                {/* Additional Images */}
-                <div className="space-y-4">
-                  <Label>Additional Images (Max 5)</Label>
-                  
+              {/* Additional Images Section */}
+              <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-slate-900 font-semibold">
+                      <ImageIcon className="w-4 h-4 text-purple-500" />
+                      Additional Images
+                    </div>
+                    <span className="text-xs text-slate-500 font-medium bg-slate-200 px-2 py-1 rounded-full">
+                      {images.length}/5
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
                   {images.length < 5 && (
-                    <div>
-                      <label htmlFor="image-upload" className="inline-flex items-center gap-2 px-4 py-2 border border-input rounded-md cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors">
-                        <Upload className="h-4 w-4" />
-                        Upload Images
-                      </label>
+                    <div className="mb-4">
                       <input
                         id="image-upload"
                         type="file"
@@ -432,34 +448,102 @@ const CreatePost = () => {
                         onChange={handleImageSelect}
                         className="hidden"
                       />
+                      <label 
+                        htmlFor="image-upload" 
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 text-slate-700 font-medium transition-colors text-sm shadow-sm"
+                      >
+                        <Upload className="h-4 w-4" />
+                        Upload Gallery Images
+                      </label>
                     </div>
                   )}
 
-                  {images.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {images.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {images.map((file, index) => (
-                        <div key={index} className="relative group">
+                        <div key={index} className="relative group rounded-lg overflow-hidden border border-slate-100 shadow-sm aspect-square">
                           <img
                             src={URL.createObjectURL(file)}
                             alt={`Upload ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg"
+                            className="w-full h-full object-cover"
                           />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="p-1.5 bg-white text-red-500 rounded-full hover:bg-red-50 transition-colors"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
+                  ) : (
+                    <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
+                      No gallery images added yet
+                    </div>
                   )}
-                </div>
+                </CardContent>
+              </Card>
 
+              {/* Publication Settings */}
+              <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div className="space-y-1">
+                      <Label className="text-slate-900 font-semibold">Publish Settings</Label>
+                      <p className="text-sm text-slate-500">Manage visibility and status</p>
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row gap-6 sm:justify-end">
+                       {/* Status Dropdown */}
+                       <div className="flex items-center gap-2">
+                        <Label htmlFor="status" className="text-slate-600 text-sm">Status:</Label>
+                        <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+                          <SelectTrigger className="w-[130px] h-9 text-sm bg-slate-50 border-slate-200">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="published">Published</SelectItem>
+                            <SelectItem value="archived">Archived</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Published Toggle */}
+                      <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                        <Switch
+                          checked={isPublished}
+                          onCheckedChange={(checked) => {
+                            setIsPublished(checked);
+                            if (checked) setStatus('published');
+                          }}
+                        />
+                        <span className="text-sm font-medium text-slate-700">
+                          {isPublished ? 'Publish Immediately' : 'Save as Draft'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end pt-4 pb-20">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mr-4 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  onClick={() => navigate(-1)}
+                >
+                  Cancel
+                </Button>
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-accent"
+                  size="lg"
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 rounded-xl px-8"
                   disabled={uploading || !title.trim() || !content.trim()}
                 >
                   {uploading ? (
@@ -471,11 +555,12 @@ const CreatePost = () => {
                     editId ? 'Update Post' : 'Publish Post'
                   )}
                 </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+              </div>
+
+            </form>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

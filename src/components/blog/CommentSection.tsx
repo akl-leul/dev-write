@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, Reply, Trash2, Edit2 } from 'lucide-react';
+import { Heart, Reply, Trash2, Edit2, MessageCircle, Send, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
@@ -228,71 +228,77 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
     const isReplying = replyTo === comment.id;
 
     return (
-      <div key={comment.id} className={`${depth > 0 ? 'ml-8 border-l-2 border-border pl-4' : ''} mb-6`}>
-        <div className="flex gap-3">
-          <Avatar className="h-10 w-10">
+      <div key={comment.id} className={`${depth > 0 ? 'ml-6 sm:ml-12 border-l-2 border-slate-100 pl-4 sm:pl-6' : ''} mb-6 transition-all`}>
+        <div className="flex gap-4 group">
+          <Avatar className="h-10 w-10 border border-white shadow-sm ring-1 ring-slate-100 flex-shrink-0">
             <AvatarImage src={comment.profiles?.profile_image_url || ''} />
-            <AvatarFallback className="bg-primary text-primary-foreground">
+            <AvatarFallback className="bg-slate-100 text-slate-500 font-bold">
               {comment.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-medium">{comment.profiles?.full_name}</span>
-              <span className="text-xs text-muted-foreground">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="font-bold text-slate-900 text-sm">{comment.profiles?.full_name}</span>
+              <span className="text-xs text-slate-400">
                 {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
               </span>
             </div>
             
             {isEditing ? (
-              <div className="space-y-2">
+              <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
                 <Textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="min-h-[80px]"
+                  className="min-h-[80px] bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                 />
-                <div className="flex gap-2">
-                  <Button
+                <div className="flex gap-2 justify-end">
+                   <Button
                     size="sm"
-                    onClick={() => updateComment.mutate({ id: comment.id, content: editContent })}
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => {
                       setEditingId(null);
                       setEditContent('');
                     }}
+                    className="text-slate-500 hover:text-slate-900"
                   >
                     Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => updateComment.mutate({ id: comment.id, content: editContent })}
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  >
+                    Save Changes
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="prose prose-sm max-w-none mb-3">
+              <div className="prose prose-sm prose-slate max-w-none mb-2 text-slate-700 leading-relaxed">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {comment.content_markdown}
                 </ReactMarkdown>
               </div>
             )}
             
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-4 text-xs font-medium">
               <button
                 onClick={() => handleLikeClick(comment.id)}
-                className={`flex items-center gap-1 ${isLiked ? 'text-accent' : 'text-muted-foreground'} hover:text-accent transition-colors`}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ${
+                  isLiked 
+                    ? 'text-red-500 bg-red-50' 
+                    : 'text-slate-500 hover:text-red-500 hover:bg-red-50'
+                }`}
               >
-                <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+                <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-current' : ''}`} />
                 <span>{comment.comment_likes?.length || 0}</span>
               </button>
               
               <button
                 onClick={() => handleReplyClick(comment.id)}
-                className="flex items-center gap-1 text-muted-foreground hover:text-accent transition-colors"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-full text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
               >
-                <Reply className="h-4 w-4" />
+                <Reply className="h-3.5 w-3.5" />
                 Reply
               </button>
               
@@ -303,9 +309,9 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                       setEditingId(comment.id);
                       setEditContent(comment.content_markdown);
                     }}
-                    className="flex items-center gap-1 text-muted-foreground hover:text-accent transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-full text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors ml-auto sm:ml-0"
                   >
-                    <Edit2 className="h-4 w-4" />
+                    <Edit2 className="h-3.5 w-3.5" />
                     Edit
                   </button>
                   <button
@@ -314,9 +320,9 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                         deleteComment.mutate(comment.id);
                       }
                     }}
-                    className="flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-full text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                     Delete
                   </button>
                 </>
@@ -324,30 +330,37 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
             </div>
             
             {isReplying && (
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                  <span>Replying to <span className="font-bold text-slate-700">{comment.profiles?.full_name}</span></span>
+                  <button onClick={() => setReplyTo(null)} className="hover:text-slate-900"><X className="w-3 h-3" /></button>
+                </div>
                 <Textarea
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder="Write a reply..."
-                  className="min-h-[80px]"
+                  className="min-h-[80px] bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                  autoFocus
                 />
-                <div className="flex gap-2">
-                  <Button
+                <div className="flex gap-2 justify-end">
+                   <Button
                     size="sm"
-                    onClick={() => createComment.mutate({ content: replyContent, parentId: comment.id })}
-                    disabled={!replyContent.trim()}
-                  >
-                    Reply
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => {
                       setReplyTo(null);
                       setReplyContent('');
                     }}
+                    className="text-slate-500 hover:text-slate-900"
                   >
                     Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => createComment.mutate({ content: replyContent, parentId: comment.id })}
+                    disabled={!replyContent.trim()}
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  >
+                    Reply
                   </Button>
                 </div>
               </div>
@@ -356,7 +369,8 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
         </div>
         
         {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-4">
+          <div className="mt-4 relative">
+             {/* Visual connector line for nested comments could go here if desired */}
             {comment.replies.map(reply => renderComment(reply, depth + 1))}
           </div>
         )}
@@ -365,65 +379,78 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-serif font-bold mb-6">
-        Comments ({comments?.length || 0})
-      </h2>
+    <div className="py-6 sm:py-10 px-6 sm:px-10">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
+           <MessageCircle className="w-6 h-6" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900">
+          Comments <span className="text-slate-400 text-lg font-normal ml-1">({comments?.length || 0})</span>
+        </h2>
+      </div>
       
       {/* Comment input - show for all users */}
-      <div className="mb-8">
+      <div className="mb-10 relative">
         <Textarea
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
-          placeholder={user ? "Share your thoughts..." : "Log in to comment..."}
-          className="mb-3 min-h-[120px]"
+          placeholder={user ? "Share your thoughts on this story..." : "Sign in to join the conversation..."}
+          className="min-h-[120px] bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-2xl resize-y p-4 text-base shadow-sm"
           onClick={() => !user && setShowAuthDialog(true)}
         />
-        <Button
-          onClick={handleCommentAction}
-          disabled={!newComment.trim()}
-          className="bg-gradient-accent"
-        >
-          Post Comment
-        </Button>
+        <div className="absolute bottom-4 right-4">
+           <Button
+            onClick={handleCommentAction}
+            disabled={!newComment.trim()}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md shadow-blue-600/20"
+          >
+            <Send className="w-4 h-4 mr-2" />
+            Post Comment
+          </Button>
+        </div>
       </div>
       
       {isLoading ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="animate-pulse flex gap-3">
-              <div className="h-10 w-10 rounded-full bg-muted"></div>
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-muted rounded w-1/4"></div>
-                <div className="h-3 bg-muted rounded w-full"></div>
-                <div className="h-3 bg-muted rounded w-3/4"></div>
+            <div key={i} className="animate-pulse flex gap-4">
+              <div className="h-10 w-10 rounded-full bg-slate-200"></div>
+              <div className="flex-1 space-y-3">
+                <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+                <div className="h-4 bg-slate-200 rounded w-full"></div>
+                <div className="h-4 bg-slate-200 rounded w-2/3"></div>
               </div>
             </div>
           ))}
         </div>
       ) : comments && comments.length > 0 ? (
-        <div>
+        <div className="space-y-2">
           {comments.map(comment => renderComment(comment))}
         </div>
       ) : (
-        <p className="text-center text-muted-foreground py-8">
-          No comments yet. Be the first to share your thoughts!
-        </p>
+        <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+          <MessageCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-900 font-medium">No comments yet</p>
+          <p className="text-slate-500 text-sm">Be the first to share your thoughts!</p>
+        </div>
       )}
 
       {/* Auth Required Dialog */}
       <AlertDialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl border-slate-100 shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Account Required</AlertDialogTitle>
-            <AlertDialogDescription>
-              Please create an account to comment on this post. Join our community to share your thoughts and engage with others.
+            <AlertDialogTitle className="text-xl font-bold text-slate-900">Join the Conversation</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500">
+              Please create an account or sign in to comment on this post. Join our community to share your thoughts and engage with others.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => navigate('/auth')}>
-              Create Account
+            <AlertDialogCancel className="rounded-xl border-slate-200">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => navigate('/auth')}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+            >
+              Sign In / Sign Up
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

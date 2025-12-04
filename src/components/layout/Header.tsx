@@ -10,7 +10,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PenSquare, User, LogOut, Home, FileText, Search, Menu, X, BarChart3, Bookmark } from 'lucide-react';
+import { 
+  PenLine, 
+  User, 
+  LogOut, 
+  Home, 
+  FileText, 
+  Search, 
+  Menu, 
+  X, 
+  BarChart3, 
+  Bookmark,
+  Settings,
+  Sparkles
+} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
@@ -52,152 +65,38 @@ export const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center space-x-2">
-          <h1 className="text-xl sm:text-2xl font-serif font-bold">Chronicle</h1>
-        </Link>
+    // Floating Header Wrapper
+    <div className="sticky top-4 z-50 px-4 md:px-0 mb-8 pointer-events-none">
+      <div className="max-w-6xl mx-auto pointer-events-auto">
+        <header className="bg-white/85 backdrop-blur-xl border border-white/20 shadow-xl shadow-slate-200/20 rounded-2xl supports-[backdrop-filter]:bg-white/60 relative">
+          <div className="container mx-auto flex h-16 items-center justify-between px-4">
+            
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform duration-200">
+                <PenLine size={18} />
+              </div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900">Chronicle</h1>
+            </Link>
 
-        {/* Desktop Search */}
-        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-8">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search posts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </form>
-
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-2">
-          <Link to="/feed">
-            <Button variant="ghost" size="sm">
-              <Home className="mr-2 h-4 w-4" />
-              Feed
-            </Button>
-          </Link>
-
-          {user ? (
-            <>
-              <Link to="/my-posts">
-                <Button variant="ghost" size="sm">
-                  <FileText className="mr-2 h-4 w-4" />
-                  My Posts
-                </Button>
-              </Link>
-              
-              <Link to="/analytics">
-                <Button variant="ghost" size="sm">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Analytics
-                </Button>
-              </Link>
-              
-              <Link to="/bookmarks">
-                <Button variant="ghost" size="sm">
-                  <Bookmark className="mr-2 h-4 w-4" />
-                  Bookmarks
-                </Button>
-              </Link>
-              
-              <Link to="/create">
-                <Button size="sm" className="bg-gradient-accent">
-                  <PenSquare className="mr-2 h-4 w-4" />
-                  Write
-                </Button>
-              </Link>
-
-              <NotificationDropdown />
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={profile?.profile_image_url || ''} />
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {profile?.full_name?.[0]?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{profile?.full_name}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
-                    </div>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/analytics')}>
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    Analytics
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/bookmarks')}>
-                    <Bookmark className="mr-2 h-4 w-4" />
-                    Bookmarks
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <Link to="/auth">
-                <Button variant="ghost" size="sm">Sign In</Button>
-              </Link>
-              <Link to="/auth?mode=signup">
-                <Button size="sm" className="bg-gradient-accent">Get Started</Button>
-              </Link>
-            </>
-          )}
-        </nav>
-
-        {/* Mobile Menu Button */}
-        <div className="flex items-center gap-2 md:hidden">
-          {user && <NotificationDropdown />}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t bg-background">
-          <div className="container p-4 space-y-4">
-            {/* Mobile Search */}
-            <form onSubmit={handleSearch}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            {/* Desktop Search */}
+            <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-8">
+              <div className="relative w-full group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                 <Input
                   type="search"
-                  placeholder="Search posts..."
+                  placeholder="Search stories..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-slate-50/50 border-slate-200/60 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl transition-all"
                 />
               </div>
             </form>
 
-            <nav className="flex flex-col gap-2">
-              <Link to="/feed" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="ghost" size="sm" className="w-full justify-start">
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex items-center gap-1">
+              <Link to="/feed">
+                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg">
                   <Home className="mr-2 h-4 w-4" />
                   Feed
                 </Button>
@@ -205,65 +104,203 @@ export const Header = () => {
 
               {user ? (
                 <>
-                  <Link to="/my-posts" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                  <Link to="/my-posts">
+                    <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg">
                       <FileText className="mr-2 h-4 w-4" />
                       My Posts
                     </Button>
                   </Link>
                   
-                  <Link to="/analytics" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">
-                      <BarChart3 className="mr-2 h-4 w-4" />
-                      Analytics
+                  <Link to="/bookmarks">
+                    <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg" title="Bookmarks">
+                      <Bookmark className="h-5 w-5" />
                     </Button>
                   </Link>
-                  
-                  <Link to="/bookmarks" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">
-                      <Bookmark className="mr-2 h-4 w-4" />
-                      Bookmarks
-                    </Button>
-                  </Link>
-                  
-                  <Link to="/create" onClick={() => setMobileMenuOpen(false)}>
-                    <Button size="sm" className="w-full justify-start bg-gradient-accent">
-                      <PenSquare className="mr-2 h-4 w-4" />
+
+                  <div className="h-6 w-px bg-slate-200 mx-2" />
+
+                  <Link to="/create">
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 mr-2">
+                      <Sparkles className="mr-2 h-4 w-4" />
                       Write
                     </Button>
                   </Link>
 
-                  <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </Button>
-                  </Link>
+                  <NotificationDropdown />
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={handleSignOut}
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="relative h-10 w-10 rounded-full ml-1 hover:bg-transparent px-0">
+                        <Avatar className="h-9 w-9 border border-white shadow-sm transition-transform hover:scale-105">
+                          <AvatarImage src={profile?.profile_image_url || ''} />
+                          <AvatarFallback className="bg-slate-900 text-white font-medium">
+                            {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-60 rounded-xl border-slate-100 shadow-xl p-2 bg-white mt-2">
+                      <div className="flex items-center justify-start gap-3 p-3 bg-slate-50 rounded-lg mb-2">
+                        <Avatar className="h-10 w-10 border border-white shadow-sm">
+                          <AvatarImage src={profile?.profile_image_url || ''} />
+                          <AvatarFallback className="bg-slate-900 text-white">
+                            {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col overflow-hidden">
+                          <p className="text-sm font-bold text-slate-900 truncate">{profile?.full_name}</p>
+                          <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                        </div>
+                      </div>
+                      
+                      <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-lg cursor-pointer focus:bg-slate-50">
+                        <User className="mr-2 h-4 w-4 text-slate-500" />
+                        Profile Settings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/analytics')} className="rounded-lg cursor-pointer focus:bg-slate-50">
+                        <BarChart3 className="mr-2 h-4 w-4 text-slate-500" />
+                        Analytics Dashboard
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/bookmarks')} className="rounded-lg cursor-pointer focus:bg-slate-50">
+                        <Bookmark className="mr-2 h-4 w-4 text-slate-500" />
+                        Saved Stories
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator className="bg-slate-100 my-2" />
+                      
+                      <DropdownMenuItem onClick={handleSignOut} className="rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-600 text-red-500">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               ) : (
                 <>
-                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">Sign In</Button>
+                  <div className="h-6 w-px bg-slate-200 mx-2" />
+                  <Link to="/auth">
+                    <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg">Sign In</Button>
                   </Link>
-                  <Link to="/auth?mode=signup" onClick={() => setMobileMenuOpen(false)}>
-                    <Button size="sm" className="w-full justify-start bg-gradient-accent">Get Started</Button>
+                  <Link to="/auth?mode=signup">
+                    <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg">Get Started</Button>
                   </Link>
                 </>
               )}
             </nav>
+
+            {/* Mobile Menu Button */}
+            <div className="flex items-center gap-2 md:hidden">
+              {user && <NotificationDropdown />}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
-    </header>
+        </header>
+
+        {/* Floating Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden mt-2 animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className="bg-white/95 backdrop-blur-xl border border-slate-100 rounded-2xl shadow-xl p-4 overflow-hidden">
+              {/* Mobile Search */}
+              <form onSubmit={handleSearch} className="mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    type="search"
+                    placeholder="Search posts..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-slate-50 border-slate-200 rounded-xl"
+                  />
+                </div>
+              </form>
+
+              <nav className="flex flex-col gap-1">
+                <Link to="/feed" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
+                    <Home className="mr-3 h-5 w-5 text-slate-400" />
+                    Feed
+                  </Button>
+                </Link>
+
+                {user ? (
+                  <>
+                    <Link to="/create" onClick={() => setMobileMenuOpen(false)}>
+                      <Button size="sm" className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 h-10 mb-2">
+                        <Sparkles className="mr-3 h-5 w-5" />
+                        Write New Story
+                      </Button>
+                    </Link>
+
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 py-2 mt-2">
+                      Library
+                    </div>
+
+                    <Link to="/my-posts" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
+                        <FileText className="mr-3 h-5 w-5 text-slate-400" />
+                        My Posts
+                      </Button>
+                    </Link>
+                    
+                    <Link to="/bookmarks" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
+                        <Bookmark className="mr-3 h-5 w-5 text-slate-400" />
+                        Bookmarks
+                      </Button>
+                    </Link>
+
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 py-2 mt-2">
+                      Account
+                    </div>
+                    
+                    <Link to="/analytics" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
+                        <BarChart3 className="mr-3 h-5 w-5 text-slate-400" />
+                        Analytics
+                      </Button>
+                    </Link>
+
+                    <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
+                        <Settings className="mr-3 h-5 w-5 text-slate-400" />
+                        Profile Settings
+                      </Button>
+                    </Link>
+
+                    <div className="border-t border-slate-100 my-2 pt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl h-10"
+                        onClick={handleSignOut}
+                      >
+                        <LogOut className="mr-3 h-5 w-5" />
+                        Sign out
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" size="sm" className="w-full border-slate-200 rounded-xl">Sign In</Button>
+                    </Link>
+                    <Link to="/auth?mode=signup" onClick={() => setMobileMenuOpen(false)}>
+                      <Button size="sm" className="w-full bg-slate-900 text-white rounded-xl">Get Started</Button>
+                    </Link>
+                  </div>
+                )}
+              </nav>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };

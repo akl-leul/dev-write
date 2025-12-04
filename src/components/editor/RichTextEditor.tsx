@@ -69,12 +69,12 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-accent underline',
+          class: 'text-blue-600 underline hover:text-blue-800 transition-colors cursor-pointer',
         },
       }),
       Image.configure({
         HTMLAttributes: {
-          class: 'rounded-lg max-w-full h-auto my-4',
+          class: 'rounded-2xl max-w-full h-auto my-6 shadow-md border border-slate-100',
         },
       }),
       TextAlign.configure({
@@ -92,7 +92,7 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
     content,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg max-w-none focus:outline-none min-h-[400px] px-4 py-3',
+        class: 'prose prose-slate prose-lg max-w-none focus:outline-none min-h-[400px] px-6 py-4 prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-a:text-blue-600 prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-img:rounded-2xl',
       },
     },
     onUpdate: ({ editor }) => {
@@ -141,7 +141,11 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
       size="sm"
       onClick={onClick}
       disabled={disabled}
-      className={`h-8 w-8 p-0 ${isActive ? 'bg-accent text-accent-foreground' : ''}`}
+      className={`h-8 w-8 p-1.5 rounded-md transition-colors ${
+        isActive 
+          ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800' 
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       title={title}
     >
       {children}
@@ -149,320 +153,322 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
   );
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-background">
-      {/* WordPress-style Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 p-2 border-b bg-muted/30">
-        {/* Text Formatting Group */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          isActive={editor.isActive('bold')}
-          title="Bold (Ctrl+B)"
-        >
-          <Bold className="h-4 w-4" />
-        </ToolbarButton>
+    <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+      {/* Modern Toolbar */}
+      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-slate-100 bg-slate-50/50 sticky top-0 z-10 backdrop-blur-sm">
         
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          isActive={editor.isActive('italic')}
-          title="Italic (Ctrl+I)"
-        >
-          <Italic className="h-4 w-4" />
-        </ToolbarButton>
-        
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          isActive={editor.isActive('underline')}
-          title="Underline (Ctrl+U)"
-        >
-          <UnderlineIcon className="h-4 w-4" />
-        </ToolbarButton>
+        {/* History Group */}
+        <div className="flex items-center gap-0.5 mr-1">
+          <ToolbarButton
+            onClick={() => editor.chain().focus().undo().run()}
+            disabled={!editor.can().undo()}
+            title="Undo (Ctrl+Z)"
+          >
+            <Undo className="h-4 w-4" />
+          </ToolbarButton>
+          
+          <ToolbarButton
+            onClick={() => editor.chain().focus().redo().run()}
+            disabled={!editor.can().redo()}
+            title="Redo (Ctrl+Y)"
+          >
+            <Redo className="h-4 w-4" />
+          </ToolbarButton>
+        </div>
 
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          isActive={editor.isActive('strike')}
-          title="Strikethrough"
-        >
-          <Strikethrough className="h-4 w-4" />
-        </ToolbarButton>
+        <Separator orientation="vertical" className="h-5 mx-1 bg-slate-200" />
 
-        <Separator orientation="vertical" className="h-6 mx-1" />
+        {/* Text Style Group */}
+        <div className="flex items-center gap-0.5">
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setParagraph().run()}
+            isActive={editor.isActive('paragraph')}
+            title="Normal Text"
+          >
+            <Type className="h-4 w-4" />
+          </ToolbarButton>
 
-        {/* Headings */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          isActive={editor.isActive('heading', { level: 1 })}
-          title="Heading 1"
-        >
-          <Heading1 className="h-4 w-4" />
-        </ToolbarButton>
-        
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={editor.isActive('heading', { level: 2 })}
-          title="Heading 2"
-        >
-          <Heading2 className="h-4 w-4" />
-        </ToolbarButton>
-        
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          isActive={editor.isActive('heading', { level: 3 })}
-          title="Heading 3"
-        >
-          <Heading3 className="h-4 w-4" />
-        </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            isActive={editor.isActive('heading', { level: 1 })}
+            title="Heading 1"
+          >
+            <Heading1 className="h-4 w-4" />
+          </ToolbarButton>
+          
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            isActive={editor.isActive('heading', { level: 2 })}
+            title="Heading 2"
+          >
+            <Heading2 className="h-4 w-4" />
+          </ToolbarButton>
+        </div>
 
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setParagraph().run()}
-          isActive={editor.isActive('paragraph')}
-          title="Normal Text"
-        >
-          <Type className="h-4 w-4" />
-        </ToolbarButton>
+        <Separator orientation="vertical" className="h-5 mx-1 bg-slate-200" />
 
-        <Separator orientation="vertical" className="h-6 mx-1" />
+        {/* Formatting Group */}
+        <div className="flex items-center gap-0.5">
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            isActive={editor.isActive('bold')}
+            title="Bold (Ctrl+B)"
+          >
+            <Bold className="h-4 w-4" />
+          </ToolbarButton>
+          
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            isActive={editor.isActive('italic')}
+            title="Italic (Ctrl+I)"
+          >
+            <Italic className="h-4 w-4" />
+          </ToolbarButton>
+          
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            isActive={editor.isActive('underline')}
+            title="Underline (Ctrl+U)"
+          >
+            <UnderlineIcon className="h-4 w-4" />
+          </ToolbarButton>
 
-        {/* Lists */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          isActive={editor.isActive('bulletList')}
-          title="Bullet List"
-        >
-          <List className="h-4 w-4" />
-        </ToolbarButton>
-        
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          isActive={editor.isActive('orderedList')}
-          title="Numbered List"
-        >
-          <ListOrdered className="h-4 w-4" />
-        </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleStrike().run()}
+            isActive={editor.isActive('strike')}
+            title="Strikethrough"
+          >
+            <Strikethrough className="h-4 w-4" />
+          </ToolbarButton>
+        </div>
 
-        <Separator orientation="vertical" className="h-6 mx-1" />
+        <Separator orientation="vertical" className="h-5 mx-1 bg-slate-200" />
 
-        {/* Text Alignment */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setTextAlign('left').run()}
-          isActive={editor.isActive({ textAlign: 'left' })}
-          title="Align Left"
-        >
-          <AlignLeft className="h-4 w-4" />
-        </ToolbarButton>
-        
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setTextAlign('center').run()}
-          isActive={editor.isActive({ textAlign: 'center' })}
-          title="Align Center"
-        >
-          <AlignCenter className="h-4 w-4" />
-        </ToolbarButton>
-        
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setTextAlign('right').run()}
-          isActive={editor.isActive({ textAlign: 'right' })}
-          title="Align Right"
-        >
-          <AlignRight className="h-4 w-4" />
-        </ToolbarButton>
-        
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-          isActive={editor.isActive({ textAlign: 'justify' })}
-          title="Justify"
-        >
-          <AlignJustify className="h-4 w-4" />
-        </ToolbarButton>
-
-        <Separator orientation="vertical" className="h-6 mx-1" />
-
-        {/* Quote & Code */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          isActive={editor.isActive('blockquote')}
-          title="Blockquote"
-        >
-          <Quote className="h-4 w-4" />
-        </ToolbarButton>
-        
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          isActive={editor.isActive('codeBlock')}
-          title="Code Block"
-        >
-          <Code className="h-4 w-4" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          title="Horizontal Line"
-        >
-          <Minus className="h-4 w-4" />
-        </ToolbarButton>
-
-        <Separator orientation="vertical" className="h-6 mx-1" />
-
-        {/* Text Color */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              title="Text Color"
-            >
-              <Palette className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-2">
-            <div className="grid grid-cols-10 gap-1">
-              {COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  className="w-5 h-5 rounded border border-border hover:scale-110 transition-transform"
-                  style={{ backgroundColor: color }}
-                  onClick={() => editor.chain().focus().setColor(color).run()}
-                />
-              ))}
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full mt-2"
-              onClick={() => editor.chain().focus().unsetColor().run()}
-            >
-              Remove color
-            </Button>
-          </PopoverContent>
-        </Popover>
-
-        {/* Highlight */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className={`h-8 w-8 p-0 ${editor.isActive('highlight') ? 'bg-accent text-accent-foreground' : ''}`}
-              title="Highlight"
-            >
-              <Highlighter className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-2">
-            <div className="grid grid-cols-8 gap-1">
-              {HIGHLIGHT_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  className="w-5 h-5 rounded border border-border hover:scale-110 transition-transform"
-                  style={{ backgroundColor: color }}
-                  onClick={() => editor.chain().focus().toggleHighlight({ color }).run()}
-                />
-              ))}
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full mt-2"
-              onClick={() => editor.chain().focus().unsetHighlight().run()}
-            >
-              Remove highlight
-            </Button>
-          </PopoverContent>
-        </Popover>
-
-        <Separator orientation="vertical" className="h-6 mx-1" />
-
-        {/* Link */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className={`h-8 w-8 p-0 ${editor.isActive('link') ? 'bg-accent text-accent-foreground' : ''}`}
-              title="Insert Link"
-            >
-              <LinkIcon className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72 p-3">
-            <div className="space-y-2">
-              <Input
-                type="url"
-                placeholder="https://example.com"
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-              />
-              <div className="flex gap-2">
-                <Button type="button" size="sm" onClick={addLink}>
-                  Add Link
-                </Button>
-                {editor.isActive('link') && (
-                  <Button type="button" variant="outline" size="sm" onClick={removeLink}>
-                    Remove
-                  </Button>
-                )}
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Image */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              title="Insert Image"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72 p-3">
-            <div className="space-y-2">
-              <Input
-                type="url"
-                placeholder="Image URL"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-              />
-              <Button type="button" size="sm" onClick={addImage}>
-                Insert Image
+        {/* Color & Highlight */}
+        <div className="flex items-center gap-0.5">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-slate-600 hover:bg-slate-100 rounded-md"
+                title="Text Color"
+              >
+                <Palette className="h-4 w-4" />
               </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-3 rounded-xl border-slate-100 shadow-xl">
+              <div className="grid grid-cols-5 gap-2">
+                {COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className="w-6 h-6 rounded-full border border-slate-200 hover:scale-110 transition-transform shadow-sm"
+                    style={{ backgroundColor: color }}
+                    onClick={() => editor.chain().focus().setColor(color).run()}
+                    title={color}
+                  />
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full mt-3 text-xs text-slate-500 hover:text-slate-900"
+                onClick={() => editor.chain().focus().unsetColor().run()}
+              >
+                Reset Color
+              </Button>
+            </PopoverContent>
+          </Popover>
 
-        <Separator orientation="vertical" className="h-6 mx-1" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={`h-8 w-8 p-0 rounded-md ${editor.isActive('highlight') ? 'bg-yellow-100 text-yellow-700' : 'text-slate-600 hover:bg-slate-100'}`}
+                title="Highlight"
+              >
+                <Highlighter className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-3 rounded-xl border-slate-100 shadow-xl">
+              <div className="grid grid-cols-4 gap-2">
+                {HIGHLIGHT_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className="w-6 h-6 rounded-full border border-slate-200 hover:scale-110 transition-transform shadow-sm"
+                    style={{ backgroundColor: color }}
+                    onClick={() => editor.chain().focus().toggleHighlight({ color }).run()}
+                  />
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full mt-3 text-xs text-slate-500 hover:text-slate-900"
+                onClick={() => editor.chain().focus().unsetHighlight().run()}
+              >
+                No Highlight
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </div>
 
-        {/* Undo/Redo */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().undo()}
-          title="Undo (Ctrl+Z)"
-        >
-          <Undo className="h-4 w-4" />
-        </ToolbarButton>
-        
-        <ToolbarButton
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().redo()}
-          title="Redo (Ctrl+Y)"
-        >
-          <Redo className="h-4 w-4" />
-        </ToolbarButton>
+        <Separator orientation="vertical" className="h-5 mx-1 bg-slate-200" />
+
+        {/* Alignment */}
+        <div className="flex items-center gap-0.5">
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('left').run()}
+            isActive={editor.isActive({ textAlign: 'left' })}
+            title="Align Left"
+          >
+            <AlignLeft className="h-4 w-4" />
+          </ToolbarButton>
+          
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('center').run()}
+            isActive={editor.isActive({ textAlign: 'center' })}
+            title="Align Center"
+          >
+            <AlignCenter className="h-4 w-4" />
+          </ToolbarButton>
+          
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign('right').run()}
+            isActive={editor.isActive({ textAlign: 'right' })}
+            title="Align Right"
+          >
+            <AlignRight className="h-4 w-4" />
+          </ToolbarButton>
+        </div>
+
+        <Separator orientation="vertical" className="h-5 mx-1 bg-slate-200" />
+
+        {/* Lists & Indent */}
+        <div className="flex items-center gap-0.5">
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            isActive={editor.isActive('bulletList')}
+            title="Bullet List"
+          >
+            <List className="h-4 w-4" />
+          </ToolbarButton>
+          
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            isActive={editor.isActive('orderedList')}
+            title="Numbered List"
+          >
+            <ListOrdered className="h-4 w-4" />
+          </ToolbarButton>
+          
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            isActive={editor.isActive('blockquote')}
+            title="Blockquote"
+          >
+            <Quote className="h-4 w-4" />
+          </ToolbarButton>
+        </div>
+
+        <Separator orientation="vertical" className="h-5 mx-1 bg-slate-200" />
+
+        {/* Inserts */}
+        <div className="flex items-center gap-0.5">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={`h-8 w-8 p-0 rounded-md ${editor.isActive('link') ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`}
+                title="Insert Link"
+              >
+                <LinkIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4 rounded-xl border-slate-100 shadow-xl">
+              <div className="space-y-3">
+                <Input
+                  type="url"
+                  placeholder="https://example.com"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  className="bg-slate-50 border-slate-200"
+                />
+                <div className="flex gap-2 justify-end">
+                  {editor.isActive('link') && (
+                    <Button type="button" variant="outline" size="sm" onClick={removeLink} className="text-red-500 hover:bg-red-50 hover:text-red-600 border-slate-200">
+                      Unlink
+                    </Button>
+                  )}
+                  <Button type="button" size="sm" onClick={addLink} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    Save Link
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-slate-600 hover:bg-slate-100 rounded-md"
+                title="Insert Image"
+              >
+                <ImageIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4 rounded-xl border-slate-100 shadow-xl">
+              <div className="space-y-3">
+                <Input
+                  type="url"
+                  placeholder="https://image-url.com/image.png"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="bg-slate-50 border-slate-200"
+                />
+                <div className="flex justify-end">
+                  <Button type="button" size="sm" onClick={addImage} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    Insert Image
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            isActive={editor.isActive('codeBlock')}
+            title="Code Block"
+          >
+            <Code className="h-4 w-4" />
+          </ToolbarButton>
+
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            title="Horizontal Line"
+          >
+            <Minus className="h-4 w-4" />
+          </ToolbarButton>
+        </div>
       </div>
       
-      {/* Editor */}
-      <EditorContent editor={editor} className="[&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0 [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" />
+      {/* Editor Content */}
+      <EditorContent 
+        editor={editor} 
+        className="bg-white min-h-[400px] cursor-text [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-slate-400 [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0 [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" 
+      />
     </div>
   );
 };

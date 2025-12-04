@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin, Eye, Clock } from 'lucide-react';
+import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin, Eye, Clock, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { CommentSection } from '@/components/blog/CommentSection';
@@ -126,16 +126,19 @@ const PostDetail = () => {
     },
   });
 
+  // Loading State
   if (isLoading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-slate-50">
         <Header />
-        <div className="container py-12">
-          <div className="max-w-4xl mx-auto">
-            <div className="animate-pulse space-y-4">
-              <div className="h-12 bg-muted rounded w-3/4"></div>
-              <div className="h-4 bg-muted rounded w-full"></div>
-              <div className="h-4 bg-muted rounded w-full"></div>
+        <div className="container mx-auto py-12 px-4">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="h-12 bg-slate-200 rounded-xl w-3/4 animate-pulse"></div>
+            <div className="h-80 bg-white rounded-2xl border border-slate-100 shadow-sm animate-pulse"></div>
+            <div className="space-y-4">
+               <div className="h-4 bg-slate-200 rounded w-full animate-pulse"></div>
+               <div className="h-4 bg-slate-200 rounded w-full animate-pulse"></div>
+               <div className="h-4 bg-slate-200 rounded w-2/3 animate-pulse"></div>
             </div>
           </div>
         </div>
@@ -145,11 +148,14 @@ const PostDetail = () => {
 
   if (!post) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-slate-50">
         <Header />
-        <div className="container py-12 text-center">
-          <h1 className="text-4xl font-serif font-bold mb-4">Post not found</h1>
-          <Button onClick={() => navigate('/feed')}>Back to Feed</Button>
+        <div className="container py-20 text-center">
+          <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+             <h1 className="text-3xl font-bold text-slate-900 mb-4">Post not found</h1>
+             <p className="text-slate-500 mb-6">The story you are looking for might have been removed or is unavailable.</p>
+             <Button onClick={() => navigate('/feed')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">Back to Feed</Button>
+          </div>
         </div>
       </div>
     );
@@ -176,198 +182,218 @@ const PostDetail = () => {
   };
 
   return (
-    <div className="min-h-screen">
-      <Header />
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100">
       
-      <article className="container py-6 sm:py-12 px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* Meta info bar - likes/date/month/year/title */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground mb-6">
-            <div className="flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              <span>{post.likes?.length || 0} likes</span>
-            </div>
-            <span>•</span>
-            <div className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              <span>{post.views || 0} views</span>
-            </div>
-            <span>•</span>
-            <span>{format(postDate, 'dd')} / {format(postDate, 'MM')} / {format(postDate, 'yyyy')}</span>
-            <span>•</span>
-            <span className="font-medium text-foreground">{post.title}</span>
-          </div>
+      {/* Background Dot Pattern */}
+      <div className="fixed inset-0 z-0 pointer-events-none" 
+           style={{
+             backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
+             backgroundSize: '24px 24px'
+           }}>
+      </div>
 
-          {/* Category and Read Time */}
-          <div className="flex flex-wrap items-center gap-4 mb-6">
-            {post.categories && (
-              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-                {post.categories.name}
-              </span>
-            )}
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>{post.read_time || 5} min read</span>
-            </div>
-          </div>
-
-          {/* Author info and actions */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={post.profiles?.profile_image_url || ''} />
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
+      <div className="relative z-10">
+        <Header />
+        
+        <article className="container mx-auto py-12 px-4">
+          <div className="max-w-4xl mx-auto">
+            
+            {/* Header / Meta Information */}
+            <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm mb-8">
+              
+              {/* Category & Date Row */}
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
-                  <p className="font-medium text-lg">{post.profiles?.full_name}</p>
-                  <FollowButton userId={post.author_id} />
+                   {post.categories && (
+                    <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold uppercase tracking-wider">
+                      {post.categories.name}
+                    </span>
+                  )}
+                  <span className="text-slate-300">|</span>
+                  <div className="flex items-center gap-1.5 text-slate-500 text-sm font-medium">
+                    <Clock className="w-4 h-4" />
+                    <span>{post.read_time || 5} min read</span>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {format(postDate, 'PPP')}
-                </p>
+
+                <div className="flex items-center gap-4 text-sm text-slate-400 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <Eye className="w-4 h-4" />
+                    <span>{post.views || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4" />
+                    <span>{format(postDate, 'MMM dd, yyyy')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-8 leading-tight tracking-tight">
+                {post.title}
+              </h1>
+
+              {/* Author & Actions Row */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-6 border-t border-slate-50">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-2 ring-slate-50">
+                    <AvatarImage src={post.profiles?.profile_image_url || ''} />
+                    <AvatarFallback className="bg-slate-900 text-white font-bold">
+                      {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <p className="font-bold text-slate-900">{post.profiles?.full_name}</p>
+                      <FollowButton userId={post.author_id} />
+                    </div>
+                    <p className="text-xs text-slate-500">Author</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <BookmarkButton postId={post.id} />
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="flex-1 sm:flex-none border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl">
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Share
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-lg">
+                      <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-50 cursor-pointer">
+                        <Copy className="h-4 w-4 mr-2 text-slate-400" />
+                        Copy Link
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleShare('twitter')} className="focus:bg-slate-50 cursor-pointer">
+                        <Twitter className="h-4 w-4 mr-2 text-blue-400" />
+                        Twitter
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-50 cursor-pointer">
+                        <Facebook className="h-4 w-4 mr-2 text-blue-600" />
+                        Facebook
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-50 cursor-pointer">
+                        <Linkedin className="h-4 w-4 mr-2 text-blue-700" />
+                        LinkedIn
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {isAuthor && (
+                    <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-100">
+                      <Button variant="ghost" size="icon" onClick={() => navigate(`/create?edit=${post.id}`)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg h-9 w-9">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this post?')) {
+                            deletePost.mutate();
+                          }
+                        }}
+                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg h-9 w-9"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            
-            <div className="flex gap-2 w-full sm:w-auto">
-              <BookmarkButton postId={post.id} />
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Share
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleShare('copy')}>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Link
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleShare('twitter')}>
-                    <Twitter className="h-4 w-4 mr-2" />
-                    Share on Twitter
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleShare('facebook')}>
-                    <Facebook className="h-4 w-4 mr-2" />
-                    Share on Facebook
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleShare('linkedin')}>
-                    <Linkedin className="h-4 w-4 mr-2" />
-                    Share on LinkedIn
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
 
-              {isAuthor && (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => navigate(`/create?edit=${post.id}`)}>
-                    <Edit className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Edit</span>
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      if (confirm('Are you sure you want to delete this post?')) {
-                        deletePost.mutate();
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Delete</span>
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Title */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold mb-8 text-balance">
-            {post.title}
-          </h1>
-
-          {/* Featured Image or Image Carousel */}
-          {(post.featured_image || (post.post_images && post.post_images.length > 0)) && (
-            <div className="mb-8 sm:mb-12">
-              {post.featured_image ? (
-                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lift">
-                  <img
-                    src={post.featured_image}
-                    alt={post.title}
-                    className="w-full h-auto max-h-[600px] object-cover"
-                  />
-                </div>
-              ) : post.post_images && post.post_images.length > 0 && (
-                <>
-                  <Carousel className="w-full">
-                    <CarouselContent>
-                      {post.post_images
-                        .sort((a: any, b: any) => a.order_index - b.order_index)
-                        .map((image: any, index: number) => (
-                          <CarouselItem key={index}>
-                            <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lift">
-                              <img
-                                src={image.url}
-                                alt={image.alt_text || `${post.title} - Image ${index + 1}`}
-                                className="w-full h-auto max-h-[600px] object-cover"
-                              />
-                            </div>
-                          </CarouselItem>
-                        ))}
-                    </CarouselContent>
+            {/* Featured Image / Carousel */}
+            {(post.featured_image || (post.post_images && post.post_images.length > 0)) && (
+              <div className="mb-10 sm:mb-12">
+                {post.featured_image ? (
+                  <div className="rounded-3xl overflow-hidden shadow-xl shadow-blue-900/5 border border-slate-100">
+                    <img
+                      src={post.featured_image}
+                      alt={post.title}
+                      className="w-full h-auto max-h-[600px] object-cover"
+                    />
+                  </div>
+                ) : post.post_images && post.post_images.length > 0 && (
+                  <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100">
+                    <Carousel className="w-full rounded-2xl overflow-hidden">
+                      <CarouselContent>
+                        {post.post_images
+                          .sort((a: any, b: any) => a.order_index - b.order_index)
+                          .map((image: any, index: number) => (
+                            <CarouselItem key={index}>
+                              <div className="aspect-video w-full overflow-hidden">
+                                <img
+                                  src={image.url}
+                                  alt={image.alt_text || `${post.title} - Image ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            </CarouselItem>
+                          ))}
+                      </CarouselContent>
+                      {post.post_images.length > 1 && (
+                        <>
+                          <CarouselPrevious className="left-4 bg-white/80 hover:bg-white border-0 shadow-lg" />
+                          <CarouselNext className="right-4 bg-white/80 hover:bg-white border-0 shadow-lg" />
+                        </>
+                      )}
+                    </Carousel>
                     {post.post_images.length > 1 && (
-                      <>
-                        <CarouselPrevious className="left-2 sm:left-4" />
-                        <CarouselNext className="right-2 sm:right-4" />
-                      </>
+                      <p className="text-center text-xs text-slate-400 py-2 font-medium">
+                        {post.post_images.length} images in gallery
+                      </p>
                     )}
-                  </Carousel>
-                  {post.post_images.length > 1 && (
-                    <p className="text-center text-sm text-muted-foreground mt-2">
-                      {post.post_images.length} images
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* Content */}
-          <div className="prose prose-sm sm:prose-base lg:prose-lg prose-slate max-w-none mb-8 sm:mb-12">
-            <div dangerouslySetInnerHTML={{ __html: post.content_markdown }} />
-          </div>
-
-          {/* Engagement bar */}
-          <div className="flex items-center gap-6 py-6 border-y">
-            <Button
-              variant={isLiked ? 'default' : 'outline'}
-              onClick={() => user ? likePost.mutate() : navigate('/auth')}
-              className={isLiked ? 'bg-accent' : ''}
-            >
-              <Heart className={`h-5 w-5 mr-2 ${isLiked ? 'fill-current' : ''}`} />
-              {post.likes?.length || 0}
-            </Button>
-            
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MessageCircle className="h-5 w-5" />
-              <span>{post.comments?.[0]?.count || 0} comments</span>
+            {/* Content Body */}
+            <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm mb-12">
+              <div className="prose prose-lg prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-2xl">
+                <div dangerouslySetInnerHTML={{ __html: post.content_markdown }} />
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Eye className="h-5 w-5" />
-              <span>{post.views || 0} views</span>
+            {/* Engagement Actions */}
+            <div className="flex items-center justify-center gap-4 mb-12">
+              <Button
+                variant={isLiked ? 'default' : 'outline'}
+                onClick={() => user ? likePost.mutate() : navigate('/auth')}
+                size="lg"
+                className={`rounded-full px-8 h-12 shadow-lg transition-all ${
+                  isLiked 
+                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 border-red-500' 
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-red-200 hover:text-red-500 hover:bg-red-50'
+                }`}
+              >
+                <Heart className={`h-5 w-5 mr-2 ${isLiked ? 'fill-current' : ''}`} />
+                {post.likes?.length || 0} Likes
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="rounded-full px-8 h-12 bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600 hover:bg-blue-50 shadow-lg shadow-slate-200/50"
+                onClick={() => {
+                   document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                <MessageCircle className="h-5 w-5 mr-2" />
+                {post.comments?.[0]?.count || 0} Comments
+              </Button>
             </div>
-          </div>
 
-          {/* Comments section */}
-          <div className="mt-12">
-            <CommentSection postId={post.id} />
+            {/* Comments Section */}
+            <div id="comments-section" className="bg-slate-50/50 rounded-3xl border border-slate-100 overflow-hidden">
+               <CommentSection postId={post.id} />
+            </div>
+          
           </div>
-        </div>
-      </article>
+        </article>
+      </div>
     </div>
   );
 };
