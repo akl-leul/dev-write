@@ -1,19 +1,21 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Header } from '@/components/layout/Header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Heart, MessageCircle, Eye, Clock, Filter, Search, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Eye, Clock, Filter, Search, Sparkles, Loader2 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+const POSTS_PER_PAGE = 10;
 
 const Feed = () => {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -24,26 +26,59 @@ const Feed = () => {
     },
   });
 
-  const { data: posts, isLoading } = useQuery({
-    queryKey: ['posts', searchQuery],
-    queryFn: async () => {
+  const {
+    data: postsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ['posts', searchQuery, selectedCategory],
+    queryFn: async ({ pageParam = 0 }) => {
       let query = supabase
         .from('posts')
-        .select(`*, profiles:author_id (full_name, profile_image_url), likes (count), comments (count), post_images (url), categories:category_id (name, slug)`)
+        .select(`*, profiles:author_id (id, full_name, profile_image_url), likes (count), comments (count), post_images (url), categories:category_id (name, slug)`)
         .eq('status', 'published')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(pageParam, pageParam + POSTS_PER_PAGE - 1);
       
       if (searchQuery) {
         query = query.or(`title.ilike.%${searchQuery}%,content_markdown.ilike.%${searchQuery}%`);
+      }
+      
+      if (selectedCategory !== 'all') {
+        query = query.eq('category_id', selectedCategory);
       }
       
       const { data, error } = await query;
       if (error) throw error;
       return data;
     },
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < POSTS_PER_PAGE) return undefined;
+      return allPages.flat().length;
+    },
+    initialPageParam: 0,
   });
 
-  const filteredPosts = selectedCategory === 'all' ? posts : posts?.filter((p: any) => p.category_id === selectedCategory);
+  // Intersection Observer for infinite scroll
+  const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
+    const [target] = entries;
+    if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  useEffect(() => {
+    const element = loadMoreRef.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(handleObserver, { threshold: 0.1 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [handleObserver]);
+
+  const allPosts = postsData?.pages.flat() || [];
 
   // Loading Skeleton
   if (isLoading) {
@@ -139,35 +174,39 @@ const Feed = () => {
             
             {/* Feed List */}
             <div className="space-y-8">
-              {filteredPosts?.map((post: any) => (
-                <Link key={post.id} to={`/post/${post.slug}`} className="block group">
-                  <article className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 transition-all duration-300 relative overflow-hidden">
-                    
-                    {/* Top Meta: Author & Category */}
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
-                          <AvatarImage src={post.profiles?.profile_image_url || ''} />
-                          <AvatarFallback className="bg-slate-100 text-slate-600 font-bold">
-                            {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-bold text-slate-900 text-sm">{post.profiles?.full_name}</p>
-                          <p className="text-xs text-slate-400 font-medium">
-                            {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                          </p>
-                        </div>
+              {allPosts.map((post: any) => (
+                <article key={post.id} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 transition-all duration-300 relative overflow-hidden">
+                  
+                  {/* Top Meta: Author & Category */}
+                  <div className="flex items-center justify-between mb-6">
+                    <Link 
+                      to={`/author/${post.profiles?.id}`} 
+                      className="flex items-center gap-3 group"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Avatar className="h-10 w-10 border-2 border-white shadow-sm group-hover:ring-2 group-hover:ring-blue-100 transition-all">
+                        <AvatarImage src={post.profiles?.profile_image_url || ''} />
+                        <AvatarFallback className="bg-slate-100 text-slate-600 font-bold">
+                          {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors">{post.profiles?.full_name}</p>
+                        <p className="text-xs text-slate-400 font-medium">
+                          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                        </p>
                       </div>
-                      
-                      {post.categories && (
-                        <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-full text-xs font-semibold tracking-wide">
-                          {post.categories.name}
-                        </span>
-                      )}
-                    </div>
+                    </Link>
+                    
+                    {post.categories && (
+                      <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-full text-xs font-semibold tracking-wide">
+                        {post.categories.name}
+                      </span>
+                    )}
+                  </div>
 
-                    {/* Main Content */}
+                  {/* Main Content - Clickable */}
+                  <Link to={`/post/${post.slug}`} className="block group">
                     <div className="grid md:grid-cols-[1fr_200px] gap-6">
                       <div>
                         <h2 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors leading-tight">
@@ -180,7 +219,7 @@ const Feed = () => {
                           </p>
                         )}
 
-                        {/* Mobile Category Badge (shown if grid collapses) */}
+                        {/* Mobile Category Badge */}
                         {post.categories && (
                           <span className="sm:hidden inline-block mb-4 px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-xs font-medium">
                             {post.categories.name}
@@ -219,7 +258,7 @@ const Feed = () => {
                         </div>
                       )}
                       
-                      {/* Mobile Image (Full Width) */}
+                      {/* Mobile Image */}
                       {post.post_images?.[0] && (
                         <div className="md:hidden w-full h-48 rounded-2xl overflow-hidden border border-slate-100 mb-4 order-first">
                           <img 
@@ -230,11 +269,24 @@ const Feed = () => {
                         </div>
                       )}
                     </div>
-                  </article>
-                </Link>
+                  </Link>
+                </article>
               ))}
 
-              {filteredPosts?.length === 0 && (
+              {/* Load More Trigger */}
+              <div ref={loadMoreRef} className="py-8 flex justify-center">
+                {isFetchingNextPage && (
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                    <span className="text-sm font-medium">Loading more...</span>
+                  </div>
+                )}
+                {!hasNextPage && allPosts.length > 0 && (
+                  <p className="text-sm text-slate-400 font-medium">You've reached the end</p>
+                )}
+              </div>
+
+              {allPosts.length === 0 && (
                 <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 border-dashed">
                   <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
                     <Sparkles className="w-8 h-8" />
