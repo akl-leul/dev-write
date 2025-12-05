@@ -1,0 +1,114 @@
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+import { TrendingUp, Eye, Heart, Loader2, Flame } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+
+export const TrendingPosts = () => {
+  const { data: trendingPosts, isLoading } = useQuery({
+    queryKey: ['trending-posts'],
+    queryFn: async () => {
+      // Get posts from the last 7 days with most engagement (views + likes)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          id,
+          title,
+          slug,
+          views,
+          created_at,
+          profiles:author_id (full_name),
+          likes (count)
+        `)
+        .eq('status', 'published')
+        .gte('created_at', sevenDaysAgo.toISOString())
+        .order('views', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      // Sort by engagement score (views + likes*10)
+      return data?.sort((a: any, b: any) => {
+        const scoreA = (a.views || 0) + (a.likes?.[0]?.count || 0) * 10;
+        const scoreB = (b.views || 0) + (b.likes?.[0]?.count || 0) * 10;
+        return scoreB - scoreA;
+      }) || [];
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  if (isLoading) {
+    return (
+      <Card className="p-6 bg-white rounded-2xl border border-slate-100">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (!trendingPosts || trendingPosts.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 bg-orange-50 text-orange-500 rounded-lg">
+          <TrendingUp className="h-4 w-4" />
+        </div>
+        <h3 className="font-bold text-slate-900">Trending This Week</h3>
+        <Flame className="h-4 w-4 text-orange-400 animate-pulse" />
+      </div>
+      
+      <div className="space-y-4">
+        {trendingPosts.map((post: any, index: number) => (
+          <Link 
+            key={post.id} 
+            to={`/post/${post.slug}`}
+            className="group flex gap-4 items-start hover:bg-slate-50 -mx-2 px-2 py-2 rounded-xl transition-colors"
+          >
+            <span className={`text-2xl font-bold shrink-0 w-8 ${
+              index === 0 ? 'text-orange-500' : 
+              index === 1 ? 'text-slate-400' : 
+              index === 2 ? 'text-amber-600' : 'text-slate-300'
+            }`}>
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-slate-900 text-sm line-clamp-2 group-hover:text-blue-600 transition-colors leading-snug mb-1">
+                {post.title}
+              </h4>
+              
+              <div className="flex items-center gap-3 text-xs text-slate-400">
+                <span className="truncate">{post.profiles?.full_name}</span>
+                <span className="flex items-center gap-1">
+                  <Eye className="h-3 w-3" />
+                  {post.views || 0}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Heart className="h-3 w-3" />
+                  {post.likes?.[0]?.count || 0}
+                </span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+      
+      <div className="mt-4 pt-4 border-t border-slate-50">
+        <Link 
+          to="/feed" 
+          className="text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline"
+        >
+          View all posts →
+        </Link>
+      </div>
+    </Card>
+  );
+};

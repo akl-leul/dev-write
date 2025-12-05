@@ -11,11 +11,14 @@ import {
 import { Bell, Check, FileText, Heart, MessageCircle, UserPlus, Sparkles } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export const NotificationDropdown = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [hasNewNotification, setHasNewNotification] = useState(false);
 
   const { data: notifications } = useQuery({
     queryKey: ['notifications', user?.id],
@@ -37,8 +40,44 @@ export const NotificationDropdown = () => {
       return data;
     },
     enabled: !!user,
-    refetchInterval: 30000,
   });
+
+  // Real-time subscription for notifications
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('New notification:', payload);
+          setHasNewNotification(true);
+          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+          
+          // Show toast for new notification
+          const notification = payload.new as any;
+          toast(notification.title, {
+            description: notification.message,
+            action: notification.post_id ? {
+              label: 'View',
+              onClick: () => navigate(`/post/${notification.posts?.slug}`),
+            } : undefined,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient, navigate]);
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
@@ -67,6 +106,7 @@ export const NotificationDropdown = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      setHasNewNotification(false);
     },
   });
 
@@ -112,20 +152,28 @@ export const NotificationDropdown = () => {
       markAsRead.mutate(notification.id);
     }
     
-    if (notification.posts?.slug) {
+    if (notification.type === 'follow' && notification.from_user_id) {
+      navigate(`/author/${notification.from_user_id}`);
+    } else if (notification.posts?.slug) {
       navigate(`/post/${notification.posts.slug}`);
     }
+  };
+
+  const handleDropdownOpen = () => {
+    setHasNewNotification(false);
   };
 
   if (!user) return null;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(open) => open && handleDropdownOpen()}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl w-10 h-10 transition-colors">
-          <Bell className="h-5 w-5" />
+          <Bell className={`h-5 w-5 ${hasNewNotification ? 'animate-bounce' : ''}`} />
           {unreadCount > 0 && (
-            <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-white"></span>
+            <span className={`absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-red-500 border-2 border-white text-[10px] text-white font-bold flex items-center justify-center ${hasNewNotification ? 'animate-pulse' : ''}`}>
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
           )}
         </Button>
       </DropdownMenuTrigger>
@@ -172,7 +220,7 @@ export const NotificationDropdown = () => {
                 key={notification.id}
                 className={`flex items-start gap-4 px-4 py-3 cursor-pointer focus:bg-slate-50 transition-colors border-l-2 ${
                   !notification.read 
-                    ? 'border-blue-500 bg-blue-50/10' 
+                    ? 'border-blue-500 bg-blue-50/30' 
                     : 'border-transparent'
                 }`}
                 onClick={() => handleNotificationClick(notification)}
@@ -196,7 +244,7 @@ export const NotificationDropdown = () => {
                 </div>
                 
                 {!notification.read && (
-                  <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 self-center" />
+                  <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 self-center animate-pulse" />
                 )}
               </DropdownMenuItem>
             ))
