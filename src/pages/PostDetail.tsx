@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -235,8 +235,8 @@ const PostDetail = () => {
 
               {/* Author & Actions Row */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-6 border-t border-slate-50">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-2 ring-slate-50">
+                <Link to={`/author/${post.author_id}`} className="flex items-center gap-4 group">
+                  <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-2 ring-slate-50 group-hover:ring-blue-100 transition-all">
                     <AvatarImage src={post.profiles?.profile_image_url || ''} />
                     <AvatarFallback className="bg-slate-900 text-white font-bold">
                       {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
@@ -244,12 +244,12 @@ const PostDetail = () => {
                   </Avatar>
                   <div>
                     <div className="flex items-center gap-3 mb-1">
-                      <p className="font-bold text-slate-900">{post.profiles?.full_name}</p>
+                      <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{post.profiles?.full_name}</p>
                       <FollowButton userId={post.author_id} />
                     </div>
                     <p className="text-xs text-slate-500">Author</p>
                   </div>
-                </div>
+                </Link>
                 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <BookmarkButton postId={post.id} />

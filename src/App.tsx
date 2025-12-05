@@ -15,6 +15,7 @@ import PostDetail from "./pages/PostDetail";
 import MyPosts from "./pages/MyPosts";
 import Analytics from "./pages/Analytics";
 import Bookmarks from "./pages/Bookmarks";
+import AuthorProfile from "./pages/AuthorProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/my-posts" element={<MyPosts />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/bookmarks" element={<Bookmarks />} />
+            <Route path="/author/:authorId" element={<AuthorProfile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
