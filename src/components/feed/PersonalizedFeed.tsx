@@ -36,7 +36,7 @@ export const PersonalizedFeed = () => {
 
       const { data, error } = await supabase
         .from('posts')
-        .select(`*, profiles:author_id (id, full_name, profile_image_url), likes (count), comments (count), post_images (url), categories:category_id (name, slug)`)
+        .select(`*, profiles!inner (id, full_name, profile_image_url), likes (count), comments (count), post_images (url), categories:category_id (name, slug)`)
         .in('author_id', followingIds)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
