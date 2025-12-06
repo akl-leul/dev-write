@@ -12,12 +12,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, Loader2, Lock, User, Mail, Phone, Calendar, UserCircle, ShieldCheck, Users, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
+import { ImageCropModal } from '@/components/ImageCropModal';
 
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string>('');
   const [formData, setFormData] = useState({
     full_name: '',
     bio: '',
@@ -134,19 +137,38 @@ const Profile = () => {
     },
   });
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !user) return;
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
     
     const file = e.target.files[0];
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setSelectedImage(event.target.result as string);
+        setShowCropModal(true);
+      }
+    };
+    
+    reader.readAsDataURL(file);
+  };
+
+  const handleCroppedImageUpload = async (croppedImageUrl: string) => {
+    if (!user) return;
     
     setUploading(true);
     
     try {
+      // Convert the cropped image URL back to a blob
+      const response = await fetch(croppedImageUrl);
+      const blob = await response.blob();
+      
+      const fileExt = 'jpg'; // We're saving as JPEG
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
       const { error: uploadError } = await supabase.storage
         .from('profile-images')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, blob, { upsert: true });
       
       if (uploadError) throw uploadError;
       
@@ -155,6 +177,9 @@ const Profile = () => {
         .getPublicUrl(fileName);
       
       await updateProfile.mutateAsync({ profile_image_url: publicUrl });
+      
+      // Clean up the object URL
+      URL.revokeObjectURL(croppedImageUrl);
     } catch (error) {
       toast.error('Failed to upload image');
     } finally {
@@ -265,7 +290,7 @@ const Profile = () => {
                           id="avatar-upload"
                           type="file"
                           accept="image/*"
-                          onChange={handleImageUpload}
+                          onChange={handleImageSelect}
                           className="hidden"
                           disabled={uploading}
                         />
@@ -435,6 +460,14 @@ const Profile = () => {
                 </form>
               </CardContent>
             </Card>
+
+            {/* Image Crop Modal */}
+            <ImageCropModal
+              isOpen={showCropModal}
+              onClose={() => setShowCropModal(false)}
+              onCropComplete={handleCroppedImageUpload}
+              imageSrc={selectedImage}
+            />
           </div>
         </main>
       </div>
