@@ -218,7 +218,7 @@ export const NotificationDropdown = () => {
             notifications?.map((notification: any) => (
               <DropdownMenuItem
                 key={notification.id}
-                className={`flex items-start gap-4 px-4 py-3 cursor-pointer focus:bg-slate-50 transition-colors border-l-2 ${
+                className={`flex items-start gap-4 px-4 py-3 cursor-pointer focus:bg-slate-400 transition-colors border-l-2 ${
                   !notification.read 
                     ? 'border-blue-500 bg-blue-50/30' 
                     : 'border-transparent'

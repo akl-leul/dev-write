@@ -172,10 +172,10 @@ const Bookmarks = () => {
                         </div>
 
                         {/* Right Side Image */}
-                        {post.post_images?.[0] && (
-                          <div className="hidden md:block w-full h-32 rounded-2xl overflow-hidden border border-slate-100">
+                        {(post.featured_image || post.post_images?.[0]) && (
+                          <div className="hidden md:block w-full h-28 rounded-2xl overflow-hidden border border-slate-100">
                             <img 
-                              src={post.post_images[0].url} 
+                              src={post.featured_image || post.post_images[0].url} 
                               alt={post.title} 
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                             />
@@ -183,10 +183,10 @@ const Bookmarks = () => {
                         )}
                         
                         {/* Mobile Image */}
-                        {post.post_images?.[0] && (
-                          <div className="md:hidden w-full h-48 rounded-2xl overflow-hidden border border-slate-100 mb-4 order-first">
+                        {(post.featured_image || post.post_images?.[0]) && (
+                          <div className="md:hidden w-full h-40 rounded-2xl overflow-hidden border border-slate-100 mb-4 order-first">
                             <img 
-                              src={post.post_images[0].url} 
+                              src={post.featured_image || post.post_images[0].url} 
                               alt={post.title} 
                               className="w-full h-full object-cover" 
                             />

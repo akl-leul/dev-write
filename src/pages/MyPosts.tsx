@@ -21,7 +21,7 @@ interface CommentWithProfile {
   profiles: {
     full_name: string;
     profile_image_url: string | null;
-  };
+  };  
 }
 
 interface Post {
@@ -30,6 +30,7 @@ interface Post {
   slug: string;
   created_at: string;
   status: string;
+  post_images: { url: string; order_index: number }[];
   comments: CommentWithProfile[];
 }
 
@@ -51,7 +52,7 @@ const MyPosts = () => {
           slug,
           created_at,
           status,
-          post_images (url),
+          post_images(url),
           comments (
             id,
             content_markdown,
@@ -63,7 +64,12 @@ const MyPosts = () => {
         .eq('author_id', user.id)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Query error:', error);
+        throw error;
+      }
+      
+      console.log('Posts data:', data);
       return data as Post[];
     },
     enabled: !!user,
@@ -280,19 +286,26 @@ const MyPosts = () => {
                       <CardContent className="p-6">
                         <div className="flex flex-col md:flex-row gap-6">
                           {/* Post Image */}
-                          {(post as any).post_images?.[0] ? (
-                            <div className="w-full md:w-48 h-32 flex-shrink-0 rounded-xl overflow-hidden border border-slate-100">
-                              <img
-                                src={(post as any).post_images[0].url}
-                                alt={post.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-full md:w-48 h-32 flex-shrink-0 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
-                              <FileText className="w-10 h-10" />
-                            </div>
-                          )}
+                          {(() => {
+                            console.log('Post images for', post.title, ':', post.post_images);
+                            // Find the featured image (order_index = 0) or the first image if no featured image exists
+                            const featuredImage = post.post_images?.find(img => img.order_index === 0) || post.post_images?.[0];
+                            return featuredImage ? (
+                              <div className="w-full md:w-48 h-32 flex-shrink-0 rounded-xl overflow-hidden border border-slate-100">
+                                <img
+                                  src={featuredImage.url}
+                                  alt={post.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  onError={(e) => console.error('Image failed to load:', featuredImage.url)}
+                                  onLoad={() => console.log('Image loaded successfully:', featuredImage.url)}
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-full flex flex-col md:w-48 h-32 flex-shrink-0 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
+                                <AlertCircle className="w-10 h-10" /> <p>No featured image</p>
+                              </div>
+                            );
+                          })()}
                           
                           {/* Post Content */}
                           <div className="flex-1 min-w-0 flex flex-col justify-between">

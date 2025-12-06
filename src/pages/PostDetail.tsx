@@ -215,6 +215,7 @@ const PostDetail = () => {
       
       {/* Image Lightbox */}
       <Lightbox
+      
         images={lightboxImages}
         initialIndex={lightboxIndex}
         isOpen={lightboxOpen}
@@ -299,19 +300,19 @@ const PostDetail = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-lg">
-                      <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-50 cursor-pointer">
+                      <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-400 cursor-pointer">
                         <Copy className="h-4 w-4 mr-2 text-slate-400" />
                         Copy Link
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare('twitter')} className="focus:bg-slate-50 cursor-pointer">
+                      <DropdownMenuItem onClick={() => handleShare('twitter')} className="focus:bg-slate-400 cursor-pointer">
                         <Twitter className="h-4 w-4 mr-2 text-blue-400" />
                         Twitter
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-50 cursor-pointer">
+                      <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-400 cursor-pointer">
                         <Facebook className="h-4 w-4 mr-2 text-blue-600" />
                         Facebook
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-50 cursor-pointer">
+                      <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-400 cursor-pointer">
                         <Linkedin className="h-4 w-4 mr-2 text-blue-700" />
                         LinkedIn
                       </DropdownMenuItem>
@@ -354,8 +355,8 @@ const PostDetail = () => {
                       alt={post.title}
                       className="w-full h-auto max-h-[600px] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                      <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity">
+                   <div className=" mt-[-20px] z-10 inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center text-center">
+ <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity">
                         Click to expand
                       </span>
                     </div>

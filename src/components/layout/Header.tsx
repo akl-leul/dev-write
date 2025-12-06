@@ -156,15 +156,15 @@ export const Header = () => {
                         </div>
                       </div>
                       
-                      <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-lg cursor-pointer focus:bg-slate-50">
+                      <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-lg cursor-pointer   focus:bg-slate-400">
                         <User className="mr-2 h-4 w-4 text-slate-500" />
                         Profile Settings
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/analytics')} className="rounded-lg cursor-pointer focus:bg-slate-50">
+                      <DropdownMenuItem onClick={() => navigate('/analytics')} className="rounded-lg cursor-pointer focus:bg-slate-400">
                         <BarChart3 className="mr-2 h-4 w-4 text-slate-500" />
                         Analytics Dashboard
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/bookmarks')} className="rounded-lg cursor-pointer focus:bg-slate-50">
+                      <DropdownMenuItem onClick={() => navigate('/bookmarks')} className="rounded-lg cursor-pointer focus:bg-slate-400">
                         <Bookmark className="mr-2 h-4 w-4 text-slate-500" />
                         Saved Stories
                       </DropdownMenuItem>

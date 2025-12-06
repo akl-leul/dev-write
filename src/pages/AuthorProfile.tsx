@@ -144,6 +144,14 @@ const AuthorProfile = () => {
       'https://images.unsplash.com/photo-1685926942337-aff9f087a8b8?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fGltYWdlc3xlbnwwfDB8MHx8fDA%3D',
       'https://images.unsplash.com/photo-1695214493949-302b31df689d?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTl8fGltYWdlc3xlbnwwfDB8MHx8fDA%3D',
       'https://plus.unsplash.com/premium_vector-1762792065400-e1870b82e187?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8M3x8fGVufDB8fHx8fA%3D%3D',
+      'https://images.unsplash.com/vector-1761781321379-b2079a54327f?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8MTh8fHxlbnwwfHx8fHw%3D',
+      'https://images.unsplash.com/vector-1763282961442-b0429fb4e70a?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8MjJ8fHxlbnwwfHx8fHw%3D',
+      'https://images.unsplash.com/vector-1762984672204-476378d9aef9?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8MzJ8fHxlbnwwfHx8fHw%3D',
+      'https://images.unsplash.com/vector-1763449577047-d1095d2ee05a?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8Mzh8fHxlbnwwfHx8fHw%3D',
+      'https://plus.unsplash.com/premium_vector-1761371032807-dc44148706a2?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8Mzl8fHxlbnwwfHx8fHw%3D',
+      'https://plus.unsplash.com/premium_vector-1762359738304-cae7571f2220?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8NDd8fHxlbnwwfHx8fHw%3D',
+      'https://images.unsplash.com/vector-1763266642857-589735840399?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8NjB8fHxlbnwwfHx8fHw%3D',
+
     ];
     
     // Generate random index for variety on each page load
@@ -241,19 +249,19 @@ const AuthorProfile = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-lg">
-                        <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-50 cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-400 cursor-pointer">
                           <Copy className="h-4 w-4 mr-2 text-slate-400" />
                           Copy Link
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleShare('x')} className="focus:bg-slate-50 cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleShare('x')} className="focus:bg-slate-400 cursor-pointer">
                           <Twitter className="h-4 w-4 mr-2 text-blue-400" />
                           X
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-50 cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-400 cursor-pointer">
                           <Facebook className="h-4 w-4 mr-2 text-blue-600" />
                           Facebook
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-50 cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-400 cursor-pointer">
                           <Linkedin className="h-4 w-4 mr-2 text-blue-700" />
                           LinkedIn
                         </DropdownMenuItem>

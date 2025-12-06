@@ -299,19 +299,19 @@ const PostDetail = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-lg">
-                      <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-50 cursor-pointer">
+                      <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-400 cursor-pointer">
                         <Copy className="h-4 w-4 mr-2 text-slate-400" />
                         Copy Link
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare('twitter')} className="focus:bg-slate-50 cursor-pointer">
+                      <DropdownMenuItem onClick={() => handleShare('twitter')} className="focus:bg-slate-400 cursor-pointer">
                         <Twitter className="h-4 w-4 mr-2 text-blue-400" />
                         Twitter
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-50 cursor-pointer">
+                      <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-400 cursor-pointer">
                         <Facebook className="h-4 w-4 mr-2 text-blue-600" />
                         Facebook
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-50 cursor-pointer">
+                      <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-400 cursor-pointer">
                         <Linkedin className="h-4 w-4 mr-2 text-blue-700" />
             )}
           </Carousel>

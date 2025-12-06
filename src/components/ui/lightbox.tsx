@@ -72,7 +72,7 @@ export const Lightbox = ({ images, initialIndex = 0, isOpen, onClose }: Lightbox
   return (
     <div 
       className={cn(
-        "fixed bg-white border border-slate-200 shadow-2xl rounded-2xl overflow-hidden transition-all duration-300 z-40",
+        "fixed bg-white  border border-slate-200 shadow-2xl rounded-2xl overflow-hidden transition-all duration-300 z-40",
         isExpanded 
           ? "inset-4 md:inset-8" 
           : "bottom-4 right-4 w-[400px] h-[500px] md:w-[500px] md:h-[600px]"
