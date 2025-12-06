@@ -9,9 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Loader2, Lock, User, Mail, Phone, Calendar, UserCircle, ShieldCheck } from 'lucide-react';
+import { Camera, Loader2, Lock, User, Mail, Phone, Calendar, UserCircle, ShieldCheck, Users, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -53,6 +53,25 @@ const Profile = () => {
         });
       }
       return data;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch stats for current user
+  const { data: stats } = useQuery({
+    queryKey: ['my-profile-stats', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const [postsRes, followersRes, followingRes] = await Promise.all([
+        supabase.from('posts').select('id', { count: 'exact' }).eq('author_id', user.id),
+        supabase.from('followers').select('id', { count: 'exact' }).eq('following_id', user.id),
+        supabase.from('followers').select('id', { count: 'exact' }).eq('follower_id', user.id),
+      ]);
+      return {
+        posts: postsRes.count || 0,
+        followers: followersRes.count || 0,
+        following: followingRes.count || 0,
+      };
     },
     enabled: !!user,
   });
@@ -180,6 +199,26 @@ const Profile = () => {
                 <p className="text-slate-500">Manage your personal information and security</p>
               </div>
             </div>
+
+            {/* Stats Card */}
+            <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden mb-8">
+              <CardContent className="p-6">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-8">
+                  <Link to={user ? `/author/${user.id}` : '#'} className="text-center hover:opacity-80 transition-opacity">
+                    <p className="text-3xl font-bold text-slate-900">{stats?.posts || 0}</p>
+                    <p className="text-sm text-slate-500 flex items-center justify-center gap-1"><FileText className="w-3 h-3" /> Posts</p>
+                  </Link>
+                  <Link to={user ? `/author/${user.id}` : '#'} className="text-center hover:opacity-80 transition-opacity">
+                    <p className="text-3xl font-bold text-slate-900">{stats?.followers || 0}</p>
+                    <p className="text-sm text-slate-500 flex items-center justify-center gap-1"><Users className="w-3 h-3" /> Followers</p>
+                  </Link>
+                  <Link to={user ? `/author/${user.id}` : '#'} className="text-center hover:opacity-80 transition-opacity">
+                    <p className="text-3xl font-bold text-slate-900">{stats?.following || 0}</p>
+                    <p className="text-sm text-slate-500 flex items-center justify-center gap-1"><Users className="w-3 h-3" /> Following</p>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Profile Edit Card */}
             <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">

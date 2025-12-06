@@ -9,7 +9,9 @@ import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Li
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { CommentSection } from '@/components/blog/CommentSection';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Lightbox } from '@/components/ui/lightbox';
+import { PostMetaTags } from '@/components/seo/PostMetaTags';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +33,8 @@ const PostDetail = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   // Extract the slug from path (handles both old and new format)
   const slug = slugPath || '';
@@ -165,6 +169,18 @@ const PostDetail = () => {
   const isAuthor = user?.id === post.author_id;
   const postUrl = window.location.href;
   const postDate = new Date(post.created_at);
+  
+  // Prepare images for lightbox
+  const lightboxImages = post.post_images?.length > 0 
+    ? post.post_images.sort((a: any, b: any) => a.order_index - b.order_index).map((img: any) => ({ url: img.url, alt: img.alt_text }))
+    : post.featured_image 
+      ? [{ url: post.featured_image, alt: post.title }]
+      : [];
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
 
   const handleShare = (platform: string) => {
     const shareUrls = {
@@ -183,6 +199,23 @@ const PostDetail = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100">
+      {/* Dynamic SEO Meta Tags */}
+      <PostMetaTags
+        title={post.title}
+        description={post.excerpt || post.content_markdown.substring(0, 160)}
+        image={post.featured_image || post.post_images?.[0]?.url}
+        url={postUrl}
+        authorName={post.profiles?.full_name}
+        publishedTime={post.created_at}
+      />
+      
+      {/* Image Lightbox */}
+      <Lightbox
+        images={lightboxImages}
+        initialIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+      />
       
       {/* Background Dot Pattern */}
       <div className="fixed inset-0 z-0 pointer-events-none" 
@@ -308,12 +341,20 @@ const PostDetail = () => {
             {(post.featured_image || (post.post_images && post.post_images.length > 0)) && (
               <div className="mb-10 sm:mb-12">
                 {post.featured_image ? (
-                  <div className="rounded-3xl overflow-hidden shadow-xl shadow-blue-900/5 border border-slate-100">
+                  <div 
+                    className="rounded-3xl overflow-hidden shadow-xl shadow-blue-900/5 border border-slate-100 cursor-pointer group"
+                    onClick={() => openLightbox(0)}
+                  >
                     <img
                       src={post.featured_image}
                       alt={post.title}
-                      className="w-full h-auto max-h-[600px] object-cover"
+                      className="w-full h-auto max-h-[600px] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                      <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity">
+                        Click to expand
+                      </span>
+                    </div>
                   </div>
                 ) : post.post_images && post.post_images.length > 0 && (
                   <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100">
@@ -323,12 +364,20 @@ const PostDetail = () => {
                           .sort((a: any, b: any) => a.order_index - b.order_index)
                           .map((image: any, index: number) => (
                             <CarouselItem key={index}>
-                              <div className="aspect-video w-full overflow-hidden">
+                              <div 
+                                className="aspect-video w-full overflow-hidden cursor-pointer group relative"
+                                onClick={() => openLightbox(index)}
+                              >
                                 <img
                                   src={image.url}
                                   alt={image.alt_text || `${post.title} - Image ${index + 1}`}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                                 />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                  <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity">
+                                    Click to expand
+                                  </span>
+                                </div>
                               </div>
                             </CarouselItem>
                           ))}
@@ -342,7 +391,7 @@ const PostDetail = () => {
                     </Carousel>
                     {post.post_images.length > 1 && (
                       <p className="text-center text-xs text-slate-400 py-2 font-medium">
-                        {post.post_images.length} images in gallery
+                        {post.post_images.length} images in gallery • Click to expand
                       </p>
                     )}
                   </div>
