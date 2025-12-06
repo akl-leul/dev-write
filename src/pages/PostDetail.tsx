@@ -12,6 +12,7 @@ import { CommentSection } from '@/components/blog/CommentSection';
 import { useEffect, useRef, useState } from 'react';
 import { Lightbox } from '@/components/ui/lightbox';
 import { PostMetaTags } from '@/components/seo/PostMetaTags';
+import { ReadingProgressBar } from '@/components/ui/reading-progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -198,7 +199,10 @@ const PostDetail = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100">
+    <div className="min-h-screen bg-background font-sans selection:bg-accent/20">
+      {/* Reading Progress Bar */}
+      <ReadingProgressBar />
+      
       {/* Dynamic SEO Meta Tags */}
       <PostMetaTags
         title={post.title}
@@ -218,9 +222,9 @@ const PostDetail = () => {
       />
       
       {/* Background Dot Pattern */}
-      <div className="fixed inset-0 z-0 pointer-events-none" 
+      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
            style={{
-             backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
+             backgroundImage: 'radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)',
              backgroundSize: '24px 24px'
            }}>
       </div>

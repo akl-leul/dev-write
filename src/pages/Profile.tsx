@@ -173,12 +173,12 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100">
+    <div className="min-h-screen bg-background font-sans selection:bg-accent/20">
       
       {/* Background Dot Pattern */}
-      <div className="fixed inset-0 z-0 pointer-events-none" 
+      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
            style={{
-             backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
+             backgroundImage: 'radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)',
              backgroundSize: '24px 24px'
            }}>
       </div>
