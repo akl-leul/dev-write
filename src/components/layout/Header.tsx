@@ -28,6 +28,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 export const Header = () => {
   const { user, signOut } = useAuth();
@@ -68,35 +69,37 @@ export const Header = () => {
     // Floating Header Wrapper
     <div className="sticky top-4 z-50 px-4 md:px-0 mb-8 pointer-events-none">
       <div className="max-w-6xl mx-auto pointer-events-auto">
-        <header className="bg-white/85 backdrop-blur-xl border border-white/20 shadow-xl shadow-slate-200/20 rounded-2xl supports-[backdrop-filter]:bg-white/60 relative">
+        <header className="bg-background/85 backdrop-blur-xl border border-border/50 shadow-xl shadow-foreground/5 rounded-2xl supports-[backdrop-filter]:bg-background/60 relative">
           <div className="container mx-auto flex h-16 items-center justify-between px-4">
             
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform duration-200">
+              <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-sm group-hover:scale-105 transition-transform duration-200">
                 <PenLine size={18} />
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900">Chronicle</h1>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Chronicle</h1>
             </Link>
 
             {/* Desktop Search */}
             <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-8">
               <div className="relative w-full group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-accent transition-colors" />
                 <Input
                   type="search"
                   placeholder="Search stories..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-slate-50/50 border-slate-200/60 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl transition-all"
+                  className="pl-10 bg-muted/50 border-border focus:bg-background focus:border-accent focus:ring-4 focus:ring-accent/10 rounded-xl transition-all"
                 />
               </div>
             </form>
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-1">
+              <ThemeToggle />
+              
               <Link to="/feed">
-                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg">
                   <Home className="mr-2 h-4 w-4" />
                   Feed
                 </Button>

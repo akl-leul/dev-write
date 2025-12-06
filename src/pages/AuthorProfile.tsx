@@ -149,9 +149,9 @@ const AuthorProfile = () => {
   const isOwnProfile = user?.id === authorId;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      <div className="fixed inset-0 z-0 pointer-events-none" 
-           style={{ backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+    <div className="min-h-screen bg-background font-sans">
+      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
+           style={{ backgroundImage: 'radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
       <div className="relative z-10">
         <Header />
@@ -160,8 +160,8 @@ const AuthorProfile = () => {
           <div className="max-w-4xl mx-auto">
             
             {/* Profile Header Card */}
-            <Card className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-8">
-              <div className="h-32 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+            <Card className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden mb-8">
+              <div className="h-32 bg-gradient-to-r from-accent via-accent/80 to-accent/60" />
               
               <div className="px-6 sm:px-8 pb-8">
                 <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16 mb-6">
