@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { X, Upload, Loader2, Image as ImageIcon, PenLine, FileText, Globe } from 'lucide-react';
+import { X, Upload, Loader2, Image as ImageIcon, PenLine, FileText, Globe, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { format } from 'date-fns';
@@ -33,6 +33,10 @@ const CreatePost = () => {
   const [featuredImageUrl, setFeaturedImageUrl] = useState<string>('');
   const [images, setImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentsEnabled, setCommentsEnabled] = useState(true);
+  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState<Array<{ id: string; content: string; created_at: string; author: { full_name: string; profile_image_url?: string } }>>([]);
 
   // Fetch categories
   const { data: categories } = useQuery({
@@ -244,6 +248,29 @@ const CreatePost = () => {
     createPost.mutate();
   };
 
+  const handleAddComment = () => {
+    if (!commentText.trim() || !user) return;
+    
+    const newComment = {
+      id: Date.now().toString(),
+      content: commentText,
+      created_at: new Date().toISOString(),
+      author: {
+        full_name: user.user_metadata?.full_name || 'Anonymous',
+        profile_image_url: user.user_metadata?.profile_image_url || ''
+      }
+    };
+    
+    setComments([newComment, ...comments]);
+    setCommentText('');
+    toast.success('Comment added successfully');
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setComments(comments.filter(comment => comment.id !== commentId));
+    toast.success('Comment deleted successfully');
+  };
+
   if (!user) {
     navigate('/auth');
     return null;
@@ -416,7 +443,7 @@ const CreatePost = () => {
               <div className="space-y-2">
                 <Label htmlFor="content" className="text-lg font-bold text-slate-900 pl-1">Story Content</Label>
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                   <RichTextEditor
+                  <RichTextEditor
                     content={content}
                     onChange={setContent}
                     placeholder="Start writing your story here..."
@@ -528,6 +555,123 @@ const CreatePost = () => {
                     </div>
                   </div>
                 </CardContent>
+              </Card>
+
+              {/* Comments Section */}
+              <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-slate-900 font-semibold">
+                      <MessageCircle className="w-4 h-4 text-green-500" />
+                      Comments Section
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                        <Switch
+                          checked={commentsEnabled}
+                          onCheckedChange={setCommentsEnabled}
+                        />
+                        <span className="text-sm font-medium text-slate-700">
+                          {commentsEnabled ? 'Comments Enabled' : 'Comments Disabled'}
+                        </span>
+                      </div>
+                      {commentsEnabled && (
+                        <span className="text-xs text-slate-500 font-medium bg-slate-200 px-2 py-1 rounded-full">
+                          {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <CardDescription className="text-xs">
+                    {commentsEnabled 
+                      ? 'Readers can comment on this post. Toggle to disable commenting.'
+                      : 'Comments are disabled for this post. Toggle to enable commenting.'
+                    }
+                  </CardDescription>
+                </CardHeader>
+                
+                {commentsEnabled && (
+                  <CardContent className="pt-6 space-y-6">
+                    {/* Add Comment Form */}
+                    <div className="space-y-4">
+                      <div className="flex gap-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-sm font-bold">
+                          {user?.user_metadata?.full_name?.[0]?.toUpperCase() || 'U'}
+                        </div>
+                        <div className="flex-1">
+                          <Textarea
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            placeholder="Share your thoughts about this post..."
+                            className="min-h-[80px] bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
+                          />
+                          <div className="mt-2 flex justify-end">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleAddComment}
+                              disabled={!commentText.trim()}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              Post Comment
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Comments List */}
+                    {comments.length > 0 ? (
+                      <div className="space-y-4">
+                        {comments.map((comment) => (
+                          <div key={comment.id} className="flex gap-3 p-4 bg-slate-50 rounded-lg">
+                            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-slate-600 text-sm font-bold flex-shrink-0">
+                              {comment.author.full_name?.[0]?.toUpperCase() || 'A'}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-slate-900 text-sm">
+                                    {comment.author.full_name}
+                                  </span>
+                                  <span className="text-xs text-slate-400">
+                                    {new Date(comment.created_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteComment(comment.id)}
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 h-6 w-6 p-0"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                                {comment.content}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
+                        No comments yet. Be the first to share your thoughts!
+                      </div>
+                    )}
+                  </CardContent>
+                )}
+                
+                {!commentsEnabled && (
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
+                      <MessageCircle className="w-8 h-8 mx-auto mb-3 text-slate-300" />
+                      <p className="font-medium text-slate-600 mb-1">Comments are disabled</p>
+                      <p>The author has disabled commenting for this post.</p>
+                    </div>
+                  </CardContent>
+                )}
               </Card>
 
               {/* Action Buttons */}

@@ -44,7 +44,7 @@ const Feed = () => {
     queryFn: async ({ pageParam = 0 }) => {
       let query = supabase
         .from('posts')
-        .select(`*, profiles:author_id (id, full_name, profile_image_url), likes (count), comments (count), post_images (url), categories:category_id (name, slug)`)
+        .select(`*, profiles:author_id (id, full_name, profile_image_url), likes (count), comments (count), post_images (url), categories:category_id (name, slug), featured_image`)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
         .range(pageParam, pageParam + POSTS_PER_PAGE - 1);
@@ -287,10 +287,10 @@ const Feed = () => {
                           </div>
 
                           {/* Right Side Image */}
-                          {post.post_images?.[0] && (
+                          {(post.featured_image || post.post_images?.[0]) && (
                             <div className="hidden md:block w-full h-28 rounded-2xl overflow-hidden border border-slate-100">
                               <img 
-                                src={post.post_images[0].url} 
+                                src={post.featured_image || post.post_images[0].url} 
                                 alt={post.title} 
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                               />
@@ -298,10 +298,10 @@ const Feed = () => {
                           )}
                           
                           {/* Mobile Image */}
-                          {post.post_images?.[0] && (
+                          {(post.featured_image || post.post_images?.[0]) && (
                             <div className="md:hidden w-full h-40 rounded-2xl overflow-hidden border border-slate-100 mb-4 order-first">
                               <img 
-                                src={post.post_images[0].url} 
+                                src={post.featured_image || post.post_images[0].url} 
                                 alt={post.title} 
                                 className="w-full h-full object-cover" 
                               />

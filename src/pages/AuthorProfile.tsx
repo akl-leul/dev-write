@@ -8,9 +8,16 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FollowButton } from '@/components/social/FollowButton';
-import { Heart, MessageCircle, Eye, Clock, Users, FileText, Calendar, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Eye, Clock, Users, FileText, Calendar, Loader2, Share2, Copy, Twitter, Facebook, Linkedin } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useEffect, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const POSTS_PER_PAGE = 10;
 
@@ -124,6 +131,46 @@ const AuthorProfile = () => {
 
   const allPosts = postsData?.pages.flat() || [];
 
+  // Generate random background image for each page load
+  const generateProfileBackground = () => {
+    const backgrounds = [
+      'https://images.unsplash.com/photo-1707759642885-42994e023046?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGFic3RyYWN0JTIwaW1hZ2VzfGVufDB8fDB8fHww', 
+      'https://images.unsplash.com/photo-1755534015012-a9c9dbc53d4b?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGFic3RyYWN0JTIwaW1hZ2VzfGVufDB8MHwwfHx8MA%3D%3D',  
+      'https://images.unsplash.com/photo-1690049121171-7cdbf383533b?q=80&w=2215&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3Dt',  
+      'https://images.unsplash.com/photo-1690049098415-29f96fca22c0?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTZ8fGFic3RyYWN0JTIwaW1hZ2VzfGVufDB8MHwwfHx8MA%3D%3D',
+      'https://plus.unsplash.com/premium_photo-1667119472093-242b3e2c501f?q=80&w=2800&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      'https://images.unsplash.com/vector-1753855748130-7a97b4c15e22?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDR8SWY2NUF1Tk9PeFF8fGVufDB8fHx8fA%3D%3D',
+      'https://plus.unsplash.com/premium_photo-1667538960183-82690c60a2a5?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8aW1hZ2VzfGVufDB8MHwwfHx8MA%3D%3D',
+      'https://images.unsplash.com/photo-1685926942337-aff9f087a8b8?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fGltYWdlc3xlbnwwfDB8MHx8fDA%3D',
+      'https://images.unsplash.com/photo-1695214493949-302b31df689d?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTl8fGltYWdlc3xlbnwwfDB8MHx8fDA%3D',
+      'https://plus.unsplash.com/premium_vector-1762792065400-e1870b82e187?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8M3x8fGVufDB8fHx8fA%3D%3D',
+    ];
+    
+    // Generate random index for variety on each page load
+    const randomIndex = Math.floor(Math.random() * backgrounds.length);
+    return backgrounds[randomIndex];
+  };
+
+  const profileBackground = generateProfileBackground();
+
+  const handleShare = (platform: string) => {
+    const profileUrl = window.location.href;
+    const shareText = `Check out ${profile.full_name}'s profile on Chronicle!`;
+    
+    const shareUrls = {
+      x: `https://x.com/intent/tweet?url=${encodeURIComponent(profileUrl)}&text=${encodeURIComponent(shareText)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(profileUrl)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(profileUrl)}`,
+    };
+    
+    if (platform === 'copy') {
+      navigator.clipboard.writeText(profileUrl);
+      toast.success('Profile link copied to clipboard!');
+    } else {
+      window.open(shareUrls[platform as keyof typeof shareUrls], '_blank');
+    }
+  };
+
   if (profileLoading) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -161,7 +208,14 @@ const AuthorProfile = () => {
             
             {/* Profile Header Card */}
             <Card className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden mb-8">
-              <div className="h-32 bg-gradient-to-r from-accent via-accent/80 to-accent/60" />
+              <div className="h-48 relative">
+                <img 
+                  src={profileBackground} 
+                  alt="Profile background" 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/20" />
+              </div>
               
               <div className="px-6 sm:px-8 pb-8">
                 <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16 mb-6">
@@ -179,6 +233,32 @@ const AuthorProfile = () => {
                   
                   <div className="flex gap-2">
                     {!isOwnProfile && <FollowButton userId={authorId!} size="default" />}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="default" className="rounded-xl">
+                          <Share2 className="h-4 w-4 mr-2" />
+                          Share
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-lg">
+                        <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-50 cursor-pointer">
+                          <Copy className="h-4 w-4 mr-2 text-slate-400" />
+                          Copy Link
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleShare('x')} className="focus:bg-slate-50 cursor-pointer">
+                          <Twitter className="h-4 w-4 mr-2 text-blue-400" />
+                          X
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-50 cursor-pointer">
+                          <Facebook className="h-4 w-4 mr-2 text-blue-600" />
+                          Facebook
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-50 cursor-pointer">
+                          <Linkedin className="h-4 w-4 mr-2 text-blue-700" />
+                          LinkedIn
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     {isOwnProfile && (
                       <Button variant="outline" asChild className="rounded-xl">
                         <Link to="/profile">Edit Profile</Link>

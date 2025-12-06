@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +24,7 @@ const Profile = () => {
     age: 18,
     gender: '',
     profile_image_url: '',
+    phone: '',
   });
   const [passwordData, setPasswordData] = useState({
     newPassword: '',
@@ -37,25 +38,35 @@ const Profile = () => {
         navigate('/auth');
         return null;
       }
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
       
-      if (data) {
-        setFormData({
-          full_name: data.full_name || '',
-          bio: data.bio || '',
-          age: data.age || 18,
-          gender: data.gender || '',
-          profile_image_url: data.profile_image_url || '',
-        });
+      if (error) {
+        console.error('Profile query error:', error);
+        throw error;
       }
+      
       return data;
     },
     enabled: !!user,
   });
+
+  // Sync form data with profile data when it changes
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        bio: profile.bio || '',
+        age: profile.age || 18,
+        gender: profile.gender || '',
+        profile_image_url: profile.profile_image_url || '',
+        phone: profile.phone || '',
+      });
+    }
+  }, [profile]);
 
   // Fetch stats for current user
   const { data: stats } = useQuery({
@@ -296,9 +307,11 @@ const Profile = () => {
                         </Label>
                         <Input
                           id="phone"
-                          value={profile?.phone || 'Not provided'}
-                          disabled
-                          className="bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          placeholder="Enter your phone number"
+                          className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                         />
                       </div>
                     </div>
