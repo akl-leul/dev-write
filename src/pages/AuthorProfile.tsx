@@ -226,7 +226,7 @@ const AuthorProfile = () => {
               </div>
               
               <div className="px-6 sm:px-8 pb-8">
-                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16 mb-6">
+                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4  mb-6">
                   <Avatar className="h-32 w-32 border-4 border-white shadow-xl">
                     <AvatarImage src={profile.profile_image_url || ''} />
                     <AvatarFallback className="bg-slate-900 text-white text-3xl font-bold">
