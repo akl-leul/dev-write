@@ -1,22 +1,27 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/layout/Header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Heart, MessageCircle, Eye, Clock, Filter, Search, Sparkles, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Heart, MessageCircle, Eye, Clock, Filter, Search, Sparkles, Loader2, Users } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SuggestedAuthors } from '@/components/social/SuggestedAuthors';
 import { TrendingPosts } from '@/components/social/TrendingPosts';
+import { PersonalizedFeed } from '@/components/feed/PersonalizedFeed';
 
 const POSTS_PER_PAGE = 10;
 
 const Feed = () => {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>('discover');
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const { data: categories } = useQuery({
@@ -132,14 +137,29 @@ const Feed = () => {
         <main className="container mx-auto py-12 px-4">
           <div className="max-w-6xl mx-auto">
             
-            {/* Page Header */}
-            <div className="mb-10 text-center md:text-left">
-              <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-                Discover Stories
+            {/* Page Header with Tabs */}
+            <div className="mb-10">
+              <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight text-center md:text-left">
+                {activeTab === 'discover' ? 'Discover Stories' : 'Your Feed'}
               </h1>
-              <p className="text-lg text-slate-500 max-w-2xl">
-                Read, learn, and share perspectives from writers around the world.
+              <p className="text-lg text-slate-500 max-w-2xl text-center md:text-left mb-6">
+                {activeTab === 'discover' 
+                  ? 'Read, learn, and share perspectives from writers around the world.'
+                  : 'Posts from authors you follow.'}
               </p>
+              
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="bg-white border border-slate-100 rounded-2xl p-1 w-full sm:w-auto">
+                  <TabsTrigger value="discover" className="rounded-xl data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 px-6">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Discover
+                  </TabsTrigger>
+                  <TabsTrigger value="following" className="rounded-xl data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 px-6">
+                    <Users className="w-4 h-4 mr-2" />
+                    For You
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
 
             {/* Main Grid Layout */}
@@ -147,6 +167,10 @@ const Feed = () => {
               
               {/* Main Feed Column */}
               <div>
+                {activeTab === 'following' ? (
+                  <PersonalizedFeed />
+                ) : (
+                  <>
                 {/* Controls Bar */}
                 <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-4 z-20 backdrop-blur-md bg-white/90 supports-[backdrop-filter]:bg-white/60">
                   <div className="flex items-center gap-2 w-full sm:w-auto px-2">
@@ -311,6 +335,8 @@ const Feed = () => {
                     </div>
                   )}
                 </div>
+                </>
+                )}
               </div>
 
               {/* Sidebar */}
