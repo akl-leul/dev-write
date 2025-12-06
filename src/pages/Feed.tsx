@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PostAuthorBadge } from '@/components/PostAuthorBadge';
 import { Heart, MessageCircle, Eye, Clock, Filter, Search, Sparkles, Loader2, Users } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -44,7 +45,7 @@ const Feed = () => {
     queryFn: async ({ pageParam = 0 }) => {
       let query = supabase
         .from('posts')
-        .select(`*, profiles:author_id (id, full_name, profile_image_url), likes (count), comments (count), post_images (url), categories:category_id (name, slug), featured_image`)
+        .select(`*, profiles:author_id (id, full_name, profile_image_url, badge), likes (count), comments (count), post_images (url), categories:category_id (name, slug), featured_image`)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
         .range(pageParam, pageParam + POSTS_PER_PAGE - 1);
@@ -218,24 +219,12 @@ const Feed = () => {
                       
                       {/* Top Meta: Author & Category */}
                       <div className="flex items-center justify-between mb-6">
-                        <Link 
-                          to={`/author/${post.profiles?.id}`} 
-                          className="flex items-center gap-3 group"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Avatar className="h-10 w-10 border-2 border-white shadow-sm group-hover:ring-2 group-hover:ring-blue-100 transition-all">
-                            <AvatarImage src={post.profiles?.profile_image_url || ''} />
-                            <AvatarFallback className="bg-slate-100 text-slate-600 font-bold">
-                              {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors">{post.profiles?.full_name}</p>
-                            <p className="text-xs text-slate-400 font-medium">
-                              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                            </p>
-                          </div>
-                        </Link>
+                        {post.profiles && (
+                          <PostAuthorBadge
+                            author={post.profiles}
+                            createdAt={post.created_at}
+                          />
+                        )}
                         
                         {post.categories && (
                           <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-full text-xs font-semibold tracking-wide">

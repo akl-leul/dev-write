@@ -154,7 +154,7 @@ const Auth = () => {
                     id="signin-email"
                     type="email"
                     placeholder="you@example.com"
-                    className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                     {...signInForm.register('email')}
                   />
                   {signInForm.formState.errors.email && (
@@ -175,7 +175,7 @@ const Auth = () => {
                   <Input
                     id="signin-password"
                     type="password"
-                    className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                     {...signInForm.register('password')}
                   />
                   {signInForm.formState.errors.password && (
@@ -203,7 +203,7 @@ const Auth = () => {
                   <Input
                     id="signup-name"
                     placeholder="John Doe"
-                    className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                     {...signUpForm.register('fullName')}
                   />
                   {signUpForm.formState.errors.fullName && (
@@ -217,7 +217,7 @@ const Auth = () => {
                     <Input
                       id="signup-age"
                       type="number"
-                      className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                       {...signUpForm.register('age', { valueAsNumber: true })}
                     />
                     {signUpForm.formState.errors.age && (
@@ -234,9 +234,7 @@ const Auth = () => {
                       <SelectContent>
                         <SelectItem value="male">Male</SelectItem>
                         <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                        <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                      </SelectContent>
+                        </SelectContent>
                     </Select>
                     {signUpForm.formState.errors.gender && (
                       <p className="text-sm text-red-500 font-medium">{signUpForm.formState.errors.gender.message}</p>
@@ -250,7 +248,7 @@ const Auth = () => {
                     id="signup-phone"
                     type="tel"
                     placeholder="+1234567890"
-                    className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                     {...signUpForm.register('phone')}
                   />
                   {signUpForm.formState.errors.phone && (
@@ -264,7 +262,7 @@ const Auth = () => {
                     id="signup-email"
                     type="email"
                     placeholder="you@example.com"
-                    className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                     {...signUpForm.register('email')}
                   />
                   {signUpForm.formState.errors.email && (
@@ -278,7 +276,7 @@ const Auth = () => {
                     <Input
                       id="signup-password"
                       type="password"
-                      className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                       {...signUpForm.register('password')}
                     />
                     {signUpForm.formState.errors.password && (
@@ -291,7 +289,7 @@ const Auth = () => {
                     <Input
                       id="signup-confirm"
                       type="password"
-                      className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                       {...signUpForm.register('confirmPassword')}
                     />
                     {signUpForm.formState.errors.confirmPassword && (
