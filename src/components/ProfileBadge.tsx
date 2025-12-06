@@ -9,8 +9,7 @@ import {
   Sparkles, 
   Award, 
   Medal,
-  Gem,
-  Fire,
+  Gem, 
   Rocket,
   Target,
   Flag
