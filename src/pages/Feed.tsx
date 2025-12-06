@@ -12,7 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PostAuthorBadge } from "@/components/PostAuthorBadge";
 import {
   Heart,
   MessageCircle,
@@ -64,7 +63,7 @@ const Feed = () => {
     queryFn: async ({ pageParam = 0 }) => {
       let query = supabase
         .from("posts")
-        .select(`*, likes (count), comments (count)`)
+        .select(`*, categories:category_id (name, slug), post_images (url), likes (count), comments (count)`)
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .range(pageParam, pageParam + POSTS_PER_PAGE - 1);
@@ -269,12 +268,7 @@ const Feed = () => {
                         >
                           {/* Top Meta: Author & Category */}
                           <div className="flex items-center justify-between mb-6">
-                            {post.profiles && (
-                              <PostAuthorBadge
-                                author={post.profiles}
-                                createdAt={post.created_at}
-                              />
-                            )}
+                            {/* Author badge temporarily removed */}
 
                             {post.categories && (
                               <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-full text-xs font-semibold tracking-wide">
