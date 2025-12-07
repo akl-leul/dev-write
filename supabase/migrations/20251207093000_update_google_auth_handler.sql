@@ -1,21 +1,9 @@
--- Fix search_path for security functions
-DROP FUNCTION IF EXISTS public.handle_updated_at() CASCADE;
+-- Update Google OAuth user handling
+-- This migration updates the handle_new_user function to properly handle Google OAuth users
+
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 
--- Recreate handle_updated_at with proper search_path
-CREATE OR REPLACE FUNCTION public.handle_updated_at()
-RETURNS TRIGGER 
-LANGUAGE plpgsql 
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$;
-
--- Recreate handle_new_user with proper search_path
+-- Recreate handle_new_user with Google OAuth support
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -25,7 +13,16 @@ AS $$
 BEGIN
   -- Handle Google OAuth users
   IF NEW.raw_user_meta_data IS NOT NULL THEN
-    INSERT INTO public.profiles (id, full_name, phone, profile_image_url, badge)
+    INSERT INTO public.profiles (
+      id, 
+      full_name, 
+      phone, 
+      profile_image_url, 
+      badge,
+      bio,
+      age,
+      gender
+    )
     VALUES (
       NEW.id,
       COALESCE(
@@ -42,7 +39,13 @@ BEGIN
       CASE 
         WHEN NEW.raw_user_meta_data->>'provider' = 'google' THEN 'star'
         ELSE NULL
-      END
+      END,
+      COALESCE(NEW.raw_user_meta_data->>'bio', 'Google user'),
+      CASE 
+        WHEN NEW.raw_user_meta_data->>'age' ~ '^[0-9]+$' THEN (NEW.raw_user_meta_data->>'age')::integer
+        ELSE NULL
+      END,
+      COALESCE(NEW.raw_user_meta_data->>'gender', 'other')
     );
   ELSE
     -- Handle regular email users
@@ -57,22 +60,7 @@ BEGIN
 END;
 $$;
 
--- Recreate triggers
-CREATE TRIGGER set_updated_at
-  BEFORE UPDATE ON public.profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
-
-CREATE TRIGGER set_updated_at
-  BEFORE UPDATE ON public.posts
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
-
-CREATE TRIGGER set_updated_at
-  BEFORE UPDATE ON public.comments
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
-
+-- Recreate the trigger
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW

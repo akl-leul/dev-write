@@ -22,7 +22,8 @@ import {
   BarChart3, 
   Bookmark,
   Settings,
-  Sparkles
+  Sparkles,
+  Globe
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -169,6 +170,14 @@ export const Header = () => {
                         Saved Stories
                       </DropdownMenuItem>
                       
+                      {/* Show Google Profile link only for Google users */}
+                      {user?.identities?.some(identity => identity.provider === 'google') && (
+                        <DropdownMenuItem onClick={() => navigate('/google-profile')} className="rounded-lg cursor-pointer focus:bg-slate-400">
+                          <Globe className="mr-2 h-4 w-4 text-slate-500" />
+                          Google Profile Data
+                        </DropdownMenuItem>
+                      )}
+                      
                       <DropdownMenuSeparator className="bg-slate-100 my-2" />
                       
                       <DropdownMenuItem onClick={handleSignOut} className="rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-600 text-red-500">
@@ -276,6 +285,16 @@ export const Header = () => {
                         Profile Settings
                       </Button>
                     </Link>
+
+                    {/* Show Google Profile link only for Google users */}
+                    {user?.identities?.some(identity => identity.provider === 'google') && (
+                      <Link to="/google-profile" onClick={() => setMobileMenuOpen(false)}>
+                        <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
+                          <Globe className="mr-3 h-5 w-5 text-slate-400" />
+                          Google Profile Data
+                        </Button>
+                      </Link>
+                    )}
 
                     <div className="border-t border-slate-100 my-2 pt-2">
                       <Button

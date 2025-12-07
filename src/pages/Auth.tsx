@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PenLine, ArrowLeft } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
 
 const signUpSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -36,7 +37,7 @@ type SignInForm = z.infer<typeof signInSchema>;
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, signUp, signIn } = useAuth();
+  const { user, signUp, signIn, signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
   const mode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
 
@@ -130,6 +131,36 @@ const Auth = () => {
         </CardHeader>
 
         <CardContent className="pt-4">
+          {/* Google Sign In Button */}
+          <Button
+            variant="outline"
+            type="button"
+            className="w-full mb-6 flex items-center justify-center gap-3 h-11 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+            onClick={async () => {
+              setLoading(true);
+              const { error } = await signInWithGoogle();
+              if (!error) {
+                // The user will be redirected to Google and then back to the app
+              }
+              setLoading(false);
+            }}
+            disabled={loading}
+          >
+            <FcGoogle className="w-5 h-5" />
+            <span className="text-slate-700 font-medium">Continue with Google</span>
+          </Button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-3 text-slate-500 font-medium">
+                Or continue with email
+              </span>
+            </div>
+          </div>
+
           <Tabs defaultValue={mode} className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-xl mb-6">
               <TabsTrigger 

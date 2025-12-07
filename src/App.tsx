@@ -18,6 +18,7 @@ import MyPosts from "./pages/MyPosts";
 import Analytics from "./pages/Analytics";
 import Bookmarks from "./pages/Bookmarks";
 import AuthorProfile from "./pages/AuthorProfile";
+import GoogleProfile from "./pages/GoogleProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/google-profile" element={<GoogleProfile />} />
               <Route path="/create" element={<CreatePost />} />
               <Route path="/post/*" element={<PostDetail />} />
               <Route path="/my-posts" element={<MyPosts />} />
