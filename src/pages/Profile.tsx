@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
-import { Camera, Loader2, Lock, User, Mail, Phone, Calendar, UserCircle, ShieldCheck, Users, FileText, Twitter, Facebook, Linkedin, Instagram, Github, Youtube, Globe } from 'lucide-react';
+import { Camera, Loader2, Lock, User, Mail, Phone, Calendar, UserCircle, ShieldCheck, Users, FileText, Twitter, Facebook, Linkedin, Instagram, Github, Youtube, Globe, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
 import { ImageCropModal } from '@/components/ImageCropModal';
@@ -24,6 +24,8 @@ const Profile = () => {
   const [uploading, setUploading] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>('');
+  const [uploadingBackground, setUploadingBackground] = useState(false);
+  const [selectedBackgroundImage, setSelectedBackgroundImage] = useState<string>('');
   const [formData, setFormData] = useState({
     full_name: '',
     bio: '',
@@ -39,6 +41,7 @@ const Profile = () => {
     github: '',
     youtube: '',
     website: '',
+    background_image_url: '',
   });
   const [passwordData, setPasswordData] = useState({
     newPassword: '',
@@ -86,6 +89,7 @@ const Profile = () => {
         github: (profile as any).github || '',
         youtube: (profile as any).youtube || '',
         website: (profile as any).website || '',
+        background_image_url: (profile as any).background_image_url || '',
       });
     }
   }, [profile]);
@@ -180,6 +184,74 @@ const Profile = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleBackgroundImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setSelectedBackgroundImage(event.target.result as string);
+        handleBackgroundImageUpload(event.target.result as string);
+      }
+    };
+    
+    reader.readAsDataURL(file);
+  };
+
+  const handleBackgroundImageUpload = async (imageUrl: string) => {
+    if (!user) return;
+    
+    setUploadingBackground(true);
+    
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      const fileExt = 'jpg'; // We're saving as JPEG
+      const fileName = `${user.id}/background_${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('profile-images')
+        .upload(fileName, blob, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(fileName);
+      
+      await updateProfile.mutateAsync({ background_image_url: publicUrl });
+      
+      URL.revokeObjectURL(imageUrl);
+      
+      toast.success('Background image updated successfully');
+    } catch (error) {
+      console.error('Background upload error:', error);
+      toast.error('Failed to upload background image');
+    } finally {
+      setUploadingBackground(false);
+    }
+  };
+
+  const handleDeleteBackgroundImage = async () => {
+    if (!user || !(profile as any).background_image_url) return;
+    
+    try {
+      // Delete from database
+      await updateProfile.mutateAsync({ background_image_url: '' });
+      
+      // Optionally delete from storage (more complex, requires extracting file path)
+      // For now just remove reference from database
+      
+      toast.success('Background image removed successfully');
+    } catch (error) {
+      console.error('Background delete error:', error);
+      toast.error('Failed to remove background image');
+    }
+  };
+
   const handleCroppedImageUpload = async (croppedImageUrl: string) => {
     if (!user) return;
     
@@ -262,7 +334,6 @@ const Profile = () => {
                 <p className="text-slate-500">Manage your personal information and security</p>
               </div>
             </div>
-
             {/* Stats Card */}
             <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden mb-8">
               <CardContent className="p-6">
@@ -331,6 +402,96 @@ const Profile = () => {
                         )}
                       </div>
                       <p className="text-xs text-slate-500">Click the camera icon to upload</p>
+                    </div>
+                  </div>
+
+                  {/* Background Image Upload Section */}
+                  <div className="border-t border-slate-100 pt-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-slate-700 font-medium flex items-center gap-2">
+                            <Image className="w-4 h-4 text-slate-500" />
+                            Profile Background Image
+                          </Label>
+                          <p className="text-xs text-slate-500 mt-1">Upload a custom background image for your profile</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label htmlFor="background-upload" className="cursor-pointer">
+                            <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                              {uploadingBackground ? (
+                                <Loader2 className="h-4 w-4 text-slate-600 animate-spin" />
+                              ) : (
+                                <Image className="h-4 w-4 text-slate-600" />
+                              )}
+                              <span className="text-sm text-slate-700 font-medium">
+                                {uploadingBackground ? 'Uploading...' : (profile as any).background_image_url ? 'Update' : 'Choose Image'}
+                              </span>
+                            </div>
+                            <input
+                              id="background-upload"
+                              type="file"
+                              accept="image/*"
+                              onChange={handleBackgroundImageSelect}
+                              className="hidden"
+                              disabled={uploadingBackground}
+                            />
+                          </label>
+                          
+                          {(profile as any).background_image_url && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleDeleteBackgroundImage}
+                              className="px-3 py-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Background Image Preview */}
+                      {(profile as any).background_image_url && (
+                        <div className="relative rounded-lg overflow-hidden border border-slate-200 group">
+                          <img 
+                            src={(profile as any).background_image_url} 
+                            alt="Profile background" 
+                            className="w-full h-32 object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                          <div className="absolute bottom-2 left-2">
+                            <p className="text-xs text-white font-medium">Current background</p>
+                          </div>
+                          {/* Hover overlay with actions */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <label htmlFor="background-upload-hover" className="cursor-pointer">
+                              <div className="flex items-center gap-2 px-3 py-2 bg-white/90 hover:bg-white rounded-lg transition-colors">
+                                <Image className="h-4 w-4 text-slate-700" />
+                                <span className="text-sm text-slate-700 font-medium">Change</span>
+                              </div>
+                              <input
+                                id="background-upload-hover"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleBackgroundImageSelect}
+                                className="hidden"
+                                disabled={uploadingBackground}
+                              />
+                            </label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleDeleteBackgroundImage}
+                              className="px-3 py-2 bg-white/90 hover:bg-white border-red-200 text-red-600 hover:bg-red-50"
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 

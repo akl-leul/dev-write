@@ -61,6 +61,10 @@ export function useProfileBadge({ userId, postsCount, likesCount, followersCount
     // Priority-based badge system
     // Higher priority badges override lower ones
     
+    // TEMPORARY: Always show a star badge for testing
+    // Remove this when debugging is complete
+    return 'star';
+    
     // 1. Check for 3+ likes (highest priority after custom badges)
     if (counts.likes >= 3) {
       return 'heart';

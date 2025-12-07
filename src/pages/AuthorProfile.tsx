@@ -169,7 +169,8 @@ const AuthorProfile = () => {
     return backgrounds[randomIndex];
   };
 
-  const profileBackground = generateProfileBackground();
+  // Use custom background image if available, otherwise use random background
+  const profileBackground = (profile as any)?.background_image_url || generateProfileBackground();
 
   const handleShare = (platform: string) => {
     const profileUrl = window.location.href;
@@ -211,6 +212,17 @@ const AuthorProfile = () => {
     );
   }
 
+  // Debug: Log badge data
+  console.log('Badge data:', badge);
+  console.log('Stats:', stats);
+  console.log('AuthorId:', authorId);
+  console.log('Badge condition check:', {
+    posts: stats?.posts || 0,
+    followers: stats?.followers || 0,
+    likes: 0,
+    shouldShow: (stats?.posts || 0) >= 1 || (stats?.followers || 0) >= 1 || 0 >= 3
+  });
+
   const isOwnProfile = user?.id === authorId;
 
   // Debug: Log profile data to check what's happening
@@ -245,29 +257,30 @@ const AuthorProfile = () => {
               <div className="px-6 sm:px-8 pb-8">
                 <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16 mb-6">
                   <div className="relative">
-                    <Avatar className="h-32 w-32 border-4 border-white shadow-xl ring-4 ring-slate-100">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-300 via-yellow-300 to-blue-300 opacity-30 blur-md scale-110" />
+                    <Avatar className="relative h-32 w-32 border-4 border-white shadow-xl ring-4 ring-slate-100">
                       <AvatarImage src={profile.profile_image_url || ''} />
                       <AvatarFallback className="bg-slate-900 text-white text-3xl font-bold">
                         {profile.full_name?.[0]?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    {badge && (
-                      <div className="absolute -bottom-2 -right-2">
-                        <ProfileBadge badge={badge} size="sm" />
-                      </div>
-                    )}
+                    
                   </div>
                   
                   <div className="flex-1 text-center sm:text-left sm:ml-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-center sm:justify-start gap-2 mb-2">
-                      <h1 className="text-2xl sm:text-3xl text-slate-900 md:text-white font-bold   drop-shadow-sm">
-                        {profile.full_name || 'Unknown User'}
-                      </h1>
-                      {badge && (
-                        <div className="hidden sm:block">
-                          <ProfileBadge badge={badge} size="md" />
-                        </div>
-                      )}
+                    <div className="flex flex-col items-center sm:flex-row sm:items-center justify-center sm:justify-start gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+  <h1 className="text-2xl sm:text-3xl text-slate-900 md:text-white font-bold drop-shadow-sm flex items-center gap-2">
+    {profile.full_name || 'Unknown User'}
+
+    {badge && (
+      <span className="inline-flex items-center justify-center bg-white rounded-full p-1 shadow-lg ring-2 ring-white">
+        <ProfileBadge badge={badge} size="sm" />
+      </span>
+    )}
+  </h1>
+</div>
+
                     </div>
                     
                     <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 text-sm text-slate-600 mb-3">
