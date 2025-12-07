@@ -188,20 +188,22 @@ const Feed = () => {
                 onValueChange={setActiveTab}
                 className="w-full"
               >
-                <TabsList className="bg-white border border-slate-100 rounded-2xl p-1 w-full sm:w-auto">
+                <TabsList className="bg-white border border-slate-100 rounded-2xl p-1 w-full grid grid-cols-2 gap-1">
                   <TabsTrigger
                     value="discover"
-                    className="rounded-xl data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 px-6"
+                    className="rounded-xl data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 px-4 py-2 text-sm sm:px-6 sm:text-base"
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Discover
+                    <Sparkles className="w-4 h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Discover</span>
+                    <span className="sm:hidden">Explore</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="following"
-                    className="rounded-xl data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 px-6"
+                    className="rounded-xl data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 px-4 py-2 text-sm sm:px-6 sm:text-base"
                   >
-                    <Users className="w-4 h-4 mr-2" />
-                    For You
+                    <Users className="w-4 h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">For You</span>
+                    <span className="sm:hidden">Feed</span>
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
