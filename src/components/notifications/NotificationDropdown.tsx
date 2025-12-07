@@ -20,26 +20,36 @@ export const NotificationDropdown = () => {
   const queryClient = useQueryClient();
   const [hasNewNotification, setHasNewNotification] = useState(false);
 
-  const { data: notifications } = useQuery({
+  const { data: notifications, isLoading, error } = useQuery({
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user?.id) return [];
       
       const { data, error } = await supabase
         .from('notifications')
         .select(`
           *,
-          from_user:from_user_id (full_name, profile_image_url),
-          posts:post_id (title, slug)
+          from_user:profiles!notifications_from_user_id_fkey (
+            full_name,
+            profile_image_url
+          ),
+          post:posts!notifications_post_id_fkey (
+            title,
+            slug
+          )
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(20);
-      
-      if (error) throw error;
-      return data;
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        throw error;
+      }
+
+      return data || [];
     },
-    enabled: !!user,
+    enabled: !!user?.id,
   });
 
   // Real-time subscription for notifications
@@ -57,7 +67,6 @@ export const NotificationDropdown = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('New notification:', payload);
           setHasNewNotification(true);
           queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
           
@@ -136,6 +145,12 @@ export const NotificationDropdown = () => {
         return (
           <div className="p-2 bg-green-50 text-green-600 rounded-full shrink-0">
             <UserPlus className="h-4 w-4" />
+          </div>
+        );
+      case 'mention':
+        return (
+          <div className="p-2 bg-yellow-50 text-yellow-600 rounded-full shrink-0">
+            <Sparkles className="h-4 w-4" />
           </div>
         );
       default:
@@ -247,18 +262,21 @@ export const NotificationDropdown = () => {
                     {notification.type === 'comment' && (
                       <p><span className="font-semibold">{notification.from_user?.full_name || 'Someone'}</span> commented on your post</p>
                     )}
+                    {notification.type === 'mention' && (
+                      <p><span className="font-semibold">{notification.from_user?.full_name || 'Someone'}</span> tagged you in a post</p>
+                    )}
                     {notification.type === 'new_post' && notification.from_user?.full_name && (
                       <p><span className="font-semibold">{notification.from_user.full_name}</span> posted something new</p>
                     )}
                     {notification.type === 'new_post' && !notification.from_user?.full_name && (
                       <p>New post from <span className="font-semibold">{notification.from_user?.full_name || 'a user'}</span></p>
                     )}
-                    {!['follow', 'like', 'comment', 'new_post'].includes(notification.type) && (
+                    {!['follow', 'like', 'comment', 'mention', 'new_post'].includes(notification.type) && (
                       <p>{notification.message}</p>
                     )}
                   </div>
                   
-                  {notification.message && !['follow', 'like', 'comment', 'new_post'].includes(notification.type) && (
+                  {notification.message && !['follow', 'like', 'comment', 'mention', 'new_post'].includes(notification.type) && (
                     <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
                       {notification.message}
                     </p>

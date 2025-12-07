@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin, Eye, Clock, Calendar } from 'lucide-react';
+import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin, Eye, Clock, Calendar, Tag as TagIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { CommentSection } from '@/components/blog/CommentSection';
@@ -63,6 +63,20 @@ type Post = {
     name: string;
     slug: string;
   };
+  post_tags?: {
+    tags: {
+      id: string;
+      name: string;
+      slug: string;
+      color: string;
+    };
+  }[];
+  tags?: {
+    id: string;
+    name: string;
+    slug: string;
+    color: string;
+  }[];
 };
 
 const PostDetail = () => {
@@ -87,7 +101,12 @@ const PostDetail = () => {
           post_images (url, alt_text, order_index),
           likes (user_id),
           comments (count),
-          categories:category_id (name, slug)
+          categories:category_id (name, slug),
+          post_tags (
+            tags (
+              id, name, slug, color
+            )
+          )
         `)
         .eq('slug', slug)
         .maybeSingle();
@@ -277,14 +296,38 @@ const PostDetail = () => {
             {/* Header / Meta Information */}
             <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm mb-8">
               
-              {/* Category & Date Row */}
+              {/* Category, Tags & Date Row */}
               <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                    {post.categories && (
                     <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold uppercase tracking-wider">
                       {post.categories.name}
                     </span>
                   )}
+                  
+                  {/* Tags */}
+                  {post.post_tags && post.post_tags.length > 0 && (
+                    <>
+                      <span className="text-slate-300">|</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <TagIcon className="w-4 h-4 text-slate-400" />
+                        {post.post_tags.map((postTag, index) => (
+                          <span
+                            key={postTag.tags.id}
+                            className="px-2 py-1 text-xs font-medium rounded-full border"
+                            style={{
+                              backgroundColor: postTag.tags.color + '20',
+                              borderColor: postTag.tags.color + '40',
+                              color: postTag.tags.color
+                            }}
+                          >
+                            {postTag.tags.name}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  
                   <span className="text-slate-300">|</span>
                   <div className="flex items-center gap-1.5 text-slate-500 text-sm font-medium">
                     <Clock className="w-4 h-4" />

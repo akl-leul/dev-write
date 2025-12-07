@@ -34,28 +34,27 @@ export const createMentionNotifications = async (
   postTitle: string,
   fromUserId: string
 ) => {
-  const notifications = mentionedUserIds.map(userId => ({
-    user_id: userId,
-    title: 'You were mentioned in a post',
-    message: `You were tagged in "${postTitle}"`,
-    type: 'mention' as const,
-    post_id: postId,
-    from_user_id: fromUserId,
-  }));
+  if (mentionedUserIds.length === 0) return [];
 
-  if (notifications.length === 0) return [];
+  try {
+    const { data, error } = await supabase.rpc('create_mention_notifications', {
+      user_ids: mentionedUserIds,
+      post_uuid: postId,
+      post_name: postTitle,
+      sender_uuid: fromUserId,
+    });
 
-  const { data, error } = await supabase
-    .from('notifications')
-    .insert(notifications)
-    .select();
+    if (error) {
+      console.error('Error creating mention notifications:', error);
+      return [];
+    }
 
-  if (error) {
-    console.error('Error creating mention notifications:', error);
+    console.log('Successfully created notifications:', data);
+    return data || [];
+  } catch (error) {
+    console.error('Network error creating notifications:', error);
     return [];
   }
-
-  return data || [];
 };
 
 export const getUnreadNotifications = async (userId: string) => {

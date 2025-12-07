@@ -11,12 +11,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { X, Upload, Loader2, Image as ImageIcon, PenLine, FileText, Globe, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Upload, Loader2, Image as ImageIcon, PenLine, FileText, Globe, MessageCircle, ChevronDown, ChevronUp, Tag as TagIcon, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { MentionOverlay } from '@/components/editor/MentionOverlay';
+import { TagMentionOverlay } from '@/components/editor/TagMentionOverlay';
 import { useMentions } from '@/hooks/useMentions';
-import { extractMentions, findUsersByNames } from '@/utils/userSearch';
+import { useTagMentions } from '@/hooks/useTagMentions';
+import { extractMentions, findUsersByNames, extractMentionsFromTags } from '@/utils/userSearch';
 import { createMentionNotifications } from '@/utils/notifications';
 import { format } from 'date-fns';
 
@@ -41,12 +43,25 @@ const CreatePost = () => {
   const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Array<{ id: string; content: string; created_at: string; author: { full_name: string; profile_image_url?: string } }>>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [availableTags, setAvailableTags] = useState<Array<{ id: string; name: string; slug: string; color: string }>>([]);
   
   // Mention functionality
   const editorRef = useRef<HTMLDivElement>(null);
   const { mentionState, checkForMention, insertMention, closeMentions } = useMentions(editorRef);
 
-  // Fetch categories
+  // Tag mention functionality
+  const tagInputRef = useRef<HTMLInputElement>(null);
+  const { 
+    mentionState: tagMentionState, 
+    searchResults: tagSearchResults, 
+    checkForMention: checkTagMentions, 
+    insertMention: insertTagMention, 
+    closeMentions: closeTagMentions 
+  } = useTagMentions(tagInputRef, tagInput, user, setTagInput);
+
+  // Fetch categories and tags
   const { data: categories } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
@@ -58,6 +73,23 @@ const CreatePost = () => {
       return data;
     },
   });
+
+  const { data: tagsData } = useQuery({
+    queryKey: ['tags'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tags')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Update available tags when data changes
+  if (tagsData && tagsData !== availableTags) {
+    setAvailableTags(tagsData);
+  }
 
   // Load existing post if editing
   useQuery({
@@ -81,6 +113,21 @@ const CreatePost = () => {
         setCategoryId(data.category_id || '');
         setReadTime(data.read_time || 5);
         setFeaturedImageUrl(data.featured_image || '');
+        
+        // Load existing tags
+        const { data: postTags } = await supabase
+          .from('post_tags')
+          .select(`
+            tags (
+              name
+            )
+          `)
+          .eq('post_id', editId);
+        
+        if (postTags) {
+          const tagNames = postTags.map(pt => pt.tags.name);
+          setTags(tagNames);
+        }
       }
       return data;
     },
@@ -159,6 +206,60 @@ const CreatePost = () => {
           .eq('id', editId)
           .single();
         
+        // Handle tags for edited post
+        if (tags.length > 0) {
+          // Remove existing post tags
+          await supabase
+            .from('post_tags')
+            .delete()
+            .eq('post_id', editId);
+          
+          // Create or find tags and associate with post
+          const tagPromises = tags.map(async (tagName) => {
+            const slug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            
+            // Try to find existing tag
+            const { data: existingTag } = await supabase
+              .from('tags')
+              .select('id')
+              .eq('slug', slug)
+              .single();
+            
+            const tagId = existingTag?.id || (
+              (await supabase
+                .from('tags')
+                .insert({ name: tagName, slug })
+                .select('id')
+                .single())?.data?.id
+            );
+            
+            if (tagId) {
+              return supabase
+                .from('post_tags')
+                .insert({ post_id: editId, tag_id: tagId });
+            }
+          });
+          
+          await Promise.all(tagPromises);
+          
+          // Extract mentions from tags and send notifications
+          const tagMentions = extractMentionsFromTags(tags);
+          if (tagMentions.length > 0) {
+            const mentionedUsersFromTags = await findUsersByNames(tagMentions);
+            const mentionedUserIdsFromTags = mentionedUsersFromTags.map(u => u.id).filter(id => id !== user.id);
+            
+            if (mentionedUserIdsFromTags.length > 0) {
+              await createMentionNotifications(mentionedUserIdsFromTags, editId, title, user.id);
+            }
+          }
+        } else {
+          // Remove all tags if none are selected
+          await supabase
+            .from('post_tags')
+            .delete()
+            .eq('post_id', editId);
+        }
+        
         return { id: editId, slug: existingPost?.slug };
       }
 
@@ -216,9 +317,60 @@ const CreatePost = () => {
             url: publicUrl,
             order_index: index,
           });
-        });
 
+        });
         await Promise.all(imagePromises);
+      }
+
+      // Handle tags
+      if (tags.length > 0) {
+        // Create or find tags
+        const tagPromises = tags.map(async (tagName) => {
+          const slug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          
+          // Try to find existing tag
+          const { data: existingTag } = await supabase
+            .from('tags')
+            .select('id')
+            .eq('slug', slug)
+            .single();
+          
+          if (existingTag) {
+            return existingTag.id;
+          } else {
+            // Create new tag
+            const { data: newTag } = await supabase
+              .from('tags')
+              .insert({ name: tagName, slug })
+              .select('id')
+              .single();
+            return newTag?.id;
+          }
+        });
+        
+        const tagIds = await Promise.all(tagPromises);
+        
+        // Associate tags with post
+        const postTagPromises = tagIds.map((tagId) => {
+          if (tagId) {
+            return supabase
+              .from('post_tags')
+              .insert({ post_id: post.id, tag_id: tagId });
+          }
+        });
+        
+        await Promise.all(postTagPromises);
+
+        // Extract mentions from tags and send notifications
+        const tagMentions = extractMentionsFromTags(tags);
+        if (tagMentions.length > 0) {
+          const mentionedUsersFromTags = await findUsersByNames(tagMentions);
+          const mentionedUserIdsFromTags = mentionedUsersFromTags.map(u => u.id).filter(id => id !== user.id);
+          
+          if (mentionedUserIdsFromTags.length > 0) {
+            await createMentionNotifications(mentionedUserIdsFromTags, post.id, title, user.id);
+          }
+        }
       }
 
       return post;
@@ -235,8 +387,8 @@ const CreatePost = () => {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    
     const newFiles = Array.from(e.target.files);
+    
     const totalImages = images.length + newFiles.length;
     
     if (totalImages > 5) {
@@ -290,10 +442,37 @@ const CreatePost = () => {
     toast.success('Comment deleted successfully');
   };
 
-  if (!user) {
-    navigate('/auth');
-    return null;
-  }
+  // Tag handling functions
+  const handleAddTag = () => {
+    const trimmedTag = tagInput.trim();
+    if (trimmedTag && !tags.includes(trimmedTag) && tags.length < 10) {
+      const newTags = [...tags, trimmedTag];
+      setTags(newTags);
+      setTagInput('');
+    } else if (tags.length >= 10) {
+      toast.error('Maximum 10 tags allowed');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
+  const handleSelectExistingTag = (tagName: string) => {
+    if (!tags.includes(tagName) && tags.length < 10) {
+      setTags([...tags, tagName]);
+      setTagInput('');
+    } else if (tags.length >= 10) {
+      toast.error('Maximum 10 tags allowed');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100">
@@ -543,6 +722,123 @@ const CreatePost = () => {
                   ) : (
                     <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
                       No gallery images added yet
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Tags Section */}
+              <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-slate-900 font-semibold">
+                      <TagIcon className="w-4 h-4 text-orange-500" />
+                      Tags
+                    </div>
+                    <span className="text-xs text-slate-500 font-medium bg-slate-200 px-2 py-1 rounded-full">
+                      {tags.length}/10
+                    </span>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Add tags to help readers discover your content. Press Enter or comma to add a tag. Type @ to mention a user.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
+                  {/* Tag Input */}
+                  <div className="flex flex-wrap gap-2 relative">
+                    <Input
+                      ref={tagInputRef}
+                      value={tagInput}
+                      onChange={(e) => {
+                        setTagInput(e.target.value);
+                        checkTagMentions();
+                      }}
+                      onKeyDown={handleTagInputKeyDown}
+                      onFocus={checkTagMentions}
+                      placeholder="Add a tag... Type @ to mention a user"
+                      className="flex-1 min-w-[200px] bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleAddTag}
+                      disabled={!tagInput.trim() || tags.length >= 10}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add
+                    </Button>
+                    
+                    {/* Tag Mention Overlay */}
+                    {tagMentionState.active && tagMentionState.position && (
+                      <TagMentionOverlay
+                        query={tagMentionState.query}
+                        searchResults={tagSearchResults}
+                        onSelect={insertTagMention}
+                        onClose={closeTagMentions}
+                        position={tagMentionState.position}
+                        inputRef={tagInputRef}
+                      />
+                    )}
+                  </div>
+
+                  {/* Existing Tags Suggestions */}
+                  {availableTags.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm text-slate-600 font-medium">Suggested Tags:</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {availableTags
+                          .filter(tag => !tags.includes(tag.name))
+                          .slice(0, 8)
+                          .map((tag) => (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => handleSelectExistingTag(tag.name)}
+                              className="px-3 py-1 text-xs font-medium rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
+                              style={{ borderColor: tag.color + '40', color: tag.color }}
+                            >
+                              {tag.name}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selected Tags */}
+                  {tags.length > 0 ? (
+                    <div className="space-y-2">
+                      <Label className="text-sm text-slate-600 font-medium">Selected Tags:</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {tags.map((tag, index) => {
+                          const tagData = availableTags.find(t => t.name === tag);
+                          return (
+                            <div
+                              key={index}
+                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700 border border-blue-200"
+                              style={{ 
+                                backgroundColor: tagData?.color + '20' || '#3B82F620',
+                                borderColor: tagData?.color + '40' || '#3B82F640',
+                                color: tagData?.color || '#3B82F6'
+                              }}
+                            >
+                              {tag}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveTag(tag)}
+                                className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
+                      <TagIcon className="w-6 h-6 mx-auto mb-2 text-slate-300" />
+                      <p>No tags added yet</p>
+                      <p className="text-xs mt-1">Add tags to improve discoverability</p>
                     </div>
                   )}
                 </CardContent>
