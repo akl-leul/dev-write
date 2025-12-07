@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useState } from 'react';
+import { PostAuthorBadge } from '@/components/PostAuthorBadge';
 
 interface CommentWithProfile {
   id: string;
@@ -38,6 +40,7 @@ const MyPosts = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [rejectingComments, setRejectingComments] = useState<Set<string>>(new Set());
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ['my-posts', user?.id],
@@ -84,12 +87,38 @@ const MyPosts = () => {
       
       if (error) throw error;
     },
+    onMutate: async (commentId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['my-posts', user?.id] });
+      
+      // Snapshot the previous value
+      const previousPosts = queryClient.getQueryData(['my-posts', user?.id]);
+      
+      // Optimistically update the posts data
+      queryClient.setQueryData(['my-posts', user?.id], (old: any) => {
+        if (!old) return old;
+        
+        return old.map((post: any) => ({
+          ...post,
+          comments: post.comments.map((comment: any) =>
+            comment.id === commentId ? { ...comment, approved: true } : comment
+          )
+        }));
+      });
+      
+      return { previousPosts };
+    },
+    onError: (err, commentId, context) => {
+      if (context?.previousPosts) {
+        queryClient.setQueryData(['my-posts', user?.id], context.previousPosts);
+      }
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-posts', user?.id] });
       toast.success('Comment approved');
     },
-    onError: () => {
-      toast.error('Failed to approve comment');
+    onSettled: () => {
+      // Refetch to ensure server state is reflected
+      queryClient.invalidateQueries({ queryKey: ['my-posts', user?.id] });
     },
   });
 
@@ -102,12 +131,24 @@ const MyPosts = () => {
       
       if (error) throw error;
     },
+    onMutate: async (commentId) => {
+      // Add comment to rejecting set
+      setRejectingComments(prev => new Set(prev).add(commentId));
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-posts', user?.id] });
       toast.success('Comment rejected');
     },
     onError: () => {
       toast.error('Failed to reject comment');
+    },
+    onSettled: (_, __, commentId) => {
+      // Remove from rejecting set after completion
+      setRejectingComments(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(commentId);
+        return newSet;
+      });
     },
   });
 
@@ -135,7 +176,6 @@ const MyPosts = () => {
     return null;
   }
 
-  // Loading State
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -161,13 +201,13 @@ const MyPosts = () => {
   }
 
   const pendingComments = posts?.flatMap(post => 
-    post.comments.filter(c => !c.approved).map(c => ({ ...c, postTitle: post.title, postSlug: post.slug }))
+    post.comments
+      .filter(c => !c.approved)
+      .map(c => ({ ...c, postTitle: post.title, postSlug: post.slug }))
   ) || [];
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100">
-      
-      {/* Background Dot Pattern */}
       <div className="fixed inset-0 z-0 pointer-events-none" 
            style={{
              backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
@@ -180,8 +220,6 @@ const MyPosts = () => {
         
         <main className="container mx-auto py-12 px-4">
           <div className="max-w-6xl mx-auto">
-            
-            {/* Header */}
             <div className="flex items-center justify-between mb-10">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center text-blue-600">
@@ -200,7 +238,6 @@ const MyPosts = () => {
               </Link>
             </div>
 
-            {/* Pending Comments Alert Section */}
             {pendingComments.length > 0 && (
               <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
                 <Card className="bg-white border-orange-100 shadow-sm rounded-2xl overflow-hidden">
@@ -219,18 +256,17 @@ const MyPosts = () => {
                         <div key={comment.id} className="p-6 hover:bg-slate-50 transition-colors">
                           <div className="flex flex-col md:flex-row md:items-start gap-4">
                             <div className="flex items-center gap-3 min-w-[200px]">
-                              <Avatar className="h-10 w-10 border border-white shadow-sm">
-                                <AvatarImage src={comment.profiles?.profile_image_url || ''} />
-                                <AvatarFallback className="bg-slate-100 text-slate-600">
-                                  {comment.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-bold text-slate-900 text-sm">{comment.profiles?.full_name}</p>
-                                <p className="text-xs text-slate-500">
-                                  {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                                </p>
-                              </div>
+                              <PostAuthorBadge 
+                                author={{
+                                  id: comment.profiles?.full_name || 'unknown',
+                                  full_name: comment.profiles?.full_name || 'Unknown',
+                                  profile_image_url: comment.profiles?.profile_image_url
+                                }}
+                                createdAt={comment.created_at}
+                                postsCount={0}
+                                likesCount={0}
+                                followersCount={0}
+                              />
                             </div>
                             
                             <div className="flex-1 space-y-2">
@@ -245,25 +281,38 @@ const MyPosts = () => {
                             </div>
 
                             <div className="flex gap-2 md:flex-col pt-2 md:pt-0">
-                              <Button
-                                size="sm"
-                                onClick={() => approveComment.mutate(comment.id)}
-                                className="bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-sm"
-                              >
-                                <Check className="h-4 w-4 mr-1" /> Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  if (confirm('Reject and delete this comment?')) {
-                                    rejectComment.mutate(comment.id);
-                                  }
-                                }}
-                                className="text-red-500 border-red-100 hover:bg-red-50 rounded-lg"
-                              >
-                                <X className="h-4 w-4 mr-1" /> Reject
-                              </Button>
+                              {!comment.approved ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => approveComment.mutate(comment.id)}
+                                    disabled={approveComment.isPending}
+                                    className="bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-sm disabled:opacity-50"
+                                  >
+                                    <Check className="h-4 w-4 mr-1" /> 
+                                    {approveComment.isPending ? 'Approving...' : 'Approve'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      if (confirm('Reject and delete this comment?')) {
+                                        rejectComment.mutate(comment.id);
+                                      }
+                                    }}
+                                    disabled={rejectComment.isPending || rejectingComments.has(comment.id)}
+                                    className="text-red-500 border-red-100 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                                  >
+                                    <X className="h-4 w-4 mr-1" /> 
+                                    {rejectingComments.has(comment.id) ? 'Rejecting...' : 'Reject'}
+                                  </Button>
+                                </>
+                              ) : (
+                                <div className="flex items-center gap-2 text-green-600 font-medium">
+                                  <Check className="h-4 w-4" />
+                                  Approved
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -274,7 +323,6 @@ const MyPosts = () => {
               </div>
             )}
 
-            {/* Posts List */}
             <div className="space-y-6">
               {posts && posts.length > 0 ? (
                 posts.map((post) => {
@@ -285,10 +333,8 @@ const MyPosts = () => {
                     <Card key={post.id} className="group bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:border-blue-100 transition-all duration-300 rounded-2xl overflow-hidden">
                       <CardContent className="p-6">
                         <div className="flex flex-col md:flex-row gap-6">
-                          {/* Post Image */}
                           {(() => {
                             console.log('Post images for', post.title, ':', post.post_images);
-                            // Find the featured image (order_index = 0) or the first image if no featured image exists
                             const featuredImage = post.post_images?.find(img => img.order_index === 0) || post.post_images?.[0];
                             return featuredImage ? (
                               <div className="w-full md:w-48 h-32 flex-shrink-0 rounded-xl overflow-hidden border border-slate-100">
@@ -307,7 +353,6 @@ const MyPosts = () => {
                             );
                           })()}
                           
-                          {/* Post Content */}
                           <div className="flex-1 min-w-0 flex flex-col justify-between">
                             <div>
                               <div className="flex items-start justify-between gap-4 mb-2">
@@ -343,7 +388,6 @@ const MyPosts = () => {
                               </div>
                             </div>
                             
-                            {/* Actions Bar */}
                             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-50 mt-2">
                               <Link to={`/post/${post.slug}`}>
                                 <Button variant="ghost" size="sm" className="text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg">

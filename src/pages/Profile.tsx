@@ -13,6 +13,8 @@ import { Camera, Loader2, Lock, User, Mail, Phone, Calendar, UserCircle, ShieldC
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
 import { ImageCropModal } from '@/components/ImageCropModal';
+import { ProfileBadge } from '@/components/ProfileBadge';
+import { useProfileBadge } from '@/hooks/useProfileBadge';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -88,6 +90,14 @@ const Profile = () => {
       };
     },
     enabled: !!user,
+  });
+
+  // Get user badge based on stats
+  const { badge } = useProfileBadge({
+    userId: user?.id || '',
+    postsCount: stats?.posts || 0,
+    followersCount: stats?.followers || 0,
+    likesCount: 0, // We don't have likes data yet
   });
 
   const updateProfile = useMutation({
@@ -297,7 +307,12 @@ const Profile = () => {
                       </label>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-medium text-slate-900">Profile Photo</p>
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <p className="text-sm font-medium text-slate-900">Profile Photo</p>
+                        {badge && (
+                          <ProfileBadge badge={badge} size="sm" />
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500">Click the camera icon to upload</p>
                     </div>
                   </div>

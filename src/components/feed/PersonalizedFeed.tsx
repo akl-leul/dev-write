@@ -6,12 +6,18 @@ import { Heart, MessageCircle, Eye, Clock, Sparkles, Loader2 } from 'lucide-reac
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { useEffect, useCallback, useRef } from 'react';
+import { PostAuthorBadge } from '@/components/PostAuthorBadge';
 
 const POSTS_PER_PAGE = 10;
 
 export const PersonalizedFeed = () => {
   const { user } = useAuth();
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Calculate posts count per author for first post badge
+  const getAuthorPostsCount = useCallback((authorId: string, allPosts: any[]) => {
+    return allPosts.filter(post => post.profiles?.id === authorId).length;
+  }, []);
 
   const {
     data: postsData,
@@ -36,7 +42,7 @@ export const PersonalizedFeed = () => {
 
       const { data, error } = await supabase
         .from('posts')
-        .select(`*, profiles!inner (id, full_name, profile_image_url), likes (count), comments (count), post_images (url), categories:category_id (name, slug)`)
+        .select(`*, profiles!inner (id, full_name, profile_image_url), likes (count), comments (count), post_images (url), categories:category_id (name, slug), featured_image`)
         .in('author_id', followingIds)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
@@ -110,24 +116,13 @@ export const PersonalizedFeed = () => {
         <article key={post.id} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 transition-all duration-300 relative overflow-hidden">
           
           <div className="flex items-center justify-between mb-6">
-            <Link 
-              to={`/author/${post.profiles?.id}`} 
-              className="flex items-center gap-3 group"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Avatar className="h-10 w-10 border-2 border-white shadow-sm group-hover:ring-2 group-hover:ring-blue-100 transition-all">
-                <AvatarImage src={post.profiles?.profile_image_url || ''} />
-                <AvatarFallback className="bg-slate-100 text-slate-600 font-bold">
-                  {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors">{post.profiles?.full_name}</p>
-                <p className="text-xs text-slate-400 font-medium">
-                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                </p>
-              </div>
-            </Link>
+            <PostAuthorBadge 
+              author={post.profiles}
+              createdAt={post.created_at}
+              postsCount={getAuthorPostsCount(post.profiles?.id || '', allPosts)}
+              likesCount={0}
+              followersCount={0}
+            />
             
             {post.categories && (
               <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-full text-xs font-semibold tracking-wide">
@@ -169,10 +164,10 @@ export const PersonalizedFeed = () => {
                 </div>
               </div>
 
-              {post.post_images?.[0] && (
+              {(post.featured_image || post.post_images?.[0]) && (
                 <div className="hidden md:block w-full h-28 rounded-2xl overflow-hidden border border-slate-100">
                   <img 
-                    src={post.post_images[0].url} 
+                    src={post.featured_image || post.post_images[0].url} 
                     alt={post.title} 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                   />

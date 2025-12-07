@@ -12,6 +12,8 @@ import { Heart, MessageCircle, Eye, Clock, Users, FileText, Calendar, Loader2, S
 import { formatDistanceToNow, format } from 'date-fns';
 import { useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import { ProfileBadge } from '@/components/ProfileBadge';
+import { useProfileBadge } from '@/hooks/useProfileBadge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +57,14 @@ const AuthorProfile = () => {
       };
     },
     enabled: !!authorId,
+  });
+
+  // Get author badge based on stats
+  const { badge } = useProfileBadge({
+    userId: authorId || '',
+    postsCount: stats?.posts || 0,
+    followersCount: stats?.followers || 0,
+    likesCount: 0, // We don't have likes data yet
   });
 
   const {
@@ -235,7 +245,12 @@ const AuthorProfile = () => {
                   </Avatar>
                   
                   <div className="flex-1 text-center sm:text-left">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">{profile.full_name}</h1>
+                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+                      <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{profile.full_name}</h1>
+                      {badge && (
+                        <ProfileBadge badge={badge} size="md" />
+                      )}
+                    </div>
                     {profile.bio && <p className="text-slate-500 line-clamp-2">{profile.bio}</p>}
                   </div>
                   

@@ -29,6 +29,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { SuggestedAuthors } from "@/components/social/SuggestedAuthors";
 import { TrendingPosts } from "@/components/social/TrendingPosts";
 import { PersonalizedFeed } from "@/components/feed/PersonalizedFeed";
+import { PostAuthorBadge } from "@/components/PostAuthorBadge";
 
 const POSTS_PER_PAGE = 10;
 
@@ -39,6 +40,11 @@ const Feed = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("discover");
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Calculate posts count per author for first post badge
+  const getAuthorPostsCount = useCallback((authorId: string, allPosts: any[]) => {
+    return allPosts.filter(post => post.profiles?.id === authorId).length;
+  }, []);
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -63,7 +69,7 @@ const Feed = () => {
     queryFn: async ({ pageParam = 0 }) => {
       let query = supabase
         .from("posts")
-        .select(`*, categories:category_id (name, slug), post_images (url), likes (count), comments (count)`)
+        .select(`*, categories:category_id (name, slug), post_images (url), likes (count), comments (count), profiles:author_id (id, full_name, profile_image_url), featured_image`)
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .range(pageParam, pageParam + POSTS_PER_PAGE - 1);
@@ -262,100 +268,69 @@ const Feed = () => {
                     {/* Feed List */}
                     <div className="space-y-8">
                       {allPosts.map((post) => (
-                        <article
-                          key={post.id}
-                          className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 transition-all duration-300 relative overflow-hidden"
-                        >
-                          {/* Top Meta: Author & Category */}
-                          <div className="flex items-center justify-between mb-6">
-                            {/* Author badge temporarily removed */}
+                        <article key={post.id} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 transition-all duration-300 relative overflow-hidden">
 
-                            {post.categories && (
-                              <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-full text-xs font-semibold tracking-wide">
-                                {post.categories.name}
-                              </span>
-                            )}
-                          </div>
+          <div className="flex items-center justify-between mb-6">
+            <PostAuthorBadge
+              author={post.profiles}
+              createdAt={post.created_at}
+              postsCount={getAuthorPostsCount(post.profiles?.id || '', allPosts)}
+              likesCount={0}
+              followersCount={0}
+            />
 
-                          {/* Main Content - Clickable */}
-                          <Link
-                            to={`/post/${post.slug}`}
-                            className="block group"
-                          >
-                            <div className="grid md:grid-cols-[1fr_180px] gap-6">
-                              <div>
-                                <h2 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors leading-tight">
-                                  {post.title}
-                                </h2>
+            {post.categories && (
+              <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-full text-xs font-semibold tracking-wide">
+                {post.categories.name}
+              </span>
+            )}
+          </div>
 
-                                {post.excerpt && (
-                                  <p className="text-slate-500 leading-relaxed mb-6 line-clamp-2 text-sm">
-                                    {post.excerpt}
-                                  </p>
-                                )}
+          <Link to={`/post/${post.slug}`} className="block group">
+            <div className="grid md:grid-cols-[1fr_180px] gap-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors leading-tight">
+                  {post.title}
+                </h2>
 
-                                {/* Mobile Category Badge */}
-                                {post.categories && (
-                                  <span className="sm:hidden inline-block mb-4 px-3 py-1 bg-slate-50 text-slate-600 rounded-full text-xs font-medium">
-                                    {post.categories.name}
-                                  </span>
-                                )}
+                {post.excerpt && (
+                  <p className="text-slate-500 leading-relaxed mb-6 line-clamp-2 text-sm">
+                    {post.excerpt}
+                  </p>
+                )}
 
-                                {/* Footer Stats */}
-                                <div className="flex flex-wrap items-center gap-4 mt-auto pt-2">
-                                  <div className="flex items-center gap-1.5 text-slate-400 text-sm font-medium group-hover:text-slate-600 transition-colors">
-                                    <Heart className="h-4 w-4" />
-                                    <span>{post.likes?.[0]?.count || 0}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5 text-slate-400 text-sm font-medium group-hover:text-slate-600 transition-colors">
-                                    <MessageCircle className="h-4 w-4" />
-                                    <span>
-                                      {post.comments?.[0]?.count || 0}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5 text-slate-400 text-sm font-medium group-hover:text-slate-600 transition-colors">
-                                    <Eye className="h-4 w-4" />
-                                    <span>{post.views || 0}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5 text-blue-500 text-xs font-bold bg-blue-50 px-2 py-1 rounded-md ml-auto sm:ml-0">
-                                    <Clock className="h-3 w-3" />
-                                    <span>{post.read_time || 5} min</span>
-                                  </div>
-                                </div>
-                              </div>
+                <div className="flex flex-wrap items-center gap-4 mt-auto pt-2">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-sm font-medium">
+                    <Heart className="h-4 w-4" />
+                    <span>{post.likes?.[0]?.count || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-400 text-sm font-medium">
+                    <MessageCircle className="h-4 w-4" />
+                    <span>{post.comments?.[0]?.count || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-400 text-sm font-medium">
+                    <Eye className="h-4 w-4" />
+                    <span>{post.views || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-blue-500 text-xs font-bold bg-blue-50 px-2 py-1 rounded-md ml-auto sm:ml-0">
+                    <Clock className="h-3 w-3" />
+                    <span>{post.read_time || 5} min</span>
+                  </div>
+                </div>
+              </div>
 
-                              {/* Right Side Image */}
-                              {(post.featured_image ||
-                                post.post_images?.[0]) && (
-                                <div className="hidden md:block w-full h-28 rounded-2xl overflow-hidden border border-slate-100">
-                                  <img
-                                    src={
-                                      post.featured_image ||
-                                      post.post_images[0].url
-                                    }
-                                    alt={post.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                  />
-                                </div>
-                              )}
-
-                              {/* Mobile Image */}
-                              {(post.featured_image ||
-                                post.post_images?.[0]) && (
-                                <div className="md:hidden w-full h-40 rounded-2xl overflow-hidden border border-slate-100 mb-4 order-first">
-                                  <img
-                                    src={
-                                      post.featured_image ||
-                                      post.post_images[0].url
-                                    }
-                                    alt={post.title}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          </Link>
-                        </article>
+              {(post.featured_image || post.post_images?.[0]) && (
+                <div className="hidden md:block w-full h-28 rounded-2xl overflow-hidden border border-slate-100">
+                  <img
+                    src={post.featured_image || post.post_images[0].url}
+                    alt={post.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+              )}
+            </div>
+          </Link>
+        </article>
                       ))}
 
                       {/* Load More Trigger */}
