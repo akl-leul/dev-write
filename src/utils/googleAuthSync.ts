@@ -28,6 +28,10 @@ export const syncGoogleUserToProfile = async (user: User): Promise<void> => {
 
     const userMetadata = user.user_metadata || {};
     
+    // Debug: Log what we're getting from Google
+    console.log('Google user metadata:', userMetadata);
+    console.log('Available fields:', Object.keys(userMetadata));
+    
     // Extract first and last name from full name
     const fullName = userMetadata.full_name || userMetadata.name || 'Google User';
     const nameParts = fullName.split(' ');
@@ -43,9 +47,9 @@ export const syncGoogleUserToProfile = async (user: User): Promise<void> => {
       email: user.email,
       profile_image_url: userMetadata.avatar_url || userMetadata.picture || userMetadata.image_url,
       phone: userMetadata.phone || user.phone,
-      bio: userMetadata.bio || `Google user - ${fullName}`,
+      bio: userMetadata.bio && !userMetadata.bio.startsWith('Google user -') ? userMetadata.bio : null, // Clean up existing "Google user -" bios
       age: userMetadata.age ? parseInt(userMetadata.age) : null,
-      gender: userMetadata.gender || 'other',
+      gender: userMetadata.gender || null,
       // Add a star badge for Google users
       badge: 'star',
       // Additional Google-specific data

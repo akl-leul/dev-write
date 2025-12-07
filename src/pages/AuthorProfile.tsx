@@ -284,11 +284,18 @@ const AuthorProfile = () => {
                     </div>
                     
                     <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 text-sm text-slate-600 mb-3">
-                      {profile.gender && (
+                      {profile.gender ? (
                         <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full">
                           <User className="w-3 h-3 text-slate-500" />
                           <span className="capitalize font-medium">{profile.gender}</span>
                         </div>
+                      ) : (
+                        isOwnProfile && (
+                          <div className="flex items-center gap-1 bg-blue-50/80 backdrop-blur-sm px-2 py-1 rounded-full">
+                            <User className="w-3 h-3 text-blue-500" />
+                            <span className="text-blue-600 font-medium">Add gender</span>
+                          </div>
+                        )
                       )}
                       {profile.phone && (profile as any).show_phone && (
                         <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full">
@@ -305,7 +312,7 @@ const AuthorProfile = () => {
                     </div>
                     
                     <p className="text-slate-700 line-clamp-2 max-w-md bg-white/60 backdrop-blur-sm px-3 py-2 rounded-lg">
-                      {profile.bio || 'No bio'}
+                      {profile.bio && !profile.bio.startsWith('Google user') ? profile.bio : 'No bio added yet'}
                     </p>
                   </div>
                   
