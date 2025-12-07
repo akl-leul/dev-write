@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin, Eye, Clock, Calendar } from 'lucide-react';
+import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin, Eye, Clock, Calendar, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { CommentSection } from '@/components/blog/CommentSection';
