@@ -1,0 +1,36 @@
+import { useEffect, useState } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
+
+export const ThemeInitializer = ({ children }: { children: React.ReactNode }) => {
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch by only rendering the theme after mounting
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Apply theme class to the root element
+  useEffect(() => {
+    const root = window.document.documentElement;
+    
+    // Remove all theme classes
+    root.classList.remove('light', 'dark');
+    
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches 
+        ? 'dark' 
+        : 'light';
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(theme);
+    }
+  }, [theme]);
+
+  // Prevent flash of unstyled content
+  if (!mounted) {
+    return null;
+  }
+
+  return <>{children}</>;
+};
