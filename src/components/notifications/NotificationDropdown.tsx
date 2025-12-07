@@ -148,10 +148,13 @@ export const NotificationDropdown = () => {
   };
 
   const handleNotificationClick = (notification: any) => {
+    // Only mark as read when the notification is actually clicked
+    // and it's not already read
     if (!notification.read) {
       markAsRead.mutate(notification.id);
     }
     
+    // Navigate based on notification type
     if (notification.type === 'follow' && notification.from_user_id) {
       navigate(`/author/${notification.from_user_id}`);
     } else if (notification.posts?.slug) {
@@ -160,13 +163,19 @@ export const NotificationDropdown = () => {
   };
 
   const handleDropdownOpen = () => {
+    // We no longer mark notifications as read just by opening the dropdown
+    // Only update the UI state to stop the bell animation
     setHasNewNotification(false);
   };
 
   if (!user) return null;
 
   return (
-    <DropdownMenu onOpenChange={(open) => open && handleDropdownOpen()}>
+    <DropdownMenu onOpenChange={(open) => {
+      if (open) {
+        handleDropdownOpen();
+      }
+    }}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl w-10 h-10 transition-colors">
           <Bell className={`h-5 w-5 ${hasNewNotification ? 'animate-bounce' : ''}`} />
@@ -228,11 +237,28 @@ export const NotificationDropdown = () => {
                 {getNotificationIcon(notification.type)}
                 
                 <div className="flex-1 min-w-0 space-y-1">
-                  <p className="text-sm text-slate-900 leading-snug">
-                    <span className="font-semibold">{notification.title}</span>
-                  </p>
+                  <div className="text-sm text-slate-900 leading-snug">
+                    {notification.type === 'follow' && (
+                      <p><span className="font-semibold">{notification.from_user?.full_name || 'Someone'}</span> started following you</p>
+                    )}
+                    {notification.type === 'like' && (
+                      <p><span className="font-semibold">{notification.from_user?.full_name || 'Someone'}</span> liked your post</p>
+                    )}
+                    {notification.type === 'comment' && (
+                      <p><span className="font-semibold">{notification.from_user?.full_name || 'Someone'}</span> commented on your post</p>
+                    )}
+                    {notification.type === 'new_post' && notification.from_user?.full_name && (
+                      <p><span className="font-semibold">{notification.from_user.full_name}</span> posted something new</p>
+                    )}
+                    {notification.type === 'new_post' && !notification.from_user?.full_name && (
+                      <p>New post from <span className="font-semibold">{notification.from_user?.full_name || 'a user'}</span></p>
+                    )}
+                    {!['follow', 'like', 'comment', 'new_post'].includes(notification.type) && (
+                      <p>{notification.message}</p>
+                    )}
+                  </div>
                   
-                  {notification.message && (
+                  {notification.message && !['follow', 'like', 'comment', 'new_post'].includes(notification.type) && (
                     <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
                       {notification.message}
                     </p>
