@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,9 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { X, Upload, Loader2, Image as ImageIcon, PenLine, FileText, Globe, MessageCircle, ChevronDown, ChevronUp, Tag } from 'lucide-react';
+import { X, Upload, Loader2, Image as ImageIcon, PenLine, FileText, Globe, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
+import { MentionOverlay } from '@/components/editor/MentionOverlay';
+import { useMentions } from '@/hooks/useMentions';
+import { extractMentions, findUsersByNames } from '@/utils/userSearch';
+import { createMentionNotifications } from '@/utils/notifications';
 import { format } from 'date-fns';
 
 const CreatePost = () => {
@@ -38,9 +41,10 @@ const CreatePost = () => {
   const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Array<{ id: string; content: string; created_at: string; author: { full_name: string; profile_image_url?: string } }>>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  
+  // Mention functionality
+  const editorRef = useRef<HTMLDivElement>(null);
+  const { mentionState, checkForMention, insertMention, closeMentions } = useMentions(editorRef);
 
   // Fetch categories
   const { data: categories } = useQuery({
@@ -54,26 +58,6 @@ const CreatePost = () => {
       return data;
     },
   });
-
-  // Fetch available tags
-  const { data: tagsData } = useQuery({
-    queryKey: ['tags'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tags' as any)
-        .select('name')
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Update available tags when data changes
-  React.useEffect(() => {
-    if (tagsData) {
-      setAvailableTags((tagsData as any[]).map((tag: any) => tag.name));
-    }
-  }, [tagsData]);
 
   // Load existing post if editing
   useQuery({
@@ -89,26 +73,14 @@ const CreatePost = () => {
       
       if (error) throw error;
       if (data) {
-        const post = data as Database['public']['Tables']['posts']['Row'];
-        setTitle(post.title);
-        setContent(post.content_markdown);
-        setExcerpt(post.excerpt || '');
-        setStatus(post.status as 'draft' | 'published' | 'archived');
-        setIsPublished(post.status === 'published');
-        setCategoryId(post.category_id || '');
-        setReadTime(post.read_time || 5);
-        setFeaturedImageUrl(post.featured_image || '');
-        
-        // Load existing tags
-        const { data: tagData, error: tagError } = await supabase
-          .from('post_tags' as any)
-          .select('tags!inner(name)')
-          .eq('post_id', editId);
-        
-        if (!tagError && tagData) {
-          const postTags = tagData.map((item: any) => item.tags.name);
-          setTags(postTags);
-        }
+        setTitle(data.title);
+        setContent(data.content_markdown);
+        setExcerpt(data.excerpt || '');
+        setStatus(data.status as 'draft' | 'published' | 'archived');
+        setIsPublished(data.status === 'published');
+        setCategoryId(data.category_id || '');
+        setReadTime(data.read_time || 5);
+        setFeaturedImageUrl(data.featured_image || '');
       }
       return data;
     },
@@ -165,7 +137,7 @@ const CreatePost = () => {
       // If editing, update existing post
       if (editId) {
         const { error: updateError } = await supabase
-          .from('posts' as any)
+          .from('posts')
           .update({
             title,
             content_markdown: content,
@@ -174,46 +146,20 @@ const CreatePost = () => {
             category_id: categoryId || null,
             read_time: readTime,
             featured_image: uploadedFeaturedImageUrl || null,
-          } as any)
+          })
           .eq('id', editId)
           .eq('author_id', user.id);
 
         if (updateError) throw updateError;
         
-        // Handle tags for editing - remove existing tags and add new ones
-        // Remove existing post_tags
-        await supabase
-          .from('post_tags' as any)
-          .delete()
-          .eq('post_id', editId);
-        
-        // Add new tags
-        if (tags.length > 0) {
-          const tagPromises = tags.map(async (tagName) => {
-            // Get or create tag
-            const { data: tagData, error: tagError } = await supabase
-              .rpc('get_or_create_tag' as any, { tag_name: tagName });
-            
-            if (tagError) throw tagError;
-            
-            // Link tag to post
-            return supabase.from('post_tags' as any).insert({
-              post_id: editId,
-              tag_id: tagData as string,
-            } as any);
-          });
-          
-          await Promise.all(tagPromises);
-        }
-        
         // Get existing slug for navigation
         const { data: existingPost } = await supabase
-          .from('posts' as any)
+          .from('posts')
           .select('slug')
           .eq('id', editId)
           .single();
         
-        return { id: editId, slug: (existingPost as any)?.slug };
+        return { id: editId, slug: existingPost?.slug };
       }
 
       // Create slug from title and date
@@ -221,7 +167,7 @@ const CreatePost = () => {
 
       // Create new post
       const { data: post, error: postError } = await supabase
-        .from('posts' as any)
+        .from('posts')
         .insert({
           author_id: user.id,
           title,
@@ -232,11 +178,22 @@ const CreatePost = () => {
           category_id: categoryId || null,
           read_time: readTime,
           featured_image: uploadedFeaturedImageUrl || null,
-        } as any)
+        })
         .select()
         .single();
 
       if (postError) throw postError;
+
+      // Extract mentions from content and send notifications
+      const mentionedNames = extractMentions(content);
+      if (mentionedNames.length > 0) {
+        const mentionedUsers = await findUsersByNames(mentionedNames);
+        const mentionedUserIds = mentionedUsers.map(u => u.id).filter(id => id !== user.id);
+        
+        if (mentionedUserIds.length > 0) {
+          await createMentionNotifications(mentionedUserIds, post.id, title, user.id);
+        }
+      }
 
       // Upload images
       if (images.length > 0) {
@@ -254,33 +211,14 @@ const CreatePost = () => {
             .from('post-images')
             .getPublicUrl(fileName);
 
-          return supabase.from('post_images' as any).insert({
-            post_id: (post as any).id,
+          return supabase.from('post_images').insert({
+            post_id: post.id,
             url: publicUrl,
             order_index: index,
-          } as any);
+          });
         });
 
         await Promise.all(imagePromises);
-      }
-
-      // Handle tags
-      if (tags.length > 0) {
-        const tagPromises = tags.map(async (tagName) => {
-          // Get or create tag
-          const { data: tagData, error: tagError } = await supabase
-            .rpc('get_or_create_tag' as any, { tag_name: tagName });
-          
-          if (tagError) throw tagError;
-          
-          // Link tag to post
-          return supabase.from('post_tags' as any).insert({
-            post_id: (post as any).id,
-            tag_id: tagData as string,
-          } as any);
-        });
-        
-        await Promise.all(tagPromises);
       }
 
       return post;
@@ -322,27 +260,6 @@ const CreatePost = () => {
   const removeFeaturedImage = () => {
     setFeaturedImage(null);
     setFeaturedImageUrl('');
-  };
-
-  const addTag = (tag: string) => {
-    const trimmedTag = tag.trim();
-    if (trimmedTag && !tags.includes(trimmedTag)) {
-      setTags([...tags, trimmedTag]);
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
-
-  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addTag(tagInput);
-    } else if (e.key === 'Backspace' && tagInput === '' && tags.length > 0) {
-      removeTag(tags[tags.length - 1]);
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -460,72 +377,6 @@ const CreatePost = () => {
                     </p>
                   </div>
 
-                  {/* Tags */}
-                  <div className="space-y-3">
-                    <Label className="text-slate-700 font-medium flex items-center gap-2">
-                      <Tag className="w-4 h-4 text-purple-500" /> Tags
-                    </Label>
-                    
-                    {/* Tags Input */}
-                    <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg min-h-[48px] items-center">
-                      {/* Existing Tags */}
-                      {tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
-                        >
-                          {tag}
-                          <button
-                            type="button"
-                            onClick={() => removeTag(tag)}
-                            className="ml-1 text-purple-500 hover:text-purple-700 transition-colors"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                      
-                      {/* Tag Input */}
-                      <input
-                        type="text"
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={handleTagInputKeyDown}
-                        placeholder={tags.length === 0 ? "Add tags..." : ""}
-                        className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-400"
-                      />
-                    </div>
-                    
-                    {/* Tag Suggestions */}
-                    {tagInput && availableTags.filter(tag => 
-                      tag.toLowerCase().includes(tagInput.toLowerCase()) && 
-                      !tags.includes(tag)
-                    ).length > 0 && (
-                      <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-2 max-h-32 overflow-y-auto">
-                        {availableTags
-                          .filter(tag => 
-                            tag.toLowerCase().includes(tagInput.toLowerCase()) && 
-                            !tags.includes(tag)
-                          )
-                          .slice(0, 5)
-                          .map((tag, index) => (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => addTag(tag)}
-                              className="block w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded transition-colors"
-                            >
-                              {tag}
-                            </button>
-                          ))}
-                      </div>
-                    )}
-                    
-                    <p className="text-xs text-slate-400">
-                      Press Enter or comma to add tags. Tags help readers discover your content.
-                    </p>
-                  </div>
-
                   {/* Featured Image */}
                   <div className="space-y-3">
                     <Label className="text-slate-700 font-medium">Featured Image</Label>
@@ -610,12 +461,27 @@ const CreatePost = () => {
               {/* Editor Section */}
               <div className="space-y-2">
                 <Label htmlFor="content" className="text-lg font-bold text-slate-900 pl-1">Story Content</Label>
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                  <RichTextEditor
-                    content={content}
-                    onChange={setContent}
-                    placeholder="Start writing your story here..."
-                  />
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm relative">
+                  <div 
+                    ref={editorRef}
+                    onKeyUp={checkForMention}
+                    onClick={checkForMention}
+                  >
+                    <RichTextEditor
+                      content={content}
+                      onChange={setContent}
+                      placeholder="Start writing your story here... Type @ to mention someone"
+                    />
+                  </div>
+                  {mentionState.active && mentionState.position && (
+                    <MentionOverlay
+                      query={mentionState.query}
+                      onSelect={insertMention}
+                      onClose={closeMentions}
+                      position={mentionState.position}
+                      editorRef={editorRef}
+                    />
+                  )}
                 </div>
               </div>
 
