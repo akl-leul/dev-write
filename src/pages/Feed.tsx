@@ -288,6 +288,15 @@ const Feed = () => {
 
           <Link to={`/post/${post.slug}`} className="block group">
             <div className="grid md:grid-cols-[1fr_180px] gap-6">
+              {(post.featured_image || post.post_images?.[0]) && (
+                <div className="w-full h-30 rounded-2xl overflow-hidden border border-slate-100">
+                  <img
+                    src={post.featured_image || post.post_images[0].url}
+                    alt={post.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+              )}
               <div>
                 <h2 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors leading-tight">
                   {post.title}
@@ -319,15 +328,7 @@ const Feed = () => {
                 </div>
               </div>
 
-              {(post.featured_image || post.post_images?.[0]) && (
-                <div className="hidden md:block w-full h-28 rounded-2xl overflow-hidden border border-slate-100">
-                  <img
-                    src={post.featured_image || post.post_images[0].url}
-                    alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-              )}
+              
             </div>
           </Link>
         </article>

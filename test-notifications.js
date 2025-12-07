@@ -11,7 +11,7 @@ console.log('Content mentions:', contentMentions);
 // Test tag mentions
 const testTags = ['@John Doe', 'web development', '@Jane Smith', 'react'];
 const tagMentions = extractMentionsFromTags(testTags);
-console.log('Tag mentions:', tagMentions);
+console.log('Tag mentions:', tagMentions);devicePixelRatio
 
 // Test edge cases
 const edgeCases = [
