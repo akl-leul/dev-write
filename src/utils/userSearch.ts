@@ -39,18 +39,41 @@ export const extractMentions = (content: string): string[] => {
 
 export const findUsersByNames = async (names: string[]): Promise<UserSearchResult[]> => {
   if (names.length === 0) return [];
+
+  // Clean and normalize names (trim whitespace)
+  const cleanedNames = names.map(name => name.trim()).filter(name => name.length > 0);
+  if (cleanedNames.length === 0) return [];
+
+  // Use case-insensitive matching by querying each name separately
+  // This ensures reliable case-insensitive matching
+  const queries = cleanedNames.map(name =>
+    supabase
+      .from('profiles')
+      .select('id, full_name, profile_image_url')
+      .ilike('full_name', name)
+  );
+
+  const results = await Promise.all(queries);
   
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, full_name, profile_image_url')
-    .in('full_name', names);
+  // Combine all results and remove duplicates
+  const allUsers = new Map<string, UserSearchResult>();
   
-  if (error) {
-    console.error('Error finding users by names:', error);
-    return [];
-  }
-  
-  return data || [];
+  results.forEach(({ data, error }, index) => {
+    if (error) {
+      console.error(`Error finding user by name "${cleanedNames[index]}":`, error);
+      return;
+    }
+    
+    if (data) {
+      data.forEach(user => {
+        if (!allUsers.has(user.id)) {
+          allUsers.set(user.id, user);
+        }
+      });
+    }
+  });
+
+  return Array.from(allUsers.values());
 };
 
 export const extractMentionsFromTags = (tags: string[]): string[] => {

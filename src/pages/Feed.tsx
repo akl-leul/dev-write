@@ -69,7 +69,7 @@ const Feed = () => {
     queryFn: async ({ pageParam = 0 }) => {
       let query = supabase
         .from("posts")
-        .select(`*, categories:category_id (name, slug), post_images (url), likes (count), comments (count), profiles:author_id (id, full_name, profile_image_url), featured_image`)
+        .select(`*, categories:category_id (name, slug), post_images (url), likes (count), comments (count), profiles:author_id (id, full_name, profile_image_url), featured_image, views`)
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .range(pageParam, pageParam + POSTS_PER_PAGE - 1);

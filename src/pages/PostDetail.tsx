@@ -1,33 +1,47 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Header } from '@/components/layout/Header';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, MessageCircle, Trash2, Edit, Share2, Copy, Twitter, Facebook, Linkedin, Eye, Clock, Calendar, Tag as TagIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-import { CommentSection } from '@/components/blog/CommentSection';
-import { useEffect, useRef, useState } from 'react';
-import { Lightbox } from '@/components/ui/lightbox';
-import { PostMetaTags } from '@/components/seo/PostMetaTags';
-import { ReadingProgressBar } from '@/components/ui/reading-progress';
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Header } from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Heart,
+  MessageCircle,
+  Trash2,
+  Edit,
+  Share2,
+  Copy,
+  Twitter,
+  Facebook,
+  Linkedin,
+  Eye,
+  Clock,
+  Calendar,
+  Tag as TagIcon,
+} from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import { CommentSection } from "@/components/blog/CommentSection";
+import { useEffect, useRef, useState } from "react";
+import { Lightbox } from "@/components/ui/lightbox";
+import { PostMetaTags } from "@/components/seo/PostMetaTags";
+import { ReadingProgressBar } from "@/components/ui/reading-progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from '@/components/ui/carousel';
-import { BookmarkButton } from '@/components/social/BookmarkButton';
-import { FollowButton } from '@/components/social/FollowButton';
+} from "@/components/ui/carousel";
+import { BookmarkButton } from "@/components/social/BookmarkButton";
+import { FollowButton } from "@/components/social/FollowButton";
 
 // Define the post type for better TypeScript support
 type Post = {
@@ -80,7 +94,7 @@ type Post = {
 };
 
 const PostDetail = () => {
-  const { '*': slugPath } = useParams();
+  const { "*": slugPath } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -88,14 +102,15 @@ const PostDetail = () => {
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   // Extract the slug from path (handles both old and new format)
-  const slug = slugPath || '';
+  const slug = slugPath || "";
 
   const { data: post, isLoading } = useQuery<Post>({
-    queryKey: ['post', slug],
+    queryKey: ["post", slug],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('posts')
-        .select(`
+        .from("posts")
+        .select(
+          `
           *,
           profiles:author_id (full_name, profile_image_url),
           post_images (url, alt_text, order_index),
@@ -106,11 +121,13 @@ const PostDetail = () => {
             tags (
               id, name, slug, color
             )
-          )
-        `)
-        .eq('slug', slug)
+          ),
+          views
+        `,
+        )
+        .eq("slug", slug)
         .maybeSingle();
-      
+
       if (error) throw error;
       return data as Post;
     },
@@ -119,72 +136,95 @@ const PostDetail = () => {
   });
 
   // Increment view count when post is loaded (works for all users)
-  const viewIncremented = useRef(false);
   useEffect(() => {
     const incrementViews = async () => {
-      if (post?.id && !viewIncremented.current) {
-        viewIncremented.current = true;
-        await supabase
-          .from('posts')
-          .update({ views: (post.views || 0) + 1 })
-          .eq('id', post.id);
+      if (post?.id) {
+        console.log("=== VIEW INCREMENT DEBUG ===");
+        console.log("Post ID:", post.id);
+        console.log("Current views from post data:", post.views);
+
+        try {
+          // Direct increment without fetch first
+          const { error } = await supabase
+            .from("posts")
+            .update({ views: (post.views || 0) + 1 })
+            .eq("id", post.id);
+
+          if (error) {
+            console.error("Failed to increment views:", error);
+          } else {
+            console.log(
+              "Successfully updated views from",
+              post.views || 0,
+              "to",
+              (post.views || 0) + 1,
+            );
+
+            // Invalidate query to refresh the view count
+            setTimeout(() => {
+              console.log("Invalidating query cache...");
+              queryClient.invalidateQueries({ queryKey: ["post", slug] });
+            }, 500);
+          }
+        } catch (error) {
+          console.error("Error incrementing views:", error);
+        }
       }
     };
-    
+
     if (post) {
       incrementViews();
     }
-  }, [post?.id]);
+  }, [post?.id, queryClient, slug]);
 
   const likePost = useMutation({
     mutationFn: async () => {
-      if (!user) throw new Error('Must be logged in');
-      
-      const isLiked = post?.likes?.some((like: any) => like.user_id === user.id);
-      
+      if (!user) throw new Error("Must be logged in");
+
+      const isLiked = post?.likes?.some(
+        (like: any) => like.user_id === user.id,
+      );
+
       if (isLiked) {
         const { error } = await supabase
-          .from('likes')
+          .from("likes")
           .delete()
-          .eq('post_id', post.id)
-          .eq('user_id', user.id);
-        
+          .eq("post_id", post.id)
+          .eq("user_id", user.id);
+
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('likes')
+          .from("likes")
           .insert({ post_id: post.id, user_id: user.id });
-        
+
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['post', slug] });
+      queryClient.invalidateQueries({ queryKey: ["post", slug] });
     },
     onError: () => {
-      toast.error('Failed to update like');
+      toast.error("Failed to update like");
     },
   });
 
   const deletePost = useMutation({
     mutationFn: async () => {
       if (!post || post.author_id !== user?.id) {
-        throw new Error('Unauthorized');
+        throw new Error("Unauthorized");
       }
-      
-      const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', post.id);
-      
+
+      const { error } = await supabase.from("posts").delete().eq("id", post.id);
+
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Post deleted');
-      navigate('/feed');
+      toast.success("Post deleted");
+      navigate("/feed");
     },
     onError: () => {
-      toast.error('Failed to delete post');
+      toast.error("Failed to delete post");
     },
   });
 
@@ -198,9 +238,9 @@ const PostDetail = () => {
             <div className="h-12 bg-slate-200 rounded-xl w-3/4 animate-pulse"></div>
             <div className="h-80 bg-white rounded-2xl border border-slate-100 shadow-sm animate-pulse"></div>
             <div className="space-y-4">
-               <div className="h-4 bg-slate-200 rounded w-full animate-pulse"></div>
-               <div className="h-4 bg-slate-200 rounded w-full animate-pulse"></div>
-               <div className="h-4 bg-slate-200 rounded w-2/3 animate-pulse"></div>
+              <div className="h-4 bg-slate-200 rounded w-full animate-pulse"></div>
+              <div className="h-4 bg-slate-200 rounded w-full animate-pulse"></div>
+              <div className="h-4 bg-slate-200 rounded w-2/3 animate-pulse"></div>
             </div>
           </div>
         </div>
@@ -214,9 +254,19 @@ const PostDetail = () => {
         <Header />
         <div className="container py-20 text-center">
           <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-             <h1 className="text-3xl font-bold text-slate-900 mb-4">Post not found</h1>
-             <p className="text-slate-500 mb-6">The story you are looking for might have been removed or is unavailable.</p>
-             <Button onClick={() => navigate('/feed')} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">Back to Feed</Button>
+            <h1 className="text-3xl font-bold text-slate-900 mb-4">
+              Post not found
+            </h1>
+            <p className="text-slate-500 mb-6">
+              The story you are looking for might have been removed or is
+              unavailable.
+            </p>
+            <Button
+              onClick={() => navigate("/feed")}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+            >
+              Back to Feed
+            </Button>
           </div>
         </div>
       </div>
@@ -227,13 +277,16 @@ const PostDetail = () => {
   const isAuthor = user?.id === post.author_id;
   const postUrl = window.location.href;
   const postDate = new Date(post.created_at);
-  
+
   // Prepare images for lightbox
-  const lightboxImages = post.post_images?.length > 0 
-    ? post.post_images.sort((a: any, b: any) => a.order_index - b.order_index).map((img: any) => ({ url: img.url, alt: img.alt_text }))
-    : post.featured_image 
-      ? [{ url: post.featured_image, alt: post.title }]
-      : [];
+  const lightboxImages =
+    post.post_images?.length > 0
+      ? post.post_images
+          .sort((a: any, b: any) => a.order_index - b.order_index)
+          .map((img: any) => ({ url: img.url, alt: img.alt_text }))
+      : post.featured_image
+        ? [{ url: post.featured_image, alt: post.title }]
+        : [];
 
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
@@ -246,12 +299,12 @@ const PostDetail = () => {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}`,
     };
-    
-    if (platform === 'copy') {
+
+    if (platform === "copy") {
       navigator.clipboard.writeText(postUrl);
-      toast.success('Link copied to clipboard!');
+      toast.success("Link copied to clipboard!");
     } else {
-      window.open(shareUrls[platform as keyof typeof shareUrls], '_blank');
+      window.open(shareUrls[platform as keyof typeof shareUrls], "_blank");
     }
   };
 
@@ -259,7 +312,7 @@ const PostDetail = () => {
     <div className="min-h-screen bg-background font-sans selection:bg-accent/20">
       {/* Reading Progress Bar */}
       <ReadingProgressBar />
-      
+
       {/* Dynamic SEO Meta Tags */}
       <PostMetaTags
         title={post.title}
@@ -269,42 +322,41 @@ const PostDetail = () => {
         authorName={post.profiles?.full_name}
         publishedTime={post.created_at}
       />
-      
+
       {/* Image Lightbox */}
       <Lightbox
-      
         images={lightboxImages}
         initialIndex={lightboxIndex}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
       />
-      
+
       {/* Background Dot Pattern */}
-      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
-           style={{
-             backgroundImage: 'radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)',
-             backgroundSize: '24px 24px'
-           }}>
-      </div>
+      <div
+        className="fixed inset-0 z-0 pointer-events-none dark:opacity-20"
+        style={{
+          backgroundImage:
+            "radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+        }}
+      ></div>
 
       <div className="relative z-10">
         <Header />
-        
+
         <article className="container mx-auto py-12 px-4">
           <div className="max-w-4xl mx-auto">
-            
             {/* Header / Meta Information */}
             <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm mb-8">
-              
               {/* Category, Tags & Date Row */}
               <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div className="flex flex-wrap items-center gap-3">
-                   {post.categories && (
+                  {post.categories && (
                     <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold uppercase tracking-wider">
                       {post.categories.name}
                     </span>
                   )}
-                  
+
                   {/* Tags */}
                   {post.post_tags && post.post_tags.length > 0 && (
                     <>
@@ -316,9 +368,9 @@ const PostDetail = () => {
                             key={postTag.tags.id}
                             className="px-2 py-1 text-xs font-medium rounded-full border"
                             style={{
-                              backgroundColor: postTag.tags.color + '20',
-                              borderColor: postTag.tags.color + '40',
-                              color: postTag.tags.color
+                              backgroundColor: postTag.tags.color + "20",
+                              borderColor: postTag.tags.color + "40",
+                              color: postTag.tags.color,
                             }}
                           >
                             {postTag.tags.name}
@@ -327,7 +379,7 @@ const PostDetail = () => {
                       </div>
                     </>
                   )}
-                  
+
                   <span className="text-slate-300">|</span>
                   <div className="flex items-center gap-1.5 text-slate-500 text-sm font-medium">
                     <Clock className="w-4 h-4" />
@@ -342,7 +394,7 @@ const PostDetail = () => {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4" />
-                    <span>{format(postDate, 'MMM dd, yyyy')}</span>
+                    <span>{format(postDate, "MMM dd, yyyy")}</span>
                   </div>
                 </div>
               </div>
@@ -354,46 +406,70 @@ const PostDetail = () => {
 
               {/* Author & Actions Row */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-6 border-t border-slate-50">
-                <Link to={`/author/${post.author_id}`} className="flex items-center gap-4 group">
+                <Link
+                  to={`/author/${post.author_id}`}
+                  className="flex items-center gap-4 group"
+                >
                   <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-2 ring-slate-50 group-hover:ring-blue-100 transition-all">
-                    <AvatarImage src={post.profiles?.profile_image_url || ''} />
+                    <AvatarImage src={post.profiles?.profile_image_url || ""} />
                     <AvatarFallback className="bg-slate-900 text-white font-bold">
-                      {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
+                      {post.profiles?.full_name?.[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <div className="flex items-center gap-3 mb-1">
-                      <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{post.profiles?.full_name}</p>
+                      <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        {post.profiles?.full_name}
+                      </p>
                       <FollowButton userId={post.author_id} />
                     </div>
                     <p className="text-xs text-slate-500">Author</p>
                   </div>
                 </Link>
-                
+
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <BookmarkButton postId={post.id} />
-                  
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="flex-1 sm:flex-none border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 sm:flex-none border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl"
+                      >
                         <Share2 className="h-4 w-4 mr-2" />
                         Share
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-lg">
-                      <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-400 cursor-pointer">
+                    <DropdownMenuContent
+                      align="end"
+                      className="rounded-xl border-slate-100 shadow-lg"
+                    >
+                      <DropdownMenuItem
+                        onClick={() => handleShare("copy")}
+                        className="focus:bg-slate-400 cursor-pointer"
+                      >
                         <Copy className="h-4 w-4 mr-2 text-slate-400" />
                         Copy Link
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare('twitter')} className="focus:bg-slate-400 cursor-pointer">
+                      <DropdownMenuItem
+                        onClick={() => handleShare("twitter")}
+                        className="focus:bg-slate-400 cursor-pointer"
+                      >
                         <Twitter className="h-4 w-4 mr-2 text-blue-400" />
                         Twitter
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-400 cursor-pointer">
+                      <DropdownMenuItem
+                        onClick={() => handleShare("facebook")}
+                        className="focus:bg-slate-400 cursor-pointer"
+                      >
                         <Facebook className="h-4 w-4 mr-2 text-blue-600" />
                         Facebook
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-400 cursor-pointer">
+                      <DropdownMenuItem
+                        onClick={() => handleShare("linkedin")}
+                        className="focus:bg-slate-400 cursor-pointer"
+                      >
                         <Linkedin className="h-4 w-4 mr-2 text-blue-700" />
                         LinkedIn
                       </DropdownMenuItem>
@@ -402,14 +478,23 @@ const PostDetail = () => {
 
                   {isAuthor && (
                     <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-100">
-                      <Button variant="ghost" size="icon" onClick={() => navigate(`/create?edit=${post.id}`)} className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg h-9 w-9">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/create?edit=${post.id}`)}
+                        className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg h-9 w-9"
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          if (confirm('Are you sure you want to delete this post?')) {
+                          if (
+                            confirm(
+                              "Are you sure you want to delete this post?",
+                            )
+                          ) {
                             deletePost.mutate();
                           }
                         }}
@@ -424,10 +509,11 @@ const PostDetail = () => {
             </div>
 
             {/* Featured Image / Carousel */}
-            {(post.featured_image || (post.post_images && post.post_images.length > 0)) && (
+            {(post.featured_image ||
+              (post.post_images && post.post_images.length > 0)) && (
               <div className="mb-10 sm:mb-12">
                 {post.featured_image ? (
-                  <div 
+                  <div
                     className="rounded-3xl overflow-hidden shadow-xl shadow-blue-900/5 border border-slate-100 cursor-pointer group"
                     onClick={() => openLightbox(0)}
                   >
@@ -436,51 +522,60 @@ const PostDetail = () => {
                       alt={post.title}
                       className="w-full h-auto max-h-[600px] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     />
-                   <div className=" mt-[-20px] z-10 inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center text-center">
- <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity">
+                    <div className=" mt-[-20px] z-10 inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center text-center">
+                      <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity">
                         Click to expand
                       </span>
                     </div>
                   </div>
-                ) : post.post_images && post.post_images.length > 0 && (
-                  <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100">
-                    <Carousel className="w-full rounded-2xl overflow-hidden">
-                      <CarouselContent>
-                        {post.post_images
-                          .sort((a: any, b: any) => a.order_index - b.order_index)
-                          .map((image: any, index: number) => (
-                            <CarouselItem key={index}>
-                              <div 
-                                className="aspect-video w-full overflow-hidden cursor-pointer group relative"
-                                onClick={() => openLightbox(index)}
-                              >
-                                <img
-                                  src={image.url}
-                                  alt={image.alt_text || `${post.title} - Image ${index + 1}`}
-                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                                />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                                  <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity">
-                                    Click to expand
-                                  </span>
+                ) : (
+                  post.post_images &&
+                  post.post_images.length > 0 && (
+                    <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100">
+                      <Carousel className="w-full rounded-2xl overflow-hidden">
+                        <CarouselContent>
+                          {post.post_images
+                            .sort(
+                              (a: any, b: any) => a.order_index - b.order_index,
+                            )
+                            .map((image: any, index: number) => (
+                              <CarouselItem key={index}>
+                                <div
+                                  className="aspect-video w-full overflow-hidden cursor-pointer group relative"
+                                  onClick={() => openLightbox(index)}
+                                >
+                                  <img
+                                    src={image.url}
+                                    alt={
+                                      image.alt_text ||
+                                      `${post.title} - Image ${index + 1}`
+                                    }
+                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                                  />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                    <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity">
+                                      Click to expand
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            </CarouselItem>
-                          ))}
-                      </CarouselContent>
+                              </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                        {post.post_images.length > 1 && (
+                          <>
+                            <CarouselPrevious className="left-4 bg-white/80 hover:bg-white border-0 shadow-lg" />
+                            <CarouselNext className="right-4 bg-white/80 hover:bg-white border-0 shadow-lg" />
+                          </>
+                        )}
+                      </Carousel>
                       {post.post_images.length > 1 && (
-                        <>
-                          <CarouselPrevious className="left-4 bg-white/80 hover:bg-white border-0 shadow-lg" />
-                          <CarouselNext className="right-4 bg-white/80 hover:bg-white border-0 shadow-lg" />
-                        </>
+                        <p className="text-center text-xs text-slate-400 py-2 font-medium">
+                          {post.post_images.length} images in gallery • Click to
+                          expand
+                        </p>
                       )}
-                    </Carousel>
-                    {post.post_images.length > 1 && (
-                      <p className="text-center text-xs text-slate-400 py-2 font-medium">
-                        {post.post_images.length} images in gallery • Click to expand
-                      </p>
-                    )}
-                  </div>
+                    </div>
+                  )
                 )}
               </div>
             )}
@@ -488,32 +583,38 @@ const PostDetail = () => {
             {/* Content Body */}
             <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm mb-12">
               <div className="prose prose-lg prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-2xl">
-                <div dangerouslySetInnerHTML={{ __html: post.content_markdown }} />
+                <div
+                  dangerouslySetInnerHTML={{ __html: post.content_markdown }}
+                />
               </div>
             </div>
 
             {/* Engagement Actions */}
             <div className="flex items-center justify-center gap-4 mb-12">
               <Button
-                variant={isLiked ? 'default' : 'outline'}
-                onClick={() => user ? likePost.mutate() : navigate('/auth')}
+                variant={isLiked ? "default" : "outline"}
+                onClick={() => (user ? likePost.mutate() : navigate("/auth"))}
                 size="lg"
                 className={`rounded-full px-8 h-12 shadow-lg transition-all ${
-                  isLiked 
-                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 border-red-500' 
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-red-200 hover:text-red-500 hover:bg-red-50'
+                  isLiked
+                    ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 border-red-500"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-red-200 hover:text-red-500 hover:bg-red-50"
                 }`}
               >
-                <Heart className={`h-5 w-5 mr-2 ${isLiked ? 'fill-current' : ''}`} />
+                <Heart
+                  className={`h-5 w-5 mr-2 ${isLiked ? "fill-current" : ""}`}
+                />
                 {post.likes?.length || 0} Likes
               </Button>
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 size="lg"
                 className="rounded-full px-8 h-12 bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600 hover:bg-blue-50 shadow-lg shadow-slate-200/50"
                 onClick={() => {
-                   document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' });
+                  document
+                    .getElementById("comments-section")
+                    ?.scrollIntoView({ behavior: "smooth" });
                 }}
               >
                 <MessageCircle className="h-5 w-5 mr-2" />
@@ -522,10 +623,12 @@ const PostDetail = () => {
             </div>
 
             {/* Comments Section */}
-            <div id="comments-section" className="bg-slate-50/50 rounded-3xl border border-slate-100 overflow-hidden">
-               <CommentSection postId={post.id} />
+            <div
+              id="comments-section"
+              className="bg-slate-50/50 rounded-3xl border border-slate-100 overflow-hidden"
+            >
+              <CommentSection postId={post.id} />
             </div>
-          
           </div>
         </article>
       </div>
