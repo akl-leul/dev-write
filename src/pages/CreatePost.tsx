@@ -206,6 +206,17 @@ const CreatePost = () => {
           .eq('id', editId)
           .single();
         
+        // Extract mentions from content and send notifications for edited posts
+        const mentionedNames = extractMentions(content);
+        if (mentionedNames.length > 0) {
+          const mentionedUsers = await findUsersByNames(mentionedNames);
+          const mentionedUserIds = mentionedUsers.map(u => u.id).filter(id => id !== user.id);
+          
+          if (mentionedUserIds.length > 0) {
+            await createMentionNotifications(mentionedUserIds, editId, title, user.id);
+          }
+        }
+        
         // Handle tags for edited post
         if (tags.length > 0) {
           // Remove existing post tags

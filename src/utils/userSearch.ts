@@ -26,7 +26,7 @@ export const searchUsers = async (query: string, currentUserId: string): Promise
 };
 
 export const extractMentions = (content: string): string[] => {
-  const mentionRegex = /@(\w+(?:\s+\w+)*)/g;
+  const mentionRegex = /@([a-zA-Z0-9_]+(?:\s+[a-zA-Z0-9_]+)*)/g;
   const mentions: string[] = [];
   let match;
   
@@ -56,30 +56,16 @@ export const findUsersByNames = async (names: string[]): Promise<UserSearchResul
 export const extractMentionsFromTags = (tags: string[]): string[] => {
   const mentions: string[] = [];
   
-  console.log('Extracting mentions from tags:', tags);
-  
   tags.forEach(tag => {
-    console.log('Processing tag:', tag);
-    // Find all @mentions in the tag
-    const mentionRegex = /@(\w+(?:\s+\w+)*)/g;
-    console.log('Regex test for tag:', mentionRegex.test(tag));
-    
-    // Reset regex lastIndex
-    mentionRegex.lastIndex = 0;
+    // Find all @mentions in the tag - improved regex to handle more username formats
+    const mentionRegex = /@([a-zA-Z0-9_]+(?:\s+[a-zA-Z0-9_]+)*)/g;
     
     let match;
     while ((match = mentionRegex.exec(tag)) !== null) {
-      console.log('Found mention match:', match);
-      console.log('Found mention:', match[1], 'in tag:', tag);
       mentions.push(match[1]);
-    }
-    
-    if (mentions.length === 0) {
-      console.log('No mentions found in tag:', tag);
     }
   });
   
   const uniqueMentions = [...new Set(mentions)]; // Remove duplicates
-  console.log('Final unique mentions:', uniqueMentions);
   return uniqueMentions;
 };

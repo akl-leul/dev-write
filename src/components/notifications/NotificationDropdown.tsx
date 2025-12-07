@@ -76,7 +76,7 @@ export const NotificationDropdown = () => {
             description: notification.message,
             action: notification.post_id ? {
               label: 'View',
-              onClick: () => navigate(`/post/${notification.posts?.slug}`),
+              onClick: () => navigate(`/post/${notification.post?.slug}`),
             } : undefined,
           });
         }
