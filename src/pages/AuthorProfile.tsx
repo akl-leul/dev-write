@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FollowButton } from '@/components/social/FollowButton';
-import { Heart, MessageCircle, Eye, Clock, Users, FileText, Calendar, Loader2, Share2, Copy, Twitter, Facebook, Linkedin } from 'lucide-react';
+import { Heart, MessageCircle, Eye, Clock, Users, FileText, Calendar, Loader2, Share2, Copy, Twitter, Facebook, Linkedin, User, Instagram, Github, Youtube, Globe, Phone } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
@@ -213,6 +213,10 @@ const AuthorProfile = () => {
 
   const isOwnProfile = user?.id === authorId;
 
+  // Debug: Log profile data to check what's happening
+  console.log('Profile data:', profile);
+  console.log('AuthorId:', authorId);
+
   return (
     <div className="min-h-screen bg-background font-sans">
       <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
@@ -226,39 +230,77 @@ const AuthorProfile = () => {
             
             {/* Profile Header Card */}
             <Card className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden mb-8">
-              <div className="h-48 relative">
-                <img 
-                  src={profileBackground} 
-                  alt="Profile background" 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/20" />
-              </div>
+           <div className="h-48 relative">
+  <img 
+    src={profileBackground} 
+    alt="Profile background" 
+    className="w-full h-full object-cover"
+  />
+
+  {/* Stronger fade with smoother gradient */}
+  <div className="absolute inset-0 bg-gradient-to-t from-black via-white/30 to-transparent" />
+</div>
+
               
               <div className="px-6 sm:px-8 pb-8">
-                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4  mb-6">
-                  <Avatar className="h-32 w-32 border-4 border-white shadow-xl">
-                    <AvatarImage src={profile.profile_image_url || ''} />
-                    <AvatarFallback className="bg-slate-900 text-white text-3xl font-bold">
-                      {profile.full_name?.[0]?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1 text-center sm:text-left">
-                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
-                      <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{profile.full_name}</h1>
-                      {badge && (
-                        <ProfileBadge badge={badge} size="md" />
-                      )}
-                    </div>
-                    {profile.bio && <p className="text-slate-500 line-clamp-2">{profile.bio}</p>}
+                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16 mb-6">
+                  <div className="relative">
+                    <Avatar className="h-32 w-32 border-4 border-white shadow-xl ring-4 ring-slate-100">
+                      <AvatarImage src={profile.profile_image_url || ''} />
+                      <AvatarFallback className="bg-slate-900 text-white text-3xl font-bold">
+                        {profile.full_name?.[0]?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    {badge && (
+                      <div className="absolute -bottom-2 -right-2">
+                        <ProfileBadge badge={badge} size="sm" />
+                      </div>
+                    )}
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex-1 text-center sm:text-left sm:ml-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-center sm:justify-start gap-2 mb-2">
+                      <h1 className="text-2xl sm:text-3xl text-slate-900 md:text-white font-bold   drop-shadow-sm">
+                        {profile.full_name || 'Unknown User'}
+                      </h1>
+                      {badge && (
+                        <div className="hidden sm:block">
+                          <ProfileBadge badge={badge} size="md" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 text-sm text-slate-600 mb-3">
+                      {profile.gender && (
+                        <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full">
+                          <User className="w-3 h-3 text-slate-500" />
+                          <span className="capitalize font-medium">{profile.gender}</span>
+                        </div>
+                      )}
+                      {profile.phone && (profile as any).show_phone && (
+                        <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full">
+                          <Phone className="w-3 h-3 text-slate-500" />
+                          <span className="font-medium">{profile.phone}</span>
+                        </div>
+                      )}
+                      {profile.created_at && (
+                        <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full">
+                          <Calendar className="w-3 h-3 text-slate-500" />
+                          <span className="font-medium">Joined {format(new Date(profile.created_at), 'MMMM yyyy')}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <p className="text-slate-700 line-clamp-2 max-w-md bg-white/60 backdrop-blur-sm px-3 py-2 rounded-lg">
+                      {profile.bio || 'No bio'}
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-2">
                     {!isOwnProfile && <FollowButton userId={authorId!} size="default" />}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="default" className="rounded-xl">
+                        <Button variant="outline" size="default" className="rounded-xl bg-white/90 backdrop-blur-sm border-white/20">
                           <Share2 className="h-4 w-4 mr-2" />
                           Share
                         </Button>
@@ -283,7 +325,7 @@ const AuthorProfile = () => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                     {isOwnProfile && (
-                      <Button variant="outline" asChild className="rounded-xl">
+                      <Button variant="outline" asChild className="rounded-xl bg-white/90 backdrop-blur-sm border-white/20">
                         <Link to="/profile">Edit Profile</Link>
                       </Button>
                     )}
@@ -311,6 +353,93 @@ const AuthorProfile = () => {
                     <Calendar className="w-3 h-3" /> Joined {format(new Date(profile.created_at), 'MMMM yyyy')}
                   </p>
                 )}
+
+                {/* Social Media Links */}
+                {((profile as any).twitter || (profile as any).facebook || (profile as any).linkedin || (profile as any).instagram || (profile as any).github || (profile as any).youtube || (profile as any).website) && (
+                  <div className="mt-6 pt-6 border-t border-slate-100">
+                    <p className="text-sm font-medium text-slate-700 mb-3">Connect</p>
+                    <div className="flex flex-wrap gap-3">
+                      {(profile as any).twitter && (
+                        <a 
+                          href={`https://twitter.com/${(profile as any).twitter.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
+                        >
+                          <Twitter className="w-4 h-4" />
+                          <span className="text-sm font-medium">Twitter</span>
+                        </a>
+                      )}
+                      {(profile as any).facebook && (
+                        <a 
+                          href={(profile as any).facebook.startsWith('http') ? (profile as any).facebook : `https://facebook.com/${(profile as any).facebook}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                        >
+                          <Facebook className="w-4 h-4" />
+                          <span className="text-sm font-medium">Facebook</span>
+                        </a>
+                      )}
+                      {(profile as any).linkedin && (
+                        <a 
+                          href={(profile as any).linkedin.startsWith('http') ? (profile as any).linkedin : `https://linkedin.com/in/${(profile as any).linkedin}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-lg transition-colors"
+                        >
+                          <Linkedin className="w-4 h-4" />
+                          <span className="text-sm font-medium">LinkedIn</span>
+                        </a>
+                      )}
+                      {(profile as any).instagram && (
+                        <a 
+                          href={`https://instagram.com/${(profile as any).instagram.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-lg transition-colors"
+                        >
+                          <Instagram className="w-4 h-4" />
+                          <span className="text-sm font-medium">Instagram</span>
+                        </a>
+                      )}
+                      {(profile as any).github && (
+                        <a 
+                          href={(profile as any).github.startsWith('http') ? (profile as any).github : `https://github.com/${(profile as any).github}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-800 rounded-lg transition-colors"
+                        >
+                          <Github className="w-4 h-4" />
+                          <span className="text-sm font-medium">GitHub</span>
+                        </a>
+                      )}
+                      {(profile as any).youtube && (
+                        <a 
+                          href={(profile as any).youtube.startsWith('http') ? (profile as any).youtube : `https://youtube.com/${(profile as any).youtube}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                        >
+                          <Youtube className="w-4 h-4" />
+                          <span className="text-sm font-medium">YouTube</span>
+                        </a>
+                      )}
+                      {(profile as any).website && (
+                        <a 
+                          href={(profile as any).website.startsWith('http') ? (profile as any).website : `https://${(profile as any).website}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg transition-colors"
+                        >
+                          <Globe className="w-4 h-4" />
+                          <span className="text-sm font-medium">Website</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
               </div>
             </Card>
 

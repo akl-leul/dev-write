@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Loader2, Lock, User, Mail, Phone, Calendar, UserCircle, ShieldCheck, Users, FileText } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Camera, Loader2, Lock, User, Mail, Phone, Calendar, UserCircle, ShieldCheck, Users, FileText, Twitter, Facebook, Linkedin, Instagram, Github, Youtube, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
 import { ImageCropModal } from '@/components/ImageCropModal';
@@ -30,6 +31,14 @@ const Profile = () => {
     gender: '',
     profile_image_url: '',
     phone: '',
+    show_phone: false,
+    twitter: '',
+    facebook: '',
+    linkedin: '',
+    instagram: '',
+    github: '',
+    youtube: '',
+    website: '',
   });
   const [passwordData, setPasswordData] = useState({
     newPassword: '',
@@ -69,6 +78,14 @@ const Profile = () => {
         gender: profile.gender || '',
         profile_image_url: profile.profile_image_url || '',
         phone: profile.phone || '',
+        show_phone: (profile as any).show_phone || false,
+        twitter: (profile as any).twitter || '',
+        facebook: (profile as any).facebook || '',
+        linkedin: (profile as any).linkedin || '',
+        instagram: (profile as any).instagram || '',
+        github: (profile as any).github || '',
+        youtube: (profile as any).youtube || '',
+        website: (profile as any).website || '',
       });
     }
   }, [profile]);
@@ -353,6 +370,16 @@ const Profile = () => {
                           placeholder="Enter your phone number"
                           className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                         />
+                        <div className="flex items-center justify-between pt-2">
+                          <Label htmlFor="show_phone" className="text-sm text-slate-600 cursor-pointer">
+                            Make phone number visible on profile
+                          </Label>
+                          <Switch
+                            id="show_phone"
+                            checked={formData.show_phone}
+                            onCheckedChange={(checked) => setFormData({ ...formData, show_phone: checked })}
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -407,6 +434,128 @@ const Profile = () => {
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
                         </>
                       ) : 'Save Changes'}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Social Media Card */}
+            <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
+              <div className="h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+              <CardHeader className="border-b border-slate-50">
+                <CardTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-slate-500" />
+                  Social Media Profiles
+                </CardTitle>
+                <CardDescription>Add your social media links to connect with your audience.</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-8">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="twitter" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Twitter className="w-3 h-3 text-blue-400" /> Twitter
+                      </Label>
+                      <Input
+                        id="twitter"
+                        value={formData.twitter}
+                        onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
+                        placeholder="@username"
+                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="facebook" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Facebook className="w-3 h-3 text-blue-600" /> Facebook
+                      </Label>
+                      <Input
+                        id="facebook"
+                        value={formData.facebook}
+                        onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                        placeholder="facebook.com/username"
+                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="linkedin" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Linkedin className="w-3 h-3 text-blue-700" /> LinkedIn
+                      </Label>
+                      <Input
+                        id="linkedin"
+                        value={formData.linkedin}
+                        onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                        placeholder="linkedin.com/in/username"
+                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="instagram" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Instagram className="w-3 h-3 text-pink-600" /> Instagram
+                      </Label>
+                      <Input
+                        id="instagram"
+                        value={formData.instagram}
+                        onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                        placeholder="@username"
+                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="github" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Github className="w-3 h-3 text-slate-800" /> GitHub
+                      </Label>
+                      <Input
+                        id="github"
+                        value={formData.github}
+                        onChange={(e) => setFormData({ ...formData, github: e.target.value })}
+                        placeholder="github.com/username"
+                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="youtube" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Youtube className="w-3 h-3 text-red-600" /> YouTube
+                      </Label>
+                      <Input
+                        id="youtube"
+                        value={formData.youtube}
+                        onChange={(e) => setFormData({ ...formData, youtube: e.target.value })}
+                        placeholder="youtube.com/channel/username"
+                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="website" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Globe className="w-3 h-3 text-slate-600" /> Website
+                      </Label>
+                      <Input
+                        id="website"
+                        value={formData.website}
+                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                        placeholder="https://yourwebsite.com"
+                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-end">
+                    <Button
+                      type="submit"
+                      className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-lg shadow-purple-600/20 px-8"
+                      disabled={updateProfile.isPending}
+                    >
+                      {updateProfile.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                        </>
+                      ) : 'Save Social Media'}
                     </Button>
                   </div>
                 </form>
