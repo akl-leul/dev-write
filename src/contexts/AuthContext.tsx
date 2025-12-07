@@ -29,26 +29,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         
-        // Sync Google user data when user signs in or updates
-        if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          await syncGoogleUserToProfile(currentUser);
+        // Sync Google user data only when user signs in (not on token refresh)
+        if (currentUser && event === 'SIGNED_IN') {
+          // Defer sync to avoid blocking UI
+          setTimeout(() => syncGoogleUserToProfile(currentUser), 0);
         }
         
         setLoading(false);
       }
     );
 
-    // Check for existing session and sync if needed
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      
-      // Sync Google user data for existing session
-      if (currentUser) {
-        await syncGoogleUserToProfile(currentUser);
-      }
-      
       setLoading(false);
     });
 

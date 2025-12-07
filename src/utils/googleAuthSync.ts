@@ -1,6 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
+// Cache to prevent redundant sync operations
+const syncCache = new Map<string, number>();
+const SYNC_COOLDOWN = 30000; // 30 seconds
+
 /**
  * Sync Google user data to the profiles table
  * This ensures that Google OAuth users have their profile data properly stored
@@ -13,6 +17,14 @@ export const syncGoogleUserToProfile = async (user: User): Promise<void> => {
     if (!isGoogleUser) {
       return; // Not a Google user, no sync needed
     }
+
+    // Prevent redundant syncs with cooldown
+    const now = Date.now();
+    const lastSync = syncCache.get(user.id);
+    if (lastSync && now - lastSync < SYNC_COOLDOWN) {
+      return; // Skip sync due to cooldown
+    }
+    syncCache.set(user.id, now);
 
     const userMetadata = user.user_metadata || {};
     

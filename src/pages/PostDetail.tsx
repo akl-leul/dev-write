@@ -29,6 +29,42 @@ import {
 import { BookmarkButton } from '@/components/social/BookmarkButton';
 import { FollowButton } from '@/components/social/FollowButton';
 
+// Define the post type for better TypeScript support
+type Post = {
+  id: string;
+  title: string;
+  slug: string;
+  content_markdown: string;
+  excerpt: string;
+  featured_image: string | null;
+  author_id: string;
+  category_id: string;
+  status: string;
+  read_time: number;
+  views: number;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    full_name: string;
+    profile_image_url: string | null;
+  };
+  post_images?: {
+    url: string;
+    alt_text: string | null;
+    order_index: number;
+  }[];
+  likes?: {
+    user_id: string;
+  }[];
+  comments?: {
+    count: number;
+  }[];
+  categories?: {
+    name: string;
+    slug: string;
+  };
+};
+
 const PostDetail = () => {
   const { '*': slugPath } = useParams();
   const { user } = useAuth();
@@ -40,7 +76,7 @@ const PostDetail = () => {
   // Extract the slug from path (handles both old and new format)
   const slug = slugPath || '';
 
-  const { data: post, isLoading } = useQuery({
+  const { data: post, isLoading } = useQuery<Post>({
     queryKey: ['post', slug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -57,8 +93,10 @@ const PostDetail = () => {
         .maybeSingle();
       
       if (error) throw error;
-      return data;
+      return data as Post;
     },
+    staleTime: 30000, // Cache for 30 seconds
+    gcTime: 300000, // Keep in cache for 5 minutes (gcTime replaces cacheTime)
   });
 
   // Increment view count when post is loaded (works for all users)
