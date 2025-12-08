@@ -43,6 +43,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Fetch user profile with role and permissions
   const fetchProfile = async (userId: string) => {
+    if (!userId) return null;
+    
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -60,6 +62,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
       
       if (error) {
+        // Don't log error for invalid user IDs, just return null
+        if (error.code === 'PGRST116') {
+          // Profile not found, user might not exist in profiles table
+          return null;
+        }
         console.error('Error fetching profile:', error);
         return null;
       }
@@ -92,6 +99,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Update login information
   const updateLoginInfo = async (userId: string) => {
+    if (!userId) return;
+    
     try {
       await supabase.rpc('update_user_login', { 
         user_id: userId,
@@ -124,6 +133,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const checkIfUserBlocked = async (userId: string) => {
+    if (!userId) return false;
+    
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -147,32 +158,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setSession(session);
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        
-        if (currentUser) {
-          // Fetch user profile with permissions
-          await fetchProfile(currentUser.id);
+        try {
+          setSession(session);
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
           
-          // Update login info on sign in
-          if (event === 'SIGNED_IN') {
-            await updateLoginInfo(currentUser.id);
+          if (currentUser) {
+            // Fetch user profile with permissions
+            await fetchProfile(currentUser.id);
+            
+            // Update login info on sign in
+            if (event === 'SIGNED_IN') {
+              await updateLoginInfo(currentUser.id);
+            }
+            
+            // Store email for support contact
+            if (currentUser.email) {
+              localStorage.setItem('user_email', currentUser.email);
+            }
+          } else {
+            setProfile(null);
+            setIsBlocked(false);
           }
           
-          // Store email for support contact
-          if (currentUser.email) {
-            localStorage.setItem('user_email', currentUser.email);
+          // Sync Google user data only when user signs in (not on token refresh)
+          if (currentUser && event === 'SIGNED_IN') {
+            // Defer sync to avoid blocking UI
+            setTimeout(() => syncGoogleUserToProfile(currentUser), 0);
           }
-        } else {
+        } catch (error) {
+          console.error('Error in auth state change:', error);
+          // Reset state on error
+          setUser(null);
+          setSession(null);
           setProfile(null);
           setIsBlocked(false);
-        }
-        
-        // Sync Google user data only when user signs in (not on token refresh)
-        if (currentUser && event === 'SIGNED_IN') {
-          // Defer sync to avoid blocking UI
-          setTimeout(() => syncGoogleUserToProfile(currentUser), 0);
         }
         
         setLoading(false);
@@ -181,19 +201,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      
-      if (currentUser) {
-        fetchProfile(currentUser.id);
-        if (currentUser.email) {
-          localStorage.setItem('user_email', currentUser.email);
+      try {
+        setSession(session);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        
+        if (currentUser) {
+          fetchProfile(currentUser.id);
+          if (currentUser.email) {
+            localStorage.setItem('user_email', currentUser.email);
+          }
+        } else {
+          setProfile(null);
+          setIsBlocked(false);
         }
-      } else {
+      } catch (error) {
+        console.error('Error getting session:', error);
+        setUser(null);
+        setSession(null);
         setProfile(null);
+        setIsBlocked(false);
       }
       
+      setLoading(false);
+    }).catch(error => {
+      console.error('Error in getSession:', error);
       setLoading(false);
     });
 

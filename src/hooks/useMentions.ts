@@ -19,11 +19,20 @@ export const useMentions = (editorRef: React.RefObject<HTMLElement>) => {
   const checkForMention = useCallback(() => {
     if (!editorRef.current) return;
 
+    // For TipTap editor, we need to check the actual text content
+    const editorElement = editorRef.current.querySelector('.ProseMirror');
+    if (!editorElement) return;
+    
     const selection = window.getSelection();
     if (!selection || !selection.rangeCount) return;
 
     const range = selection.getRangeAt(0);
-    const textContent = editorRef.current.textContent || '';
+    // Get the text content from the current node or its parent
+    const currentNode = range.startContainer;
+    const textContent = currentNode.nodeType === Node.TEXT_NODE 
+      ? currentNode.textContent || '' 
+      : currentNode.textContent || '';
+    
     const cursorPos = range.startOffset;
 
     // Get text before cursor
@@ -34,7 +43,7 @@ export const useMentions = (editorRef: React.RefObject<HTMLElement>) => {
       const query = mentionMatch[1];
       const mentionStart = cursorPos - mentionMatch[0].length;
       
-      // Get position for autocomplete
+      // Get position for autocomplete relative to the editor
       const rect = range.getBoundingClientRect();
       const editorRect = editorRef.current.getBoundingClientRect();
       
@@ -64,7 +73,10 @@ export const useMentions = (editorRef: React.RefObject<HTMLElement>) => {
     if (!selection || !selection.rangeCount) return;
 
     const range = selection.getRangeAt(0);
-    const textContent = editorRef.current.textContent || '';
+    const currentNode = range.startContainer;
+    const textContent = currentNode.nodeType === Node.TEXT_NODE 
+      ? currentNode.textContent || '' 
+      : currentNode.textContent || '';
     
     // Replace @query with @username
     const beforeMention = textContent.substring(0, mentionState.range.start);
@@ -80,16 +92,15 @@ export const useMentions = (editorRef: React.RefObject<HTMLElement>) => {
     mentionSpan.textContent = mentionText;
     
     // Get the current text node
-    const textNode = range.startContainer;
-    if (textNode.nodeType === Node.TEXT_NODE) {
-      const parent = textNode.parentNode;
+    if (currentNode.nodeType === Node.TEXT_NODE) {
+      const parent = currentNode.parentNode;
       if (parent) {
         // Create new text nodes for before and after
         const beforeNode = document.createTextNode(beforeMention);
         const afterNode = document.createTextNode(afterMention + ' ');
         
         // Replace the text node with mention and surrounding text
-        parent.replaceChild(mentionSpan, textNode);
+        parent.replaceChild(mentionSpan, currentNode);
         parent.insertBefore(beforeNode, mentionSpan);
         parent.insertBefore(afterNode, mentionSpan.nextSibling);
         
@@ -100,6 +111,20 @@ export const useMentions = (editorRef: React.RefObject<HTMLElement>) => {
         selection.removeAllRanges();
         selection.addRange(newRange);
       }
+    } else if (currentNode.nodeType === Node.ELEMENT_NODE) {
+      // If we're in an element node, insert the mention directly
+      const textNode = document.createTextNode(beforeMention);
+      currentNode.replaceChild(textNode, currentNode.firstChild);
+      currentNode.insertBefore(mentionSpan, textNode.nextSibling);
+      const afterNode = document.createTextNode(afterMention + ' ');
+      currentNode.insertBefore(afterNode, mentionSpan.nextSibling);
+      
+      // Set cursor after the mention
+      const newRange = document.createRange();
+      newRange.setStart(afterNode, afterNode.length);
+      newRange.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
     }
     
     // Reset mention state

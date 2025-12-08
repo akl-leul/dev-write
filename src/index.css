@@ -63,6 +63,9 @@
     --shadow-elegant: 0 10px 40px -10px hsl(215 25% 25% / 0.15);
     --shadow-lift: 0 20px 50px -15px hsl(215 25% 25% / 0.25);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-theme: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                         color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                         border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
@@ -116,16 +119,37 @@
 @layer base {
   * {
     @apply border-border;
+    transition: var(--transition-theme);
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    transition: var(--transition-theme);
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Crimson Pro', Georgia, serif;
     font-weight: 600;
+    transition: var(--transition-theme);
+  }
+  
+  /* Optimize images for performance */
+  img {
+    content-visibility: auto;
+    contain-intrinsic-size: 400px 300px;
+  }
+  
+  /* Optimize animations */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -140,5 +164,39 @@
     @apply prose-p:text-foreground prose-p:leading-relaxed;
     @apply prose-a:text-accent prose-a:no-underline hover:prose-a:underline;
     @apply prose-img:rounded-lg prose-img:shadow-lg;
+  }
+  
+  /* Performance utilities */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  .contain-layout {
+    contain: layout;
+  }
+  
+  .contain-paint {
+    contain: paint;
+  }
+  
+  .contain-size {
+    contain: size;
+  }
+  
+  /* Theme transition utilities */
+  .theme-transition {
+    transition: var(--transition-theme);
+  }
+  
+  .theme-transition-slow {
+    transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }

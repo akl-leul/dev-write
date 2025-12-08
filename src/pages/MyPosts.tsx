@@ -12,19 +12,197 @@ import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { PostAuthorBadge } from '@/components/PostAuthorBadge';
+import { PageLoader } from '@/components/ui/page-loader';
 
 interface CommentWithProfile {
   id: string;
   content_markdown: string;
   created_at: string;
   approved: boolean;
-  profiles: {
+  postTitle: string;
+  postSlug: string;
+  profiles?: {
     full_name: string;
-    profile_image_url: string | null;
-  };  
+    profile_image_url: string;
+  };
 }
+
+// Memoized components for better performance
+const CommentItem = memo(({ comment, onApprove, onReject, isApproving, isRejecting }: {
+  comment: CommentWithProfile;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  isApproving: boolean;
+  isRejecting: boolean;
+}) => (
+  <div className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+    <div className="flex flex-col md:flex-row md:items-start gap-4">
+      <div className="flex items-center gap-3 min-w-[200px]">
+        <PostAuthorBadge 
+          author={{
+            id: comment.profiles?.full_name || 'unknown',
+            full_name: comment.profiles?.full_name || 'Unknown',
+            profile_image_url: comment.profiles?.profile_image_url
+          }}
+          createdAt={comment.created_at}
+          postsCount={0}
+          likesCount={0}
+          followersCount={0}
+        />
+      </div>
+      
+      <div className="flex-1 space-y-2">
+        <Link to={`/post/${comment.postSlug}`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
+          On: {comment.postTitle}
+        </Link>
+        <div className="prose prose-sm prose-slate max-w-none text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {comment.content_markdown}
+          </ReactMarkdown>
+        </div>
+      </div>
+
+      <div className="flex gap-2 md:flex-col pt-2 md:pt-0">
+        {!comment.approved ? (
+          <>
+            <Button
+              size="sm"
+              onClick={() => onApprove(comment.id)}
+              disabled={isApproving}
+              className="bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-sm disabled:opacity-50"
+            >
+              <Check className="h-4 w-4 mr-1" /> 
+              {isApproving ? 'Approving...' : 'Approve'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onReject(comment.id)}
+              disabled={isRejecting}
+              className="text-red-500 dark:text-red-400 border-red-100 dark:border-red-900/20 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-50"
+            >
+              <X className="h-4 w-4 mr-1" /> 
+              {isRejecting ? 'Rejecting...' : 'Reject'}
+            </Button>
+          </>
+        ) : (
+          <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
+            <Check className="h-4 w-4" />
+            Approved
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+));
+
+CommentItem.displayName = 'CommentItem';
+
+const PostCard = memo(({ post, onDelete }: {
+  post: Post;
+  onDelete: (id: string) => void;
+}) => {
+  const approvedCount = useMemo(() => 
+    post.comments.filter(c => c.approved).length, [post.comments]
+  );
+  const pendingCount = useMemo(() => 
+    post.comments.filter(c => !c.approved).length, [post.comments]
+  );
+  
+  const featuredImage = useMemo(() => 
+    post.post_images?.find(img => img.order_index === 0) || post.post_images?.[0],
+    [post.post_images]
+  );
+  
+  return (
+    <Card className="group bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 rounded-2xl overflow-hidden">
+      <CardContent className="p-6">
+        <div className="flex flex-col md:flex-row gap-6">
+          {featuredImage ? (
+            <div className="w-full md:w-48 h-32 flex-shrink-0 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-700">
+              <img
+                src={featuredImage.url}
+                alt={post.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          ) : (
+            <div className="w-full flex flex-col md:w-48 h-32 flex-shrink-0 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500">
+              <AlertCircle className="w-10 h-10" /> <p>No featured image</p>
+            </div>
+          )}
+          
+          <div className="flex-1 min-w-0 flex flex-col justify-between">
+            <div>
+              <div className="flex items-start justify-between gap-4 mb-2">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                  {post.title}
+                </h3>
+                <Badge 
+                  variant="outline" 
+                  className={`rounded-full px-3 py-0.5 border-0 font-medium ${
+                    post.status === 'published' 
+                      ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {post.status === 'published' ? 'Published' : 'Draft'}
+                </Badge>
+              </div>
+              
+              <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>{approvedCount} comments</span>
+                </div>
+                {pendingCount > 0 && (
+                  <span className="text-orange-600 dark:text-orange-400 font-medium text-xs bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-full">
+                    {pendingCount} pending review
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-50 dark:border-slate-700 mt-2">
+              <Link to={`/post/${post.slug}`}>
+                <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View
+                </Button>
+              </Link>
+              <Link to={`/create?edit=${post.id}`}>
+                <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              </Link>
+              <div className="flex-1"></div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDelete(post.id)}
+                className="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+
+PostCard.displayName = 'PostCard';
 
 interface Post {
   id: string;
@@ -42,7 +220,7 @@ const MyPosts = () => {
   const queryClient = useQueryClient();
   const [rejectingComments, setRejectingComments] = useState<Set<string>>(new Set());
 
-  const { data: posts, isLoading } = useQuery({
+  const { data: posts, isLoading, error } = useQuery({
     queryKey: ['my-posts', user?.id],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
@@ -65,17 +243,19 @@ const MyPosts = () => {
           )
         `)
         .eq('author_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50); // Limit initial load
       
       if (error) {
         console.error('Query error:', error);
         throw error;
       }
       
-      console.log('Posts data:', data);
       return data as Post[];
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const approveComment = useMutation({
@@ -95,12 +275,12 @@ const MyPosts = () => {
       const previousPosts = queryClient.getQueryData(['my-posts', user?.id]);
       
       // Optimistically update the posts data
-      queryClient.setQueryData(['my-posts', user?.id], (old: any) => {
+      queryClient.setQueryData(['my-posts', user?.id], (old: Post[] | undefined) => {
         if (!old) return old;
         
-        return old.map((post: any) => ({
+        return old.map((post: Post) => ({
           ...post,
-          comments: post.comments.map((comment: any) =>
+          comments: post.comments.map((comment: CommentWithProfile) =>
             comment.id === commentId ? { ...comment, approved: true } : comment
           )
         }));
@@ -171,40 +351,57 @@ const MyPosts = () => {
     },
   });
 
+  // Memoized values and callbacks must be defined before early returns
+  const pendingComments = useMemo(() => {
+    return posts?.flatMap(post => 
+      post.comments
+        .filter(c => !c.approved)
+        .map(c => ({ ...c, postTitle: post.title, postSlug: post.slug }))
+    ) || [];
+  }, [posts]);
+
+  const handleApproveComment = useCallback((commentId: string) => {
+    approveComment.mutate(commentId);
+  }, [approveComment]);
+
+  const handleRejectComment = useCallback((commentId: string) => {
+    if (confirm('Reject and delete this comment?')) {
+      rejectComment.mutate(commentId);
+    }
+  }, [rejectComment]);
+
+  const handleDeletePost = useCallback((postId: string) => {
+    if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      deletePost.mutate(postId);
+    }
+  }, [deletePost]);
+
   if (!user) {
     navigate('/auth');
     return null;
   }
 
-  if (isLoading) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <Header />
         <div className="container mx-auto py-12 px-4">
-          <div className="max-w-6xl mx-auto space-y-6">
-            <div className="h-10 w-48 bg-slate-200 rounded-lg animate-pulse mb-8"></div>
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm animate-pulse h-40">
-                <div className="flex gap-4">
-                  <div className="h-24 w-24 bg-slate-200 rounded-xl"></div>
-                  <div className="flex-1 space-y-3">
-                    <div className="h-6 w-3/4 bg-slate-200 rounded"></div>
-                    <div className="h-4 w-1/2 bg-slate-200 rounded"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="max-w-6xl mx-auto text-center">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-red-500 dark:text-red-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Error loading posts</h2>
+            <p className="text-slate-500 dark:text-slate-400 mb-4">Please try refreshing the page</p>
+            <Button onClick={() => window.location.reload()}>Refresh</Button>
           </div>
         </div>
       </div>
     );
   }
 
-  const pendingComments = posts?.flatMap(post => 
-    post.comments
-      .filter(c => !c.approved)
-      .map(c => ({ ...c, postTitle: post.title, postSlug: post.slug }))
-  ) || [];
+  if (isLoading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/20">
@@ -254,69 +451,14 @@ const MyPosts = () => {
                   <CardContent className="p-0">
                     <div className="divide-y divide-slate-100 dark:divide-slate-700">
                       {pendingComments.map((comment) => (
-                        <div key={comment.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                          <div className="flex flex-col md:flex-row md:items-start gap-4">
-                            <div className="flex items-center gap-3 min-w-[200px]">
-                              <PostAuthorBadge 
-                                author={{
-                                  id: comment.profiles?.full_name || 'unknown',
-                                  full_name: comment.profiles?.full_name || 'Unknown',
-                                  profile_image_url: comment.profiles?.profile_image_url
-                                }}
-                                createdAt={comment.created_at}
-                                postsCount={0}
-                                likesCount={0}
-                                followersCount={0}
-                              />
-                            </div>
-                            
-                            <div className="flex-1 space-y-2">
-                              <Link to={`/post/${comment.postSlug}`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                                On: {comment.postTitle}
-                              </Link>
-                              <div className="prose prose-sm prose-slate max-w-none text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                  {comment.content_markdown}
-                                </ReactMarkdown>
-                              </div>
-                            </div>
-
-                            <div className="flex gap-2 md:flex-col pt-2 md:pt-0">
-                              {!comment.approved ? (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => approveComment.mutate(comment.id)}
-                                    disabled={approveComment.isPending}
-                                    className="bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-sm disabled:opacity-50"
-                                  >
-                                    <Check className="h-4 w-4 mr-1" /> 
-                                    {approveComment.isPending ? 'Approving...' : 'Approve'}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      if (confirm('Reject and delete this comment?')) {
-                                        rejectComment.mutate(comment.id);
-                                      }
-                                    }}
-                                    disabled={rejectComment.isPending || rejectingComments.has(comment.id)}
-                                    className="text-red-500 dark:text-red-400 border-red-100 dark:border-red-900/20 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-50"
-                                  >
-                                    <X className="h-4 w-4 mr-1" /> 
-                                    {rejectingComments.has(comment.id) ? 'Rejecting...' : 'Reject'}
-                                  </Button>
-                                </>
-                              ) : (
-                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
-                                  <Check className="h-4 w-4" />
-                                  Approved
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                        <CommentItem
+                          key={comment.id}
+                          comment={comment}
+                          onApprove={handleApproveComment}
+                          onReject={handleRejectComment}
+                          isApproving={approveComment.isPending}
+                          isRejecting={rejectingComments.has(comment.id)}
+                        />
                       ))}
                     </div>
                   </CardContent>
@@ -326,103 +468,13 @@ const MyPosts = () => {
 
             <div className="space-y-6">
               {posts && posts.length > 0 ? (
-                posts.map((post) => {
-                  const approvedCount = post.comments.filter(c => c.approved).length;
-                  const pendingCount = post.comments.filter(c => !c.approved).length;
-                  
-                  return (
-                    <Card key={post.id} className="group bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 rounded-2xl overflow-hidden">
-                      <CardContent className="p-6">
-                        <div className="flex flex-col md:flex-row gap-6">
-                          {(() => {
-                            console.log('Post images for', post.title, ':', post.post_images);
-                            const featuredImage = post.post_images?.find(img => img.order_index === 0) || post.post_images?.[0];
-                            return featuredImage ? (
-                              <div className="w-full md:w-48 h-32 flex-shrink-0 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-700">
-                                <img
-                                  src={featuredImage.url}
-                                  alt={post.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                  onError={(e) => console.error('Image failed to load:', featuredImage.url)}
-                                  onLoad={() => console.log('Image loaded successfully:', featuredImage.url)}
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-full flex flex-col md:w-48 h-32 flex-shrink-0 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500">
-                                <AlertCircle className="w-10 h-10" /> <p>No featured image</p>
-                              </div>
-                            );
-                          })()}
-                          
-                          <div className="flex-1 min-w-0 flex flex-col justify-between">
-                            <div>
-                              <div className="flex items-start justify-between gap-4 mb-2">
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
-                                  {post.title}
-                                </h3>
-                                <Badge 
-                                  variant="outline" 
-                                  className={`rounded-full px-3 py-0.5 border-0 font-medium ${
-                                    post.status === 'published' 
-                                      ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' 
-                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                  }`}
-                                >
-                                  {post.status === 'published' ? 'Published' : 'Draft'}
-                                </Badge>
-                              </div>
-                              
-                              <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4">
-                                <div className="flex items-center gap-1.5">
-                                  <Calendar className="w-3.5 h-3.5" />
-                                  <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <MessageSquare className="w-3.5 h-3.5" />
-                                  <span>{approvedCount} comments</span>
-                                </div>
-                                {pendingCount > 0 && (
-                                  <span className="text-orange-600 dark:text-orange-400 font-medium text-xs bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-full">
-                                    {pendingCount} pending review
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-50 dark:border-slate-700 mt-2">
-                              <Link to={`/post/${post.slug}`}>
-                                <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View
-                                </Button>
-                              </Link>
-                              <Link to={`/create?edit=${post.id}`}>
-                                <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit
-                                </Button>
-                              </Link>
-                              <div className="flex-1"></div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
-                                    deletePost.mutate(post.id);
-                                  }
-                                }}
-                                className="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
+                posts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onDelete={handleDeletePost}
+                  />
+                ))
               ) : (
                 <Card className="border-dashed border-2 border-slate-200 dark:border-slate-700 shadow-none bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl">
                   <CardContent className="p-16 text-center">

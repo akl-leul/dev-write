@@ -6,14 +6,13 @@ export interface UserSearchResult {
   profile_image_url?: string;
 }
 
-export const searchUsers = async (query: string, currentUserId: string): Promise<UserSearchResult[]> => {
+export const searchUsers = async (query: string): Promise<UserSearchResult[]> => {
   if (query.length < 2 && query.length > 0) return [];
   
   const { data, error } = await supabase
     .from('profiles')
     .select('id, full_name, profile_image_url')
     .ilike('full_name', query.length > 0 ? `%${query}%` : '%')
-    .neq('id', currentUserId)
     .order('full_name')
     .limit(query.length > 0 ? 10 : 20); // Show more users for empty query
   

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
   <title>Chronicle - Share Your Stories With The World</title>
   <meta name="description" content="A beautiful platform for writers and readers to connect through compelling narratives. Write, share, and discover stories that inspire.">
@@ -16,16 +16,18 @@
   <meta name="rating" content="general">
   <meta name="referrer" content="no-referrer-when-downgrade">
   <meta http-equiv="Content-Language" content="en">
-  <meta http-equiv="Cache-Control" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <meta http-equiv="Pragma" content="no-cache">
   <meta name="format-detection" content="telephone=+251963889227,email=chronicle.ethiopia@gmail.com,address=Addis Ababa">
   <meta name="theme-color" content="#3A3D5B">
 
+  <!-- Preconnect to external domains for faster loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
+  
+  <!-- DNS prefetch for likely navigation -->
+  <link rel="dns-prefetch" href="//dev-write.vercel.app">
+
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
-  
-  
   <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/ngAInZj6vecgBPkNZ1hyIxdsEzi2/social-images/social-1765173380448-Screenshot 2025-12-06 173830.png">
   <meta property="og:url" content="https://dev-write.vercel.app">
   <meta property="og:site_name" content="Chronicle">
@@ -37,8 +39,6 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  
-  
   <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/ngAInZj6vecgBPkNZ1hyIxdsEzi2/social-images/social-1765173380448-Screenshot 2025-12-06 173830.png">
   <meta name="twitter:site" content="@Chronicle">
   <meta name="twitter:creator" content="@Chronicle">
@@ -62,18 +62,88 @@
   <!-- Favicons / Icons -->
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3A3D5B">
 
   <!-- Web Manifest -->
   <link rel="manifest" href="/site.webmanifest">
+
+  <!-- Critical CSS for above-the-fold content -->
+  <style>
+    /* Critical CSS for loading state */
+    #root {
+      min-height: 100vh;
+      background: #f8fafc;
+    }
+    
+    /* Loading spinner styles */
+    .loading-spinner {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e2e8f0;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    
+    /* Prevent flash of unstyled content */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  </style>
 
   <meta property="og:title" content="Chronicle - Share Your Stories With The World">
   <meta name="twitter:title" content="Chronicle - Share Your Stories With The World">
   <meta property="og:description" content="A beautiful platform for writers and readers to connect through compelling narratives. Write, share, and discover stories that inspire.">
   <meta name="twitter:description" content="A beautiful platform for writers and readers to connect through compelling narratives. Write, share, and discover stories that inspire.">
 </head>
-<body> <div id="root"></div> <script type="module" src="/src/main.tsx"></script>
- </body> 
+<body>
+  <!-- Loading indicator for better perceived performance -->
+  <div id="loading-spinner" class="loading-spinner" style="display: none;"></div>
+  
+  <div id="root"></div>
+  
+  <!-- Main script with defer for non-blocking loading -->
+  <script type="module" src="/src/main.tsx"></script>
+  
+  <!-- Performance monitoring and optimization -->
+  <script>
+    // Hide loading spinner when app is ready
+    window.addEventListener('load', function() {
+      const spinner = document.getElementById('loading-spinner');
+      if (spinner) {
+        spinner.style.display = 'none';
+      }
+    });
+    
+    // Show loading spinner if JavaScript takes too long
+    setTimeout(function() {
+      const spinner = document.getElementById('loading-spinner');
+      const root = document.getElementById('root');
+      if (spinner && root && root.children.length === 0) {
+        spinner.style.display = 'block';
+      }
+    }, 1000);
+    
+    // Preload critical resources
+    if ('serviceWorker' in navigator) {
+      // Register service worker for PWA capabilities (if implemented)
+      window.addEventListener('load', function() {
+        // navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  </script>
+</body>
 </html>

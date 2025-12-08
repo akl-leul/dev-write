@@ -68,10 +68,18 @@ export const syncGoogleUserToProfile = async (user: User): Promise<void> => {
       });
 
     if (error) {
+      // Don't log errors for invalid user states, just handle gracefully
+      if (error.code === 'PGRST116' || error.code === '42501') {
+        // Profile not found or permission denied - user might not be properly set up
+        return;
+      }
       console.error('Error syncing Google user to profile:', error);
     }
   } catch (error) {
-    console.error('Unexpected error during Google user sync:', error);
+    // Don't log unexpected errors for invalid auth states
+    if (error instanceof Error && !error.message.includes('Invalid')) {
+      console.error('Unexpected error during Google user sync:', error);
+    }
   }
 };
 

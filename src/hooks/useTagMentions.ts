@@ -10,9 +10,7 @@ interface TagMentionState {
 
 export const useTagMentions = (
   inputRef: React.RefObject<HTMLInputElement>,
-  tagInput: string,
-  user: any,
-  setTagInput: (value: string) => void
+  tagInput: string
 ) => {
   const [mentionState, setMentionState] = useState<TagMentionState>({
     active: false,
@@ -23,7 +21,7 @@ export const useTagMentions = (
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
 
   const checkForMention = useCallback(() => {
-    if (!inputRef.current || !user) return;
+    if (!inputRef.current) return;
 
     const cursorPos = inputRef.current.selectionStart || 0;
     const textBefore = tagInput.substring(0, cursorPos);
@@ -37,7 +35,6 @@ export const useTagMentions = (
       
       // Get position for autocomplete
       const rect = inputRef.current.getBoundingClientRect();
-      const inputRect = inputRef.current.getBoundingClientRect();
       
       // Calculate position based on cursor position within the input
       const textBeforeCursor = tagInput.substring(0, cursorPos);
@@ -56,8 +53,8 @@ export const useTagMentions = (
         },
       });
       
-      // Search for users
-      searchUsers(query, user.id).then(setSearchResults);
+      // Search for users (no auth dependency)
+      searchUsers(query).then(setSearchResults);
     } else {
       setMentionState(prev => ({
         ...prev,
@@ -67,7 +64,7 @@ export const useTagMentions = (
       }));
       setSearchResults([]);
     }
-  }, [inputRef, tagInput, user]);
+  }, [inputRef, tagInput]);
 
   const insertMention = useCallback((user: UserSearchResult) => {
     if (!inputRef.current) return;
@@ -78,9 +75,6 @@ export const useTagMentions = (
     
     // Replace @query with @username
     const newTagInput = beforeMention + `@${user.full_name}` + afterMention;
-    
-    // Update the React state
-    setTagInput(newTagInput);
     
     // Update the input value directly for immediate feedback
     inputRef.current.value = newTagInput;
@@ -95,7 +89,7 @@ export const useTagMentions = (
       position: null,
     });
     setSearchResults([]);
-  }, [inputRef, tagInput, mentionState.startIndex, setTagInput]);
+  }, [inputRef, tagInput, mentionState.startIndex]);
 
   const closeMentions = useCallback(() => {
     setMentionState(prev => ({
@@ -109,15 +103,15 @@ export const useTagMentions = (
 
   // Auto-search when query changes
   useEffect(() => {
-    if (mentionState.active && user) {
+    if (mentionState.active) {
       // Show all users when @ is just typed (empty query)
       if (mentionState.query.length === 0) {
-        searchUsers('', user.id).then(setSearchResults);
+        searchUsers('').then(setSearchResults);
       } else if (mentionState.query.length >= 2) {
-        searchUsers(mentionState.query, user.id).then(setSearchResults);
+        searchUsers(mentionState.query).then(setSearchResults);
       }
     }
-  }, [mentionState.query, mentionState.active, user]);
+  }, [mentionState.query, mentionState.active]);
 
   return {
     mentionState,

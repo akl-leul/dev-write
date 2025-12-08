@@ -155,6 +155,8 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
       StarterKit.configure({
         bulletList: { keepMarks: true, keepAttributes: false },
         orderedList: { keepMarks: true, keepAttributes: false },
+        link: false,
+        underline: false,
       }),
       Underline,
       TextStyle,
@@ -239,7 +241,7 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
       type="button"
       variant={isActive ? "secondary" : "ghost"}
       size="sm"
-      className={`h-8 w-8 p-0 ${isActive ? 'bg-slate-200 text-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+      className={`h-8 w-8 p-0 ${isActive ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
       onClick={onClick}
       disabled={disabled}
       title={tooltip}
@@ -249,13 +251,13 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
   );
 
   return (
-    <div className="flex flex-col w-full border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+    <div className="flex flex-col w-full border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden theme-transition">
       
       {/* --- TOOLBAR START --- */}
-      <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-50 border-b border-slate-200 sticky top-0 z-20">
+      <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20">
         
         {/* History */}
-        <div className="flex items-center gap-0.5 pr-2 border-r border-slate-300">
+        <div className="flex items-center gap-0.5 pr-2 border-r border-slate-300 dark:border-slate-600">
           <ToolbarButton onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} tooltip="Undo">
             <Undo className="h-4 w-4" />
           </ToolbarButton>
@@ -265,7 +267,7 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
         </div>
 
         {/* Text Style Dropdowns */}
-        <div className="flex items-center gap-2 px-2 border-r border-slate-300">
+        <div className="flex items-center gap-2 px-2 border-r border-slate-300 dark:border-slate-600">
           {/* Headings */}
           <Select onValueChange={(value) => {
             if (value === 'p') editor.chain().focus().setParagraph().run();
@@ -286,15 +288,15 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
           {/* CUSTOM FONT FAMILY SEARCH/INPUT */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-[120px] justify-between px-2 font-normal border border-slate-200 bg-white">
+              <Button variant="ghost" size="sm" className="h-8 w-[120px] justify-between px-2 font-normal border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100">
                 <span className="truncate">
                     {/* Display current font or "Font" */}
                     {editor.getAttributes('textStyle').fontFamily || "Font"}
                 </span>
-                <Type className="h-3 w-3 opacity-50 ml-2" />
+                <Type className="h-3 w-3 opacity-50 ml-2 text-slate-500 dark:text-slate-400" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-2">
+            <PopoverContent className="w-[200px] p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                         <Input 
@@ -306,7 +308,7 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
                                     applyCustomFont();
                                 }
                             }}
-                            className="h-8 text-xs"
+                            className="h-8 text-xs bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100"
                         />
                         <Button size="sm" onClick={applyCustomFont} className="h-8 w-8 p-0">
                             <Search className="h-3 w-3" />
@@ -314,7 +316,7 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
                     </div>
                     <Separator />
                     <div className="max-h-[200px] overflow-y-auto space-y-1">
-                        <div className="text-xs font-semibold text-slate-500 mb-1 px-1">Presets</div>
+                        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 px-1">Presets</div>
                         {FONT_FAMILIES.map(font => (
                             <button
                                 key={font.value}
@@ -322,7 +324,7 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
                                     editor.chain().focus().setFontFamily(font.value).run();
                                     setFontSearch(font.name); // Sync input
                                 }}
-                                className="w-full text-left px-2 py-1 text-sm hover:bg-slate-100 rounded flex items-center justify-between"
+                                className="w-full text-left px-2 py-1 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center justify-between text-slate-900 dark:text-slate-100"
                                 style={{ fontFamily: font.value }}
                             >
                                 {font.name}
@@ -348,7 +350,7 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
         </div>
 
         {/* Basic Formatting */}
-        <div className="flex items-center gap-0.5 px-2 border-r border-slate-300">
+        <div className="flex items-center gap-0.5 px-2 border-r border-slate-300 dark:border-slate-600">
           <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} tooltip="Bold">
             <Bold className="h-4 w-4" />
           </ToolbarButton>
@@ -368,45 +370,45 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
           <Popover>
             <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <Palette className="h-4 w-4 text-slate-600" />
+                    <Palette className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-40 grid grid-cols-5 gap-1 p-2">
+            <PopoverContent className="w-40 grid grid-cols-5 gap-1 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
                 {TEXT_COLORS.map(color => (
                     <button
                         key={color.value}
                         onClick={() => editor.chain().focus().setColor(color.value).run()}
-                        className="w-6 h-6 rounded-full border border-slate-200"
+                        className="w-6 h-6 rounded-full border border-slate-200 dark:border-slate-600"
                         style={{ backgroundColor: color.value }}
                         title={color.name}
                     />
                 ))}
-                <Button variant="outline" size="sm" className="col-span-5 mt-2 text-xs" onClick={() => editor.chain().focus().unsetColor().run()}>Reset</Button>
+                <Button variant="outline" size="sm" className="col-span-5 mt-2 text-xs dark:border-slate-600 dark:text-slate-100" onClick={() => editor.chain().focus().unsetColor().run()}>Reset</Button>
             </PopoverContent>
           </Popover>
 
           <Popover>
             <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className={`h-8 w-8 p-0 ${editor.isActive('highlight') ? 'bg-yellow-200' : ''}`}>
-                    <Highlighter className="h-4 w-4 text-slate-600" />
+                <Button variant="ghost" size="sm" className={`h-8 w-8 p-0 ${editor.isActive('highlight') ? 'bg-yellow-200 dark:bg-yellow-800' : ''}`}>
+                    <Highlighter className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-40 grid grid-cols-5 gap-1 p-2">
+            <PopoverContent className="w-40 grid grid-cols-5 gap-1 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
                 {['#ffc078', '#8ce99a', '#74c0fc', '#ffd43b', '#ffa8a8'].map(color => (
                     <button
                         key={color}
                         onClick={() => editor.chain().focus().toggleHighlight({ color }).run()}
-                        className="w-6 h-6 rounded-full border border-slate-200"
+                        className="w-6 h-6 rounded-full border border-slate-200 dark:border-slate-600"
                         style={{ backgroundColor: color }}
                     />
                 ))}
-                <Button variant="outline" size="sm" className="col-span-5 mt-2 text-xs" onClick={() => editor.chain().focus().unsetHighlight().run()}>None</Button>
+                <Button variant="outline" size="sm" className="col-span-5 mt-2 text-xs dark:border-slate-600 dark:text-slate-100" onClick={() => editor.chain().focus().unsetHighlight().run()}>None</Button>
             </PopoverContent>
           </Popover>
         </div>
 
         {/* Alignment & Lists */}
-        <div className="flex items-center gap-0.5 px-2 border-r border-slate-300">
+        <div className="flex items-center gap-0.5 px-2 border-r border-slate-300 dark:border-slate-600">
             <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('left').run()} isActive={editor.isActive({ textAlign: 'left' })} tooltip="Left">
                 <AlignLeft className="h-4 w-4" />
             </ToolbarButton>
@@ -431,7 +433,7 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
         </div>
 
         {/* Inserts */}
-        <div className="flex items-center gap-0.5 px-2 border-r border-slate-300">
+        <div className="flex items-center gap-0.5 px-2 border-r border-slate-300 dark:border-slate-600">
             {/* Link */}
             <Popover>
                 <PopoverTrigger asChild>
@@ -439,13 +441,13 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
                         <LinkIcon className="h-4 w-4" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 p-3">
+                <PopoverContent className="w-80 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
                     <div className="flex gap-2">
                         <Input 
                             placeholder="https://example.com" 
                             value={linkUrl} 
                             onChange={(e) => setLinkUrl(e.target.value)} 
-                            className="h-8"
+                            className="h-8 bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100"
                         />
                         <Button size="sm" onClick={setLink} className="h-8">Set</Button>
                     </div>
@@ -459,13 +461,13 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
                         <ImageIcon className="h-4 w-4" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 p-3">
+                <PopoverContent className="w-80 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
                     <div className="flex gap-2">
                         <Input 
                             placeholder="Image URL" 
                             value={imageUrl} 
                             onChange={(e) => setImageUrl(e.target.value)} 
-                            className="h-8"
+                            className="h-8 bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100"
                         />
                         <Button size="sm" onClick={addImage} className="h-8">Add</Button>
                     </div>
@@ -479,13 +481,13 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
                         <YoutubeIcon className="h-4 w-4" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 p-3">
+                <PopoverContent className="w-80 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
                     <div className="flex gap-2">
                         <Input 
                             placeholder="Youtube URL" 
                             value={youtubeUrl} 
                             onChange={(e) => setYoutubeUrl(e.target.value)} 
-                            className="h-8"
+                            className="h-8 bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100"
                         />
                         <Button size="sm" onClick={addYoutube} className="h-8">Embed</Button>
                     </div>
@@ -508,29 +510,29 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
                         <TableIcon className="h-4 w-4" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-3">
+                <PopoverContent className="w-64 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600">
                     <div className="grid gap-3">
                         <div className="space-y-2">
-                            <h4 className="font-medium text-sm text-slate-900">Insert Table</h4>
+                            <h4 className="font-medium text-sm text-slate-900 dark:text-slate-100">Insert Table</h4>
                             <div className="flex gap-2">
                                 <div className="grid gap-1.5 flex-1">
-                                    <span className="text-xs text-slate-500">Rows</span>
+                                    <span className="text-xs text-slate-500 dark:text-slate-400">Rows</span>
                                     <Input 
                                         type="number" 
                                         min={1} 
                                         value={tableRows} 
                                         onChange={(e) => setTableRows(parseInt(e.target.value) || 1)} 
-                                        className="h-8" 
+                                        className="h-8 bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100" 
                                     />
                                 </div>
                                 <div className="grid gap-1.5 flex-1">
-                                    <span className="text-xs text-slate-500">Cols</span>
+                                    <span className="text-xs text-slate-500 dark:text-slate-400">Cols</span>
                                     <Input 
                                         type="number" 
                                         min={1} 
                                         value={tableCols} 
                                         onChange={(e) => setTableCols(parseInt(e.target.value) || 1)} 
-                                        className="h-8" 
+                                        className="h-8 bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100" 
                                     />
                                 </div>
                             </div>
@@ -552,7 +554,7 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
                         <Separator />
                         
                         <div className="space-y-1">
-                             <h4 className="font-medium text-sm text-slate-900 mb-2">Edit Table</h4>
+                             <h4 className="font-medium text-sm text-slate-900 dark:text-slate-100 mb-2">Edit Table</h4>
                              <div className="grid grid-cols-2 gap-1">
                                 <Button variant="ghost" size="sm" onClick={() => editor.chain().focus().addColumnBefore().run()} disabled={!editor.can().addColumnBefore()}><Columns className="h-3 w-3 mr-1"/> +Col L</Button>
                                 <Button variant="ghost" size="sm" onClick={() => editor.chain().focus().addColumnAfter().run()} disabled={!editor.can().addColumnAfter()}><Columns className="h-3 w-3 mr-1"/> +Col R</Button>
@@ -582,12 +584,12 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
       </div>
 
       {/* --- EDITOR CONTENT --- */}
-      <div className="relative flex-grow bg-white">
+      <div className="relative flex-grow bg-white dark:bg-slate-900">
         <EditorContent editor={editor} className="min-h-[500px]" />
       </div>
 
       {/* --- FOOTER STATUS BAR --- */}
-      <div className="px-4 py-2 text-xs border-t bg-slate-50 text-slate-500 border-slate-200 flex justify-between">
+      <div className="px-4 py-2 text-xs border-t bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 flex justify-between">
         <div>
             {editor ? editor.storage.characterCount?.words() : 0} words
         </div>

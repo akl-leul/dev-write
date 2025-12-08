@@ -8,6 +8,8 @@ interface ThemeContextType {
   setTheme: (theme: Theme) => void;
   resolvedTheme: ResolvedTheme;
   isDarkMode: boolean;
+  toggleTheme: () => void;
+  systemTheme: ResolvedTheme;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -15,6 +17,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setThemeState] = useState<Theme>('system');
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light');
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>('light');
   const [isMounted, setIsMounted] = useState(false);
 
   // Get system theme preference
@@ -23,10 +26,15 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }, []);
 
-  // Apply theme class to document element
-  const applyTheme = useCallback((newTheme: Theme) => {
+  // Apply theme class to document element with smooth transition
+  const applyTheme = useCallback((newTheme: Theme, smooth = true) => {
     const root = window.document.documentElement;
     const resolved = newTheme === 'system' ? getSystemTheme() : newTheme;
+    
+    // Add transition class for smooth theme switching
+    if (smooth) {
+      root.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+    }
     
     // Remove all theme classes first
     root.classList.remove('light', 'dark');
@@ -43,6 +51,13 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     } else {
       localStorage.removeItem('theme');
     }
+    
+    // Remove transition after animation completes
+    if (smooth) {
+      setTimeout(() => {
+        root.style.transition = '';
+      }, 300);
+    }
   }, [getSystemTheme]);
 
   // Initialize theme from localStorage or system preference
@@ -51,15 +66,19 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     
     const storedTheme = localStorage.getItem('theme') as Theme | null;
     const initialTheme = storedTheme || 'system';
+    const currentSystemTheme = getSystemTheme();
     
+    setSystemTheme(currentSystemTheme);
     setThemeState(initialTheme);
-    applyTheme(initialTheme);
+    applyTheme(initialTheme, false); // No transition on initial load
     setIsMounted(true);
     
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     
     const handleSystemThemeChange = () => {
+      const newSystemTheme = getSystemTheme();
+      setSystemTheme(newSystemTheme);
       if (theme === 'system') {
         applyTheme('system');
       }
@@ -67,7 +86,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     
     mediaQuery.addEventListener('change', handleSystemThemeChange);
     return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
-  }, [theme, applyTheme]);
+  }, [theme, applyTheme, getSystemTheme]);
 
   // Set theme and update the UI
   const setTheme = useCallback((newTheme: Theme) => {
@@ -75,13 +94,27 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     applyTheme(newTheme);
   }, [applyTheme]);
 
+  // Toggle between light and dark themes
+  const toggleTheme = useCallback(() => {
+    if (theme === 'light') {
+      setTheme('dark');
+    } else if (theme === 'dark') {
+      setTheme('light');
+    } else {
+      // If system, toggle to the opposite of current system theme
+      setTheme(systemTheme === 'light' ? 'dark' : 'light');
+    }
+  }, [theme, systemTheme, setTheme]);
+
   // Memoize the context value
   const contextValue = useMemo(() => ({
     theme,
     setTheme,
     resolvedTheme,
     isDarkMode: resolvedTheme === 'dark',
-  }), [theme, setTheme, resolvedTheme]);
+    toggleTheme,
+    systemTheme,
+  }), [theme, setTheme, resolvedTheme, toggleTheme, systemTheme]);
 
   // Don't render until we've determined the theme to prevent flash of wrong theme
   if (!isMounted) {

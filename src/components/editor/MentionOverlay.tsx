@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { searchUsers, UserSearchResult } from '@/utils/userSearch';
-import { useAuth } from '@/contexts/AuthContext';
+// import { useAuth } from '@/contexts/AuthContext'; // Removed auth dependency
 import { Check } from 'lucide-react';
 
 interface MentionOverlayProps {
@@ -21,18 +21,18 @@ export const MentionOverlay: React.FC<MentionOverlayProps> = ({
   const [users, setUsers] = useState<UserSearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Removed auth dependency
   const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchUsers = useCallback(async () => {
-    if (!user || query.length < 2) {
+    if (query.length < 2) {
       setUsers([]);
       return;
     }
 
     setLoading(true);
     try {
-      const results = await searchUsers(query, user.id);
+      const results = await searchUsers(query); // No auth dependency
       setUsers(results);
       setSelectedIndex(0);
     } catch (error) {
@@ -41,7 +41,7 @@ export const MentionOverlay: React.FC<MentionOverlayProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [query, user]);
+  }, [query]);
 
   useEffect(() => {
     fetchUsers();

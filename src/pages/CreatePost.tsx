@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useRef, useEffect } from 'react';
+// import { useAuth } from '@/contexts/AuthContext'; // Removed auth dependency
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,11 +19,9 @@ import { TagMentionOverlay } from '@/components/editor/TagMentionOverlay';
 import { useMentions } from '@/hooks/useMentions';
 import { useTagMentions } from '@/hooks/useTagMentions';
 import { extractMentions, findUsersByNames, extractMentionsFromTags } from '@/utils/userSearch';
-import { createMentionNotifications } from '@/utils/notifications';
 import { format } from 'date-fns';
 
 const CreatePost = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
@@ -59,7 +57,7 @@ const CreatePost = () => {
     checkForMention: checkTagMentions, 
     insertMention: insertTagMention, 
     closeMentions: closeTagMentions 
-  } = useTagMentions(tagInputRef, tagInput, user, setTagInput);
+  } = useTagMentions(tagInputRef, tagInput);
 
   // Fetch categories and tags
   const { data: categories } = useQuery({
@@ -91,16 +89,80 @@ const CreatePost = () => {
     setAvailableTags(tagsData);
   }
 
+  // Add event listeners for TipTap editor mention detection
+  useEffect(() => {
+    const setupEventListeners = () => {
+      const editorElement = editorRef.current?.querySelector('.ProseMirror');
+      if (!editorElement) return;
+
+      const handleKeyUp = (e: KeyboardEvent) => {
+        checkForMention();
+      };
+
+      const handleClick = (e: MouseEvent) => {
+        checkForMention();
+      };
+
+      const handleInput = (e: InputEvent) => {
+        checkForMention();
+      };
+
+      // Add event listeners
+      editorElement.addEventListener('keyup', handleKeyUp);
+      editorElement.addEventListener('click', handleClick);
+      editorElement.addEventListener('input', handleInput);
+
+      // Cleanup function
+      return () => {
+        editorElement.removeEventListener('keyup', handleKeyUp);
+        editorElement.removeEventListener('click', handleClick);
+        editorElement.removeEventListener('input', handleInput);
+      };
+    };
+
+    // Try to setup immediately
+    const cleanup = setupEventListeners();
+    
+    // If not ready, set up a MutationObserver to wait for the editor
+    if (!cleanup) {
+      const observer = new MutationObserver(() => {
+        const cleanup = setupEventListeners();
+        if (cleanup) {
+          observer.disconnect();
+        }
+      });
+
+      observer.observe(editorRef.current!, {
+        childList: true,
+        subtree: true,
+      });
+
+      // Also try after a delay as fallback
+      const timer = setTimeout(() => {
+        const cleanup = setupEventListeners();
+        if (cleanup) {
+          observer.disconnect();
+        }
+      }, 500);
+
+      return () => {
+        observer.disconnect();
+        clearTimeout(timer);
+      };
+    }
+
+    return cleanup;
+  }, [checkForMention]);
+
   // Load existing post if editing
   useQuery({
     queryKey: ['post-edit', editId],
     queryFn: async () => {
-      if (!editId || !user) return null;
+      if (!editId) return null;
       const { data, error } = await supabase
         .from('posts')
         .select('*')
         .eq('id', editId)
-        .eq('author_id', user.id)
         .single();
       
       if (error) throw error;
@@ -131,7 +193,7 @@ const CreatePost = () => {
       }
       return data;
     },
-    enabled: !!editId && !!user,
+    enabled: !!editId,
   });
 
   // Generate slug from title and date
@@ -149,7 +211,6 @@ const CreatePost = () => {
 
   const createPost = useMutation({
     mutationFn: async () => {
-      if (!user) throw new Error('Not authenticated');
       if (!title.trim() || !content.trim()) {
         throw new Error('Title and content are required');
       }
@@ -163,7 +224,7 @@ const CreatePost = () => {
       let uploadedFeaturedImageUrl = featuredImageUrl;
       if (featuredImage) {
         const fileExt = featuredImage.name.split('.').pop();
-        const fileName = `${user.id}/featured/${Date.now()}.${fileExt}`;
+        const fileName = `anonymous/featured/${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('post-images')
@@ -194,8 +255,7 @@ const CreatePost = () => {
             read_time: readTime,
             featured_image: uploadedFeaturedImageUrl || null,
           })
-          .eq('id', editId)
-          .eq('author_id', user.id);
+          .eq('id', editId);
 
         if (updateError) throw updateError;
         
@@ -206,15 +266,11 @@ const CreatePost = () => {
           .eq('id', editId)
           .single();
         
-        // Extract mentions from content and send notifications for edited posts
+        // Extract mentions from content
         const mentionedNames = extractMentions(content);
         if (mentionedNames.length > 0) {
           const mentionedUsers = await findUsersByNames(mentionedNames);
-          const mentionedUserIds = mentionedUsers.map(u => u.id).filter(id => id !== user.id);
-          
-          if (mentionedUserIds.length > 0) {
-            await createMentionNotifications(mentionedUserIds, editId, title, user.id);
-          }
+          const mentionedUserIds = mentionedUsers.map(u => u.id);
         }
         
         // Handle tags for edited post
@@ -253,15 +309,11 @@ const CreatePost = () => {
           
           await Promise.all(tagPromises);
           
-          // Extract mentions from tags and send notifications
+          // Extract mentions from tags
           const tagMentions = extractMentionsFromTags(tags);
           if (tagMentions.length > 0) {
             const mentionedUsersFromTags = await findUsersByNames(tagMentions);
-            const mentionedUserIdsFromTags = mentionedUsersFromTags.map(u => u.id).filter(id => id !== user.id);
-            
-            if (mentionedUserIdsFromTags.length > 0) {
-              await createMentionNotifications(mentionedUserIdsFromTags, editId, title, user.id);
-            }
+            const mentionedUserIdsFromTags = mentionedUsersFromTags.map(u => u.id);
           }
         } else {
           // Remove all tags if none are selected
@@ -281,7 +333,7 @@ const CreatePost = () => {
       const { data: post, error: postError } = await supabase
         .from('posts')
         .insert({
-          author_id: user.id,
+          author_id: 'anonymous',
           title,
           slug,
           content_markdown: content,
@@ -296,22 +348,18 @@ const CreatePost = () => {
 
       if (postError) throw postError;
 
-      // Extract mentions from content and send notifications
+      // Extract mentions from content
       const mentionedNames = extractMentions(content);
       if (mentionedNames.length > 0) {
         const mentionedUsers = await findUsersByNames(mentionedNames);
-        const mentionedUserIds = mentionedUsers.map(u => u.id).filter(id => id !== user.id);
-        
-        if (mentionedUserIds.length > 0) {
-          await createMentionNotifications(mentionedUserIds, post.id, title, user.id);
-        }
+        const mentionedUserIds = mentionedUsers.map(u => u.id);
       }
 
       // Upload images
       if (images.length > 0) {
         const imagePromises = images.map(async (file, index) => {
           const fileExt = file.name.split('.').pop();
-          const fileName = `${user.id}/${post.id}/${Date.now()}-${index}.${fileExt}`;
+          const fileName = `anonymous/${post.id}/${Date.now()}-${index}.${fileExt}`;
 
           const { error: uploadError } = await supabase.storage
             .from('post-images')
@@ -372,15 +420,11 @@ const CreatePost = () => {
         
         await Promise.all(postTagPromises);
 
-        // Extract mentions from tags and send notifications
+        // Extract mentions from tags
         const tagMentions = extractMentionsFromTags(tags);
         if (tagMentions.length > 0) {
           const mentionedUsersFromTags = await findUsersByNames(tagMentions);
-          const mentionedUserIdsFromTags = mentionedUsersFromTags.map(u => u.id).filter(id => id !== user.id);
-          
-          if (mentionedUserIdsFromTags.length > 0) {
-            await createMentionNotifications(mentionedUserIdsFromTags, post.id, title, user.id);
-          }
+          const mentionedUserIdsFromTags = mentionedUsersFromTags.map(u => u.id);
         }
       }
 
@@ -431,15 +475,15 @@ const CreatePost = () => {
   };
 
   const handleAddComment = () => {
-    if (!commentText.trim() || !user) return;
+    if (!commentText.trim()) return;
     
     const newComment = {
       id: Date.now().toString(),
       content: commentText,
       created_at: new Date().toISOString(),
       author: {
-        full_name: user.user_metadata?.full_name || 'Anonymous',
-        profile_image_url: user.user_metadata?.profile_image_url || ''
+        full_name: 'Anonymous User',
+        profile_image_url: ''
       }
     };
     
@@ -486,10 +530,10 @@ const CreatePost = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/20 theme-transition">
       
       {/* Background Dot Pattern */}
-      <div className="fixed inset-0 z-0 pointer-events-none" 
+      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
            style={{
              backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
              backgroundSize: '24px 24px'
@@ -504,49 +548,48 @@ const CreatePost = () => {
             
             {/* Header Section */}
             <div className="mb-8 flex items-center gap-3">
-              <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center text-blue-600">
+              <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400 theme-transition">
                 <PenLine size={24} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight theme-transition">
                   {editId ? 'Edit Your Story' : 'Write Your Story'}
                 </h1>
-                <p className="text-slate-500">Share your thoughts with the world</p>
+                <p className="text-slate-500 dark:text-slate-400 theme-transition">Share your thoughts with the world</p>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              
               {/* Main Metadata Card */}
-              <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-                  <div className="flex items-center gap-2 text-slate-900 font-semibold">
-                    <FileText className="w-4 h-4 text-blue-500" />
+              <Card className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden theme-transition">
+                <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 pb-4 theme-transition">
+                  <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold theme-transition">
+                    <FileText className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                     Story Details
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                   {/* Title */}
                   <div className="space-y-2">
-                    <Label htmlFor="title" className="text-slate-700 font-medium">Title</Label>
+                    <Label htmlFor="title" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">Title</Label>
                     <Input
                       id="title"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="Give your story a compelling title..."
-                      className="text-lg bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 py-6"
+                      className="text-lg bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 py-6 theme-transition"
                       required
                     />
                   </div>
 
                   {/* Slug preview */}
                   <div className="space-y-2">
-                    <Label className="text-slate-700 font-medium flex items-center gap-2">
-                      <Globe className="w-3 h-3 text-slate-400" /> URL Preview
+                    <Label className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2 theme-transition">
+                      <Globe className="w-3 h-3 text-slate-400 dark:text-slate-500" /> URL Preview
                     </Label>
-                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-sm text-slate-500">
-                      <span className="select-none text-slate-400">chronicle.com/post/</span>
-                      <span className="text-slate-700 font-medium truncate ml-1">
+                    <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-sm theme-transition">
+                      <span className="select-none text-slate-400 dark:text-slate-500">chronicle.com/post/</span>
+                      <span className="text-slate-700 dark:text-slate-300 font-medium truncate ml-1 theme-transition">
                         {title ? generateSlug() : 'dd/mm/yyyy/your-title'}
                       </span>
                     </div>
@@ -554,25 +597,25 @@ const CreatePost = () => {
 
                   {/* Excerpt */}
                   <div className="space-y-2">
-                    <Label htmlFor="excerpt" className="text-slate-700 font-medium">Excerpt</Label>
+                    <Label htmlFor="excerpt" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">Excerpt</Label>
                     <Textarea
                       id="excerpt"
                       value={excerpt}
                       onChange={(e) => setExcerpt(e.target.value)}
                       placeholder="Write a brief summary of your post..."
-                      className="min-h-[80px] bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
+                      className="min-h-[80px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 resize-none theme-transition"
                     />
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 theme-transition">
                       If left empty, the first 200 characters of content will be used
                     </p>
                   </div>
 
                   {/* Featured Image */}
                   <div className="space-y-3">
-                    <Label className="text-slate-700 font-medium">Featured Image</Label>
+                    <Label className="text-slate-700 dark:text-slate-300 font-medium theme-transition">Featured Image</Label>
                     
                     {featuredImageUrl ? (
-                      <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 group">
+                      <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 group theme-transition">
                         <img
                           src={featuredImageUrl}
                           alt="Featured"
@@ -591,7 +634,7 @@ const CreatePost = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:bg-slate-50 hover:border-blue-300 transition-colors">
+                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-blue-300 dark:hover:border-blue-600 transition-colors theme-transition">
                         <input
                           id="featured-upload"
                           type="file"
@@ -600,12 +643,12 @@ const CreatePost = () => {
                           className="hidden"
                         />
                         <label htmlFor="featured-upload" className="cursor-pointer flex flex-col items-center gap-3">
-                          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                          <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center theme-transition">
                             <ImageIcon className="h-6 w-6" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-900">Click to upload cover image</p>
-                            <p className="text-xs text-slate-500">SVG, PNG, JPG or GIF (max. 800x400px)</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 theme-transition">Click to upload cover image</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 theme-transition">SVG, PNG, JPG or GIF (max. 800x400px)</p>
                           </div>
                         </label>
                       </div>
@@ -616,9 +659,9 @@ const CreatePost = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                     {/* Category */}
                     <div className="space-y-2">
-                      <Label htmlFor="category" className="text-slate-700 font-medium">Category</Label>
+                      <Label htmlFor="category" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">Category</Label>
                       <Select value={categoryId} onValueChange={setCategoryId}>
-                        <SelectTrigger className="bg-slate-50 border-slate-200">
+                        <SelectTrigger className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 theme-transition">
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -633,7 +676,7 @@ const CreatePost = () => {
 
                     {/* Read Time */}
                     <div className="space-y-2">
-                      <Label htmlFor="readTime" className="text-slate-700 font-medium">Read Time (minutes)</Label>
+                      <Label htmlFor="readTime" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">Read Time (minutes)</Label>
                       <Input
                         id="readTime"
                         type="number"
@@ -641,7 +684,7 @@ const CreatePost = () => {
                         max={60}
                         value={readTime}
                         onChange={(e) => setReadTime(parseInt(e.target.value) || 5)}
-                        className="bg-slate-50 border-slate-200"
+                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 theme-transition"
                       />
                     </div>
                   </div>
@@ -650,13 +693,9 @@ const CreatePost = () => {
 
               {/* Editor Section */}
               <div className="space-y-2">
-                <Label htmlFor="content" className="text-lg font-bold text-slate-900 pl-1">Story Content</Label>
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm relative">
-                  <div 
-                    ref={editorRef}
-                    onKeyUp={checkForMention}
-                    onClick={checkForMention}
-                  >
+                <Label htmlFor="content" className="text-lg font-bold text-slate-900 dark:text-slate-100 pl-1 theme-transition">Story Content</Label>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm relative theme-transition">
+                  <div ref={editorRef}>
                     <RichTextEditor
                       content={content}
                       onChange={setContent}
@@ -676,14 +715,14 @@ const CreatePost = () => {
               </div>
 
               {/* Additional Images Section */}
-              <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+              <Card className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden theme-transition">
+                <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 pb-4 theme-transition">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-slate-900 font-semibold">
-                      <ImageIcon className="w-4 h-4 text-purple-500" />
+                    <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold theme-transition">
+                      <ImageIcon className="w-4 h-4 text-purple-500 dark:text-purple-400" />
                       Additional Images
                     </div>
-                    <span className="text-xs text-slate-500 font-medium bg-slate-200 px-2 py-1 rounded-full">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-full theme-transition">
                       {images.length}/5
                     </span>
                   </div>
@@ -701,7 +740,7 @@ const CreatePost = () => {
                       />
                       <label 
                         htmlFor="image-upload" 
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 text-slate-700 font-medium transition-colors text-sm shadow-sm"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium transition-colors text-sm shadow-sm theme-transition"
                       >
                         <Upload className="h-4 w-4" />
                         Upload Gallery Images
@@ -712,7 +751,7 @@ const CreatePost = () => {
                   {images.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {images.map((file, index) => (
-                        <div key={index} className="relative group rounded-lg overflow-hidden border border-slate-100 shadow-sm aspect-square">
+                        <div key={index} className="relative group rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm aspect-square theme-transition">
                           <img
                             src={URL.createObjectURL(file)}
                             alt={`Upload ${index + 1}`}
@@ -731,7 +770,7 @@ const CreatePost = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
+                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm border-2 border-dashed border-slate-100 dark:border-slate-700 rounded-lg theme-transition">
                       No gallery images added yet
                     </div>
                   )}
@@ -739,18 +778,18 @@ const CreatePost = () => {
               </Card>
 
               {/* Tags Section */}
-              <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+              <Card className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden theme-transition">
+                <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 pb-4 theme-transition">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-slate-900 font-semibold">
-                      <TagIcon className="w-4 h-4 text-orange-500" />
+                    <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold theme-transition">
+                      <TagIcon className="w-4 h-4 text-orange-500 dark:text-orange-400" />
                       Tags
                     </div>
-                    <span className="text-xs text-slate-500 font-medium bg-slate-200 px-2 py-1 rounded-full">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-full theme-transition">
                       {tags.length}/10
                     </span>
                   </div>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-xs text-slate-500 dark:text-slate-400 theme-transition">
                     Add tags to help readers discover your content. Press Enter or comma to add a tag. Type @ to mention a user.
                   </CardDescription>
                 </CardHeader>
@@ -767,7 +806,7 @@ const CreatePost = () => {
                       onKeyDown={handleTagInputKeyDown}
                       onFocus={checkTagMentions}
                       placeholder="Add a tag... Type @ to mention a user"
-                      className="flex-1 min-w-[200px] bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      className="flex-1 min-w-[200px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 theme-transition"
                     />
                     <Button
                       type="button"
@@ -856,20 +895,20 @@ const CreatePost = () => {
               </Card>
 
               {/* Publication Settings */}
-              <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
+              <Card className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden theme-transition">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                     <div className="space-y-1">
-                      <Label className="text-slate-900 font-semibold">Publish Settings</Label>
-                      <p className="text-sm text-slate-500">Manage visibility and status</p>
+                      <Label className="text-slate-900 dark:text-slate-100 font-semibold theme-transition">Publish Settings</Label>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 theme-transition">Manage visibility and status</p>
                     </div>
                     
                     <div className="flex flex-col sm:flex-row gap-6 sm:justify-end">
                        {/* Status Dropdown */}
                        <div className="flex items-center gap-2">
-                        <Label htmlFor="status" className="text-slate-600 text-sm">Status:</Label>
+                        <Label htmlFor="status" className="text-slate-600 dark:text-slate-400 text-sm theme-transition">Status:</Label>
                         <Select value={status} onValueChange={(value: any) => setStatus(value)}>
-                          <SelectTrigger className="w-[130px] h-9 text-sm bg-slate-50 border-slate-200">
+                          <SelectTrigger className="w-[130px] h-9 text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 theme-transition">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -881,7 +920,7 @@ const CreatePost = () => {
                       </div>
 
                       {/* Published Toggle */}
-                      <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                      <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-700 theme-transition">
                         <Switch
                           checked={isPublished}
                           onCheckedChange={(checked) => {
@@ -889,7 +928,7 @@ const CreatePost = () => {
                             if (checked) setStatus('published');
                           }}
                         />
-                        <span className="text-sm font-medium text-slate-700">
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300 theme-transition">
                           {isPublished ? 'Publish Immediately' : 'Save as Draft'}
                         </span>
                       </div>
@@ -899,31 +938,31 @@ const CreatePost = () => {
               </Card>
 
               {/* Comments Section */}
-              <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+              <Card className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden theme-transition">
+                <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 theme-transition">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-slate-900 font-semibold">
-                      <MessageCircle className="w-4 h-4 text-green-500" />
+                    <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold theme-transition">
+                      <MessageCircle className="w-4 h-4 text-green-500 dark:text-green-400" />
                       Comments Section
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                      <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700 theme-transition">
                         <Switch
                           checked={commentsEnabled}
                           onCheckedChange={setCommentsEnabled}
                         />
-                        <span className="text-sm font-medium text-slate-700">
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300 theme-transition">
                           {commentsEnabled ? 'Comments Enabled' : 'Comments Disabled'}
                         </span>
                       </div>
                       {commentsEnabled && (
-                        <span className="text-xs text-slate-500 font-medium bg-slate-200 px-2 py-1 rounded-full">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-full theme-transition">
                           {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
                         </span>
                       )}
                     </div>
                   </div>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-xs text-slate-500 dark:text-slate-400 theme-transition">
                     {commentsEnabled 
                       ? 'Readers can comment on this post. Toggle to disable commenting.'
                       : 'Comments are disabled for this post. Toggle to enable commenting.'
@@ -936,15 +975,15 @@ const CreatePost = () => {
                     {/* Add Comment Form */}
                     <div className="space-y-4">
                       <div className="flex gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-sm font-bold">
-                          {user?.user_metadata?.full_name?.[0]?.toUpperCase() || 'U'}
+                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm font-bold theme-transition">
+                          AU
                         </div>
                         <div className="flex-1">
                           <Textarea
                             value={commentText}
                             onChange={(e) => setCommentText(e.target.value)}
                             placeholder="Share your thoughts about this post..."
-                            className="min-h-[80px] bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
+                            className="min-h-[80px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 resize-none theme-transition"
                           />
                           <div className="mt-2 flex justify-end">
                             <Button
@@ -965,17 +1004,17 @@ const CreatePost = () => {
                     {comments.length > 0 ? (
                       <div className="space-y-4">
                         {comments.map((comment) => (
-                          <div key={comment.id} className="flex gap-3 p-4 bg-slate-50 rounded-lg">
-                            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-slate-600 text-sm font-bold flex-shrink-0">
+                          <div key={comment.id} className="flex gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg theme-transition">
+                            <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 text-sm font-bold flex-shrink-0 theme-transition">
                               {comment.author.full_name?.[0]?.toUpperCase() || 'A'}
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium text-slate-900 text-sm">
+                                  <span className="font-medium text-slate-900 dark:text-slate-100 text-sm theme-transition">
                                     {comment.author.full_name}
                                   </span>
-                                  <span className="text-xs text-slate-400">
+                                  <span className="text-xs text-slate-400 dark:text-slate-500 theme-transition">
                                     {new Date(comment.created_at).toLocaleDateString()}
                                   </span>
                                 </div>
@@ -989,7 +1028,7 @@ const CreatePost = () => {
                                   <X className="h-3 w-3" />
                                 </Button>
                               </div>
-                              <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap theme-transition">
                                 {comment.content}
                               </p>
                             </div>
@@ -997,7 +1036,7 @@ const CreatePost = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
+                      <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm border-2 border-dashed border-slate-100 dark:border-slate-700 rounded-lg theme-transition">
                         No comments yet. Be the first to share your thoughts!
                       </div>
                     )}
@@ -1006,10 +1045,10 @@ const CreatePost = () => {
                 
                 {!commentsEnabled && (
                   <CardContent className="pt-6">
-                    <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
-                      <MessageCircle className="w-8 h-8 mx-auto mb-3 text-slate-300" />
-                      <p className="font-medium text-slate-600 mb-1">Comments are disabled</p>
-                      <p>The author has disabled commenting for this post.</p>
+                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm border-2 border-dashed border-slate-100 dark:border-slate-700 rounded-lg theme-transition">
+                      <MessageCircle className="w-8 h-8 mx-auto mb-3 text-slate-300 dark:text-slate-600 theme-transition" />
+                      <p className="font-medium text-slate-600 dark:text-slate-400 mb-1 theme-transition">Comments are disabled</p>
+                      <p className="text-slate-500 dark:text-slate-400 theme-transition">The author has disabled commenting for this post.</p>
                     </div>
                   </CardContent>
                 )}
@@ -1020,7 +1059,7 @@ const CreatePost = () => {
                 <Button
                   type="button"
                   variant="ghost"
-                  className="mr-4 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  className="mr-4 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 theme-transition"
                   onClick={() => navigate(-1)}
                 >
                   Cancel
