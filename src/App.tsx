@@ -8,7 +8,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ThemeInitializer } from "@/components/theme/ThemeInitializer";
 import { BlockGuard } from "@/components/BlockGuard";
-import { PageLoader } from "@/components/ui/page-loader";
 
 // Create future flags for React Router v7 compatibility
 const routerFuture = {
@@ -82,7 +81,7 @@ const App = () => (
           <TooltipProvider>
             <AuthProvider>
               <BlockGuard>
-                <Suspense fallback={<PageLoader />}>
+                <Suspense fallback={null}>
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
