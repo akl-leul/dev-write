@@ -3,9 +3,11 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "https://errordev-write.vercel.app/" }
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://errordev-write.vercel.app/$1",
+      "permanent": true
+    }
   ]
 }
-
-
