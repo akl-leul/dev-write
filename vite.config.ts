@@ -20,33 +20,23 @@ export default defineConfig(({ mode }) => ({
       interval: 100,
     },
   },
-  plugins: [react()].filter(Boolean),
+
+  plugins: [react()],
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
+
   build: {
-    chunkSizeWarningLimit: 1000,
-    minify: "terser",
-    terserOptions: {
-      compress: {
-        drop_console: mode === "production",
-        drop_debugger: mode === "production",
-        pure_funcs: mode === "production" ? ["console.log", "console.info"] : [],
-      },
-      mangle: {
-        safari10: true,
-      },
-    },
+    chunkSizeWarningLimit: 2000,
+    minify: "esbuild", // <-- FIXED (React + SWC safe)
     cssCodeSplit: true,
     assetsInlineLimit: 4096,
     reportCompressedSize: false,
   },
-  optimizeDeps: {
-    include: ["react", "react-dom", "react-router-dom"],
-    exclude: ["recharts"],
-  },
+
   preview: {
     port: 4173,
     headers: {
