@@ -60,7 +60,7 @@ export const FollowButton = ({ userId, size = 'sm', variant = 'default' }: Follo
           user_id: userId,
           type: 'follow',
           title: 'New follower',
-          message: 'Someone started following you',
+          message: `${user?.user_metadata?.full_name || user?.email || 'A user'} started following you`,
           from_user_id: user.id,
         });
       }

@@ -23,7 +23,8 @@ import {
   Bookmark,
   Settings,
   Sparkles,
-  Globe
+  Globe,
+  Edit
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -161,6 +162,14 @@ export const Header = () => {
                         <User className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
                         Profile Settings
                       </DropdownMenuItem>
+                      
+                      {/* Prominent Edit Profile for Google users */}
+                      {user?.identities?.some(identity => identity.provider === 'google') && (
+                        <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-lg cursor-pointer focus:bg-blue-50 dark:focus:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit Profile & Photo
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => navigate('/analytics')} className="rounded-lg cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800">
                         <BarChart3 className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
                         Analytics Dashboard
@@ -286,6 +295,16 @@ export const Header = () => {
                         Profile Settings
                       </Button>
                     </Link>
+
+                    {/* Prominent Edit Profile for Google users - Mobile */}
+                    {user?.identities?.some(identity => identity.provider === 'google') && (
+                      <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                        <Button variant="ghost" size="sm" className="w-full justify-start text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl h-10">
+                          <Edit className="mr-3 h-5 w-5" />
+                          Edit Profile & Photo
+                        </Button>
+                      </Link>
+                    )}
 
                     {/* Show Google Profile link only for Google users */}
                     {user?.identities?.some(identity => identity.provider === 'google') && (

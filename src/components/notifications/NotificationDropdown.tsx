@@ -273,34 +273,43 @@ export const NotificationDropdown = () => {
                 {getNotificationIcon(notification.type)}
                 
                 <div className="flex-1 min-w-0 space-y-1">
-                  <div className="text-sm text-slate-900 dark:text-slate-100 leading-snug">
-                    {notification.type === 'follow' && (
-                      <p><span className="font-semibold">{notification.from_user?.full_name || 'Someone'}</span> started following you</p>
-                    )}
-                    {notification.type === 'like' && (
-                      <p><span className="font-semibold">{notification.from_user?.full_name || 'Someone'}</span> liked your post</p>
-                    )}
-                    {notification.type === 'comment' && (
-                      <p><span className="font-semibold">{notification.from_user?.full_name || 'Someone'}</span> commented on your post</p>
-                    )}
-                    {notification.type === 'mention' && (
-                      <p><span className="font-semibold">{notification.from_user?.full_name || 'Someone'}</span> tagged you in a post</p>
-                    )}
-                    {notification.type === 'new_post' && notification.from_user?.full_name && (
-                      <p><span className="font-semibold">{notification.from_user.full_name}</span> posted something new</p>
-                    )}
-                    {notification.type === 'new_post' && !notification.from_user?.full_name && (
-                      <p>New post from <span className="font-semibold">{notification.from_user?.full_name || 'a user'}</span></p>
-                    )}
-                    {!['follow', 'like', 'comment', 'mention', 'new_post'].includes(notification.type) && (
-                      <p>{notification.message}</p>
-                    )}
-                  </div>
+                  {/* Show custom title and message for notifications that have them */}
+                  {notification.title && notification.title !== notification.message && (
+                    <>
+                      <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-snug">
+                        {notification.title}
+                      </h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                        {notification.message}
+                      </p>
+                    </>
+                  )}
                   
-                  {notification.message && !['follow', 'like', 'comment', 'mention', 'new_post'].includes(notification.type) && (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                  {/* Show only message if title and message are the same or title is missing */}
+                  {(!notification.title || notification.title === notification.message) && (
+                    <p className="text-sm text-slate-900 dark:text-slate-100 leading-snug">
                       {notification.message}
                     </p>
+                  )}
+                  
+                  {/* Show type-based messages only for standard notifications without custom content */}
+                  {!notification.title && notification.type === 'follow' && (
+                    <p><span className="font-semibold">{notification.from_user?.full_name}</span> started following you</p>
+                  )}
+                  {!notification.title && notification.type === 'like' && (
+                    <p><span className="font-semibold">{notification.from_user?.full_name}</span> liked your post</p>
+                  )}
+                  {!notification.title && notification.type === 'comment' && (
+                    <p><span className="font-semibold">{notification.from_user?.full_name}</span> commented on your post</p>
+                  )}
+                  {!notification.title && notification.type === 'mention' && (
+                    <p><span className="font-semibold">{notification.from_user?.full_name}</span> tagged you in a post</p>
+                  )}
+                  {!notification.title && notification.type === 'new_post' && notification.from_user?.full_name && (
+                    <p><span className="font-semibold">{notification.from_user.full_name}</span> posted something new</p>
+                  )}
+                  {!notification.title && notification.type === 'new_post' && !notification.from_user?.full_name && (
+                    <p>New post published</p>
                   )}
                   
                   <p className="text-xs text-slate-400 dark:text-slate-500 font-medium pt-1">

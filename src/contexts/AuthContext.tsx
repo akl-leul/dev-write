@@ -4,14 +4,32 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { syncGoogleUserToProfile } from '@/utils/googleAuthSync';
 
+interface UserProfile {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string;
+  is_active: boolean;
+  permissions: Record<string, boolean>;
+  last_login_at: string | null;
+  login_count: number;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  profile: UserProfile | null;
+  isBlocked: boolean;
   signUp: (email: string, password: string, fullName: string, phone: string, age: number, gender: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
+  hasPermission: (permission: string) => boolean;
+  hasRole: (role: string) => boolean;
+  isAdmin: () => boolean;
+  isModerator: () => boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,7 +37,111 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Fetch user profile with role and permissions
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          full_name,
+          email,
+          role,
+          is_active,
+          last_login_at,
+          login_count,
+          blocked
+        `)
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      
+      if (data) {
+        // Get user permissions
+        const { data: permissions } = await supabase
+          .rpc('get_user_permissions', { user_id: userId });
+        
+        const userProfile: UserProfile = {
+          id: data.id,
+          full_name: data.full_name,
+          email: data.email,
+          role: data.role,
+          is_active: data.is_active,
+          permissions: permissions || {},
+          last_login_at: data.last_login_at,
+          login_count: data.login_count || 0
+        };
+        
+        setProfile(userProfile);
+        setIsBlocked(data.blocked || false);
+        return userProfile;
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+    return null;
+  };
+
+  // Update login information
+  const updateLoginInfo = async (userId: string) => {
+    try {
+      await supabase.rpc('update_user_login', { 
+        user_id: userId,
+        ip_address: null, // You can get this from request headers if needed
+        user_agent: navigator.userAgent
+      });
+    } catch (error) {
+      console.error('Error updating login info:', error);
+    }
+  };
+
+  // Permission checking functions
+  const hasPermission = (permission: string): boolean => {
+    if (!profile) return false;
+    return profile.permissions[permission] || false;
+  };
+
+  const hasRole = (role: string): boolean => {
+    if (!profile) return false;
+    return profile.role === role;
+  };
+
+  const isAdmin = (): boolean => hasRole('admin');
+  const isModerator = (): boolean => hasRole('moderator') || hasRole('admin');
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
+    }
+  };
+
+  const checkIfUserBlocked = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('blocked')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error checking blocked status:', error);
+        return false;
+      }
+      
+      return data?.blocked || false;
+    } catch (error) {
+      console.error('Error checking blocked status:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener
@@ -28,6 +150,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
+        
+        if (currentUser) {
+          // Fetch user profile with permissions
+          await fetchProfile(currentUser.id);
+          
+          // Update login info on sign in
+          if (event === 'SIGNED_IN') {
+            await updateLoginInfo(currentUser.id);
+          }
+          
+          // Store email for support contact
+          if (currentUser.email) {
+            localStorage.setItem('user_email', currentUser.email);
+          }
+        } else {
+          setProfile(null);
+          setIsBlocked(false);
+        }
         
         // Sync Google user data only when user signs in (not on token refresh)
         if (currentUser && event === 'SIGNED_IN') {
@@ -44,6 +184,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+      
+      if (currentUser) {
+        fetchProfile(currentUser.id);
+        if (currentUser.email) {
+          localStorage.setItem('user_email', currentUser.email);
+        }
+      } else {
+        setProfile(null);
+      }
+      
       setLoading(false);
     });
 
@@ -137,7 +287,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, signUp, signIn, signInWithGoogle, signOut, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      profile,
+      isBlocked, 
+      signUp, 
+      signIn, 
+      signInWithGoogle, 
+      signOut, 
+      loading,
+      hasPermission,
+      hasRole,
+      isAdmin,
+      isModerator,
+      refreshProfile
+    }}>
       {children}
     </AuthContext.Provider>
   );

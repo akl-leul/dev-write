@@ -41,7 +41,7 @@ export function PostAuthorBadge({
       onClick={(e) => e.stopPropagation()}
     >
       <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-800 shadow-sm group-hover:ring-2 group-hover:ring-blue-100 dark:group-hover:ring-blue-900/50 transition-all">
-        <AvatarImage src={author.profile_image_url || ''} />
+        <AvatarImage src={author.profile_image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author.full_name || 'user'}`} />
         <AvatarFallback className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-boldk">
           {author.full_name?.[0]?.toUpperCase() || 'U'}
         </AvatarFallback>

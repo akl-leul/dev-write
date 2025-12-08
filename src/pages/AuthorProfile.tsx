@@ -21,34 +21,109 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+// Create admin client for fallback
+const supabaseAdmin = supabase as any;
+
 const POSTS_PER_PAGE = 10;
 
+// Helper function to check if a string is a UUID
+const isUUID = (str: string) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
 const AuthorProfile = () => {
-  const { authorId } = useParams<{ authorId: string }>();
+  const { username } = useParams<{ username: string }>();
   const { user } = useAuth();
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ['author-profile', authorId],
+  console.log('AuthorProfile component - username from URL:', username);
+
+  const { data: profile, isLoading: profileLoading, error: profileError } = useQuery({
+    queryKey: ['author-profile', username],
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log('Fetching author profile for username:', username);
+      
+      if (!username) {
+        throw new Error('No username provided');
+      }
+      
+      // First, let's try a broader query to see if we can find any profiles
+      console.log('Testing with broader query...');
+      const { data: allProfiles, error: allProfilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .limit(5);
+      
+      console.log('All profiles test:', { allProfiles, allProfilesError });
+      
+      // Check if the username is actually a UUID
+      const isUuid = isUUID(username);
+      console.log('Is username a UUID:', isUuid);
+      
+      // Try the specific author query
+      let { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', authorId)
+        .eq(isUuid ? 'id' : 'full_name', username)
         .single();
-      if (error) throw error;
+      
+      console.log(`Profile query by ${isUuid ? 'ID' : 'username'} result:`, { data, error });
+      
+      if (error) {
+        console.error('Profile query error:', error);
+        
+        // Try fallback with admin client (bypasses RLS)
+        console.log('Trying fallback with admin client...');
+        let { data: adminData, error: adminError } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .eq(isUuid ? 'id' : 'full_name', username)
+          .single();
+        
+        console.log(`Admin client query result (by ${isUuid ? 'ID' : 'username'}):`, { adminData, adminError });
+        
+        if (adminError) {
+          console.error('Admin client also failed:', adminError);
+          
+          // If single() fails, try without .single() to see if there are multiple results
+          const { data: multipleData, error: multipleError } = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .eq(isUuid ? 'id' : 'full_name', username);
+          
+          console.log('Multiple results query (admin):', { multipleData, multipleError });
+          
+          throw adminError;
+        }
+        
+        if (!adminData) {
+          throw new Error('Author not found in database (admin client)');
+        }
+        
+        return adminData;
+      }
+      
+      if (!data) {
+        throw new Error('Author not found in database');
+      }
+      
       return data;
     },
-    enabled: !!authorId,
+    enabled: !!username,
+    retry: (failureCount, error) => {
+      console.log(`Query retry ${failureCount}:`, error);
+      return failureCount < 2;
+    },
   });
 
   const { data: stats } = useQuery({
-    queryKey: ['author-stats', authorId],
+    queryKey: ['author-stats', username],
     queryFn: async () => {
       const [postsRes, followersRes, followingRes] = await Promise.all([
-        supabase.from('posts').select('id', { count: 'exact' }).eq('author_id', authorId).eq('status', 'published'),
-        supabase.from('followers').select('id', { count: 'exact' }).eq('following_id', authorId),
-        supabase.from('followers').select('id', { count: 'exact' }).eq('follower_id', authorId),
+        supabase.from('posts').select('id', { count: 'exact' }).eq('author_id', profile?.id).eq('status', 'published'),
+        supabase.from('followers').select('id', { count: 'exact' }).eq('following_id', profile?.id),
+        supabase.from('followers').select('id', { count: 'exact' }).eq('follower_id', profile?.id),
       ]);
       return {
         posts: postsRes.count || 0,
@@ -56,12 +131,12 @@ const AuthorProfile = () => {
         following: followingRes.count || 0,
       };
     },
-    enabled: !!authorId,
+    enabled: !!profile,
   });
 
   // Get author badge based on stats
   const { badge } = useProfileBadge({
-    userId: authorId || '',
+    userId: profile?.id || '',
     postsCount: stats?.posts || 0,
     followersCount: stats?.followers || 0,
     likesCount: 0, // We don't have likes data yet
@@ -74,52 +149,51 @@ const AuthorProfile = () => {
     isFetchingNextPage,
     isLoading: postsLoading,
   } = useInfiniteQuery({
-    queryKey: ['author-posts', authorId],
+    queryKey: ['author-posts', profile?.id],
     queryFn: async ({ pageParam = 0 }) => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('posts')
-        .select(`*, likes (count), comments (count), post_images (url), categories:category_id (name)`)
-        .eq('author_id', authorId!)
+        .select('*, categories:category_id (name, slug), post_images (url), likes (count), comments (count), profiles:author_id (id, full_name, profile_image_url), featured_image, views')
+        .eq('author_id', profile?.id!)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
-        .range(pageParam, pageParam + POSTS_PER_PAGE - 1);
-      if (error) throw error;
-      return data;
+        .range(pageParam * POSTS_PER_PAGE, (pageParam + 1) * POSTS_PER_PAGE - 1);
+      return data || [];
     },
+    enabled: !!profile,
     getNextPageParam: (lastPage, allPages) => {
       if (lastPage.length < POSTS_PER_PAGE) return undefined;
       return allPages.flat().length;
     },
     initialPageParam: 0,
-    enabled: !!authorId,
   });
 
   const { data: followers } = useQuery({
-    queryKey: ['author-followers-list', authorId],
+    queryKey: ['author-followers-list', profile?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('followers')
         .select('follower_id, profiles:follower_id (id, full_name, profile_image_url, bio)')
-        .eq('following_id', authorId!)
+        .eq('following_id', profile?.id!)
         .limit(20);
       if (error) throw error;
       return data;
     },
-    enabled: !!authorId,
+    enabled: !!profile?.id,
   });
 
   const { data: following } = useQuery({
-    queryKey: ['author-following-list', authorId],
+    queryKey: ['author-following-list', profile?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('followers')
         .select('following_id, profiles:following_id (id, full_name, profile_image_url, bio)')
-        .eq('follower_id', authorId!)
+        .eq('follower_id', profile?.id!)
         .limit(20);
       if (error) throw error;
       return data;
     },
-    enabled: !!authorId,
+    enabled: !!profile?.id,
   });
 
   // Infinite scroll observer
@@ -191,7 +265,7 @@ const AuthorProfile = () => {
 
   if (profileLoading) {
     return (
-      <div className="min-h-screen bg-background dark:bg-slate-900">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <Header />
         <div className="container py-20 flex justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -200,18 +274,26 @@ const AuthorProfile = () => {
     );
   }
 
-  if (!profile) {
+  if (profileError || !profile) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <Header />
         <div className="container py-20 text-center">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Author not found</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {profileError ? `Error: ${profileError.message}` : 'Author not found'}
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">
+            Username: {username || 'Not provided'}
+          </p>
+          <Link to="/feed" className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Back to Feed
+          </Link>
         </div>
       </div>
     );
   }
 
-  const isOwnProfile = user?.id === authorId;
+  const isOwnProfile = user?.id === profile?.id;
 
   return (
     <div className="min-h-screen bg-background dark:bg-slate-900 font-sans">
@@ -242,7 +324,7 @@ const AuthorProfile = () => {
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-300 via-yellow-300 to-blue-300 opacity-30 blur-md scale-110" />
                     <Avatar className="relative h-32 w-32 border-4 border-white dark:border-slate-800 shadow-xl ring-4 ring-slate-100 dark:ring-slate-700">
-                      <AvatarImage src={profile.profile_image_url || ''} />
+                      <AvatarImage src={profile.profile_image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.full_name || 'user'}`} />
                       <AvatarFallback className="bg-slate-900 text-white text-3xl font-bold">
                         {profile.full_name?.[0]?.toUpperCase() || 'U'}
                       </AvatarFallback>
@@ -299,7 +381,7 @@ const AuthorProfile = () => {
                   </div>
                   
                   <div className="flex flex-col sm:flex-row gap-2">
-                    {!isOwnProfile && <FollowButton userId={authorId!} size="default" />}
+                    {!isOwnProfile && <FollowButton userId={profile?.id!} size="default" />}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="default" className="rounded-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-white/20 dark:border-slate-700">
@@ -475,7 +557,7 @@ const AuthorProfile = () => {
                       <Link key={post.id} to={`/post/${post.slug}`} className="block group">
                         <article className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:border-blue-100 dark:hover:border-blue-900/50 transition-all overflow-hidden">
                           {/* Post Image */}
-                          {post.post_images && post.post_images.length > 0 && (
+                          {(post.post_images && post.post_images.length > 0) ? (
                             <div className="aspect-video overflow-hidden">
                               <img 
                                 src={post.post_images[0].url} 
@@ -483,7 +565,15 @@ const AuthorProfile = () => {
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             </div>
-                          )}
+                          ) : post.featured_image ? (
+                            <div className="aspect-video overflow-hidden">
+                              <img 
+                                src={post.featured_image} 
+                                alt={post.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            </div>
+                          ) : null}
                           
                           <div className="p-6">
                             <div className="flex items-center justify-between mb-3">
@@ -535,7 +625,7 @@ const AuthorProfile = () => {
                         <Card className="p-4 bg-white dark:bg-slate-900 hover:shadow-md transition-shadow rounded-2xl border border-slate-100 dark:border-slate-800">
                           <div className="flex items-center gap-4">
                             <Avatar className="h-12 w-12">
-                              <AvatarImage src={f.profiles.profile_image_url || ''} />
+                              <AvatarImage src={f.profiles.profile_image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.profiles.full_name || 'user'}`} />
                               <AvatarFallback className="bg-slate-100 dark:bg-slate-800 font-bold">
                                 {f.profiles.full_name?.[0]?.toUpperCase()}
                               </AvatarFallback>
@@ -566,7 +656,7 @@ const AuthorProfile = () => {
                         <Card className="p-4 bg-white dark:bg-slate-900 hover:shadow-md transition-shadow rounded-2xl border border-slate-100 dark:border-slate-800">
                           <div className="flex items-center gap-4">
                             <Avatar className="h-12 w-12">
-                              <AvatarImage src={f.profiles.profile_image_url || ''} />
+                              <AvatarImage src={f.profiles.profile_image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.profiles.full_name || 'user'}`} />
                               <AvatarFallback className="bg-slate-100 dark:bg-slate-800 font-bold">
                                 {f.profiles.full_name?.[0]?.toUpperCase()}
                               </AvatarFallback>

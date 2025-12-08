@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ThemeInitializer } from "@/components/theme/ThemeInitializer";
+import { BlockGuard } from "@/components/BlockGuard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -20,40 +21,44 @@ import Bookmarks from "./pages/Bookmarks";
 import AuthorProfile from "./pages/AuthorProfile";
 import GoogleProfile from "./pages/GoogleProfile";
 import NotFound from "./pages/NotFound";
+import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <ThemeInitializer>
-        <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/feed" element={<Feed />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/google-profile" element={<GoogleProfile />} />
-              <Route path="/create" element={<CreatePost />} />
-              <Route path="/post/*" element={<PostDetail />} />
-              <Route path="/my-posts" element={<MyPosts />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/bookmarks" element={<Bookmarks />} />
-              <Route path="/author/:authorId" element={<AuthorProfile />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-      </ThemeInitializer>
-    </ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <ThemeInitializer>
+          <TooltipProvider>
+            <AuthProvider>
+              <BlockGuard>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/feed" element={<Feed />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/create" element={<CreatePost />} />
+                  <Route path="/post/*" element={<PostDetail />} />
+                  <Route path="/post/:slug" element={<PostDetail />} />
+                  <Route path="/my-posts" element={<MyPosts />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/bookmarks" element={<Bookmarks />} />
+                  <Route path="/author/:username" element={<AuthorProfile />} />
+                  <Route path="/google-profile" element={<GoogleProfile />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BlockGuard>
+            </AuthProvider>
+          </TooltipProvider>
+        </ThemeInitializer>
+      </ThemeProvider>
+    </BrowserRouter>
+    <Toaster />
+    <Sonner />
   </QueryClientProvider>
 );
 
