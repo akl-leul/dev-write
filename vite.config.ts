@@ -35,7 +35,16 @@ export default defineConfig(({ mode }) => ({
         manualChunks: (id) => {
           // More aggressive code splitting for better cache performance
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
+            // Bundle all React-related dependencies together
+            if (id.includes('react') || 
+                id.includes('react-dom') ||
+                id.includes('react-router') ||
+                id.includes('@tanstack/react-query') ||
+                id.includes('sonner') ||
+                id.includes('next-themes') ||
+                id.includes('class-variance-authority') ||
+                id.includes('clsx') ||
+                id.includes('tailwind-merge')) {
               return 'vendor-react';
             }
             if (id.includes('@radix-ui')) {
@@ -47,20 +56,17 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
             }
-            if (id.includes('react-router')) {
-              return 'vendor-router';
-            }
-            if (id.includes('@tanstack/react-query')) {
-              return 'vendor-query';
-            }
             if (id.includes('recharts')) {
               return 'vendor-recharts';
             }
             // Group other node_modules
             return 'vendor-other';
           }
-          // Keep contexts with React to prevent dependency issues
-          if (id.includes('contexts')) {
+          // Keep contexts and any React-dependent code with React
+          if (id.includes('contexts') || 
+              id.includes('hooks') ||
+              id.includes('utils') ||
+              id.includes('components')) {
             return 'vendor-react';
           }
         },
