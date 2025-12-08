@@ -116,11 +116,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     systemTheme,
   }), [theme, setTheme, resolvedTheme, toggleTheme, systemTheme]);
 
-  // Don't render until we've determined the theme to prevent flash of wrong theme
-  if (!isMounted) {
-    return null;
-  }
-
+  // Render children immediately to prevent white screen
+  // Theme will be applied after mounting
   return (
     <ThemeContext.Provider value={contextValue}>
       {children}

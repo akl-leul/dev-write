@@ -27,10 +27,7 @@ export const ThemeInitializer = ({ children }: { children: React.ReactNode }) =>
     }
   }, [theme]);
 
-  // Prevent flash of unstyled content
-  if (!mounted) {
-    return null;
-  }
-
+  // Render children immediately to prevent white screen
+  // Theme will be applied after mounting
   return <>{children}</>;
 };
