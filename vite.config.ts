@@ -9,9 +9,9 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     headers: {
       // Cache control for development
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
     },
     // Optimize HMR for faster reloads
     hmr: {
@@ -34,59 +34,62 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: (id) => {
           // More aggressive code splitting for better cache performance
-          if (id.includes('node_modules')) {
+          if (id.includes("node_modules")) {
             // Bundle ALL React-related dependencies together to prevent hook errors
-            if (id.includes('react') || 
-                id.includes('react-dom') ||
-                id.includes('react-router') ||
-                id.includes('@tanstack/react-query') ||
-                id.includes('sonner') ||
-                id.includes('next-themes') ||
-                id.includes('class-variance-authority') ||
-                id.includes('clsx') ||
-                id.includes('tailwind-merge') ||
-                id.includes('date-fns') ||
-                id.includes('react-markdown') ||
-                id.includes('remark-gfm') ||
-                id.includes('react-image-crop') ||
-                id.includes('react-day-picker') ||
-                id.includes('react-helmet-async') ||
-                id.includes('react-icons') ||
-                id.includes('react-resizable-panels')) {
-              return 'vendor-react';
+            if (
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("react-router") ||
+              id.includes("@tanstack/react-query") ||
+              id.includes("sonner") ||
+              id.includes("next-themes") ||
+              id.includes("class-variance-authority") ||
+              id.includes("clsx") ||
+              id.includes("tailwind-merge") ||
+              id.includes("date-fns") ||
+              id.includes("react-markdown") ||
+              id.includes("remark-gfm") ||
+              id.includes("react-image-crop") ||
+              id.includes("react-day-picker") ||
+              id.includes("react-helmet-async") ||
+              id.includes("react-icons") ||
+              id.includes("react-resizable-panels") ||
+              id.includes("@radix-ui")
+            ) {
+              // Include Radix UI components with React
+              return "vendor-react";
             }
-            if (id.includes('@radix-ui')) {
-              return 'vendor-radix';
+            if (id.includes("@tiptap")) {
+              return "vendor-tiptap";
             }
-            if (id.includes('@tiptap')) {
-              return 'vendor-tiptap';
+            if (id.includes("@supabase")) {
+              return "vendor-supabase";
             }
-            if (id.includes('@supabase')) {
-              return 'vendor-supabase';
-            }
-            if (id.includes('recharts')) {
-              return 'vendor-recharts';
+            if (id.includes("recharts")) {
+              return "vendor-recharts";
             }
             // Group other node_modules
-            return 'vendor-other';
+            return "vendor-other";
           }
           // Keep ALL React-dependent code with React
-          if (id.includes('contexts') || 
-              id.includes('hooks') ||
-              id.includes('utils') ||
-              id.includes('components') ||
-              id.includes('pages')) {
-            return 'vendor-react';
+          if (
+            id.includes("contexts") ||
+            id.includes("hooks") ||
+            id.includes("utils") ||
+            id.includes("components") ||
+            id.includes("pages")
+          ) {
+            return "vendor-react";
           }
         },
         // Optimize chunk loading with cache-busting
-        chunkFileNames: 'js/[name]-[hash].js',
-        entryFileNames: 'js/[name]-[hash].js',
+        chunkFileNames: "js/[name]-[hash].js",
+        entryFileNames: "js/[name]-[hash].js",
         assetFileNames: (assetInfo) => {
           if (!assetInfo.name) {
             return `assets/[name]-[hash][extname]`;
           }
-          const info = assetInfo.name.split('.');
+          const info = assetInfo.name.split(".");
           const ext = info[info.length - 1];
           if (/\.(mp4|webm|ogg|mp3|wav|flac|aac)$/.test(assetInfo.name)) {
             return `media/[name]-[hash][extname]`;
@@ -103,12 +106,13 @@ export default defineConfig(({ mode }) => ({
     },
     chunkSizeWarningLimit: 1000,
     // Enable code splitting and tree shaking
-    minify: 'terser',
+    minify: "terser",
     terserOptions: {
       compress: {
-        drop_console: mode === 'production',
-        drop_debugger: mode === 'production',
-        pure_funcs: mode === 'production' ? ['console.log', 'console.info'] : [],
+        drop_console: mode === "production",
+        drop_debugger: mode === "production",
+        pure_funcs:
+          mode === "production" ? ["console.log", "console.info"] : [],
       },
       mangle: {
         safari10: true,
@@ -122,14 +126,14 @@ export default defineConfig(({ mode }) => ({
     reportCompressedSize: false,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'],
+    include: ["react", "react-dom", "react-router-dom"],
     // Pre-bundle dependencies for faster dev server
-    exclude: ['recharts'], // Exclude heavy charting library from pre-bundling
+    exclude: ["recharts"], // Exclude heavy charting library from pre-bundling
   },
   // Enable experimental features for better performance
   experimental: {
     renderBuiltUrl: (filename, { hostType }) => {
-      if (hostType === 'js') {
+      if (hostType === "js") {
         return { js: `/${filename}` };
       } else {
         return { relative: true };
@@ -140,7 +144,7 @@ export default defineConfig(({ mode }) => ({
   preview: {
     port: 4173,
     headers: {
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      "Cache-Control": "public, max-age=31536000, immutable",
     },
   },
 }));
