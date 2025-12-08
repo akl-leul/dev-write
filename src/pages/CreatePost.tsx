@@ -59,6 +59,7 @@ const CreatePost = () => {
   const [featuredImage, setFeaturedImage] = useState(null)
   const [featuredImageUrl, setFeaturedImageUrl] = useState('')
   const [images, setImages] = useState<Array<File | { url: string; id?: string }>>([]) // Can be File objects (new) or URL objects (existing)
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]) // Preview URLs for File objects
   const [uploading, setUploading] = useState(false)
   const [commentsEnabled, setCommentsEnabled] = useState(true)
   const [tags, setTags] = useState([])
@@ -184,8 +185,10 @@ const CreatePost = () => {
             id: img.id
           }))
           setImages(existingImages)
+          setImagePreviews([]) // No previews for existing images
         } else {
           setImages([])
+          setImagePreviews([])
         }
 
         // Load existing tags
@@ -205,6 +208,13 @@ const CreatePost = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes - edit data doesn't change often
     gcTime: 10 * 60 * 1000, // 10 minutes
   })
+
+  // Cleanup preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach(preview => URL.revokeObjectURL(preview))
+    }
+  }, [imagePreviews])
 
   const generateSlug = () => {
     const now = new Date()
@@ -282,10 +292,11 @@ const CreatePost = () => {
         }
 
         // Handle post_images for edited post
-        // All images should already be uploaded and stored (as { url, id? } objects)
+        // Separate existing images (from database) from new File objects
         const existingImages = images.filter((img): img is { url: string; id?: string } => 
           typeof img === 'object' && 'url' in img && !(img instanceof File)
         )
+        const newImageFiles = images.filter((img): img is File => img instanceof File)
 
         // Get current post_images from database
         const { data: currentPostImages } = await supabase
@@ -303,6 +314,15 @@ const CreatePost = () => {
           
           if (imagesToDelete.length > 0) {
             const idsToDelete = imagesToDelete.map((img: any) => img.id)
+            // Also delete from storage
+            for (const img of imagesToDelete) {
+              const url = (img as any).url
+              const urlMatch = url.match(/post-images\/(.+)$/)
+              const filePath = urlMatch ? urlMatch[1] : null
+              if (filePath) {
+                await supabase.storage.from('post-images').remove([filePath])
+              }
+            }
             await supabase
               .from('post_images')
               .delete()
@@ -310,33 +330,76 @@ const CreatePost = () => {
           }
         }
 
-        // Update order_index for all remaining images to match current order
-        if (existingImages.length > 0) {
-          const updatePromises = existingImages.map(async (img, index) => {
-            if (img.id) {
-              // Image already in database, just update order
-              await supabase
-                .from('post_images')
-                .update({ order_index: index })
-                .eq('id', img.id)
-            } else {
-              // Image uploaded but not yet in database (shouldn't happen for edits, but handle it)
-              const { data: insertedImage } = await supabase
-                .from('post_images')
-                .insert({
-                  post_id: editId,
-                  url: img.url,
-                  order_index: index
-                })
-                .select('id, url')
-                .single()
-              
-              if (insertedImage) {
-                img.id = (insertedImage as any).id
-              }
+        // Upload new image files and insert into post_images
+        if (newImageFiles.length > 0) {
+          const startIndex = existingImages.length
+          const uploadedImages: Array<{ url: string; id?: string }> = []
+          
+          const uploadPromises = newImageFiles.map(async (file, index) => {
+            const uuid = crypto.randomUUID()
+            const fileName = `${editId}/${uuid}-${file.name}`
+            
+            // Upload to storage
+            const { error: uploadError } = await supabase.storage
+              .from('post-images')
+              .upload(fileName, file)
+            
+            if (uploadError) {
+              console.error('Error uploading image:', uploadError)
+              throw new Error(`Failed to upload image: ${file.name}`)
+            }
+            
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+              .from('post-images')
+              .getPublicUrl(fileName)
+            
+            // Insert into post_images table
+            const { data: insertedImage, error: dbError } = await supabase
+              .from('post_images')
+              .insert({
+                post_id: editId,
+                url: publicUrl,
+                alt_text: file.name,
+                order_index: startIndex + index
+              })
+              .select('id, url, alt_text, order_index')
+              .single()
+            
+            if (dbError) {
+              console.error('Error inserting image into database:', dbError)
+              throw new Error(`Failed to save image to database: ${file.name}`)
+            }
+            
+            if (insertedImage) {
+              uploadedImages.push({
+                url: (insertedImage as any).url,
+                id: (insertedImage as any).id
+              })
             }
           })
-          await Promise.all(updatePromises)
+          
+          await Promise.all(uploadPromises)
+          
+          // Clean up preview URLs
+          imagePreviews.forEach(preview => URL.revokeObjectURL(preview))
+          setImagePreviews([])
+          
+          // Update state with all images (existing + newly uploaded)
+          setImages([...existingImages, ...uploadedImages])
+        } else {
+          // Update order_index for existing images to match current order
+          if (existingImages.length > 0) {
+            const updatePromises = existingImages.map(async (img, index) => {
+              if (img.id) {
+                await supabase
+                  .from('post_images')
+                  .update({ order_index: index })
+                  .eq('id', img.id)
+              }
+            })
+            await Promise.all(updatePromises)
+          }
         }
 
         // Handle tags for edited post (clear existing first)
@@ -404,68 +467,97 @@ const CreatePost = () => {
 
         const postData = post as any
 
-        // Featured image is already uploaded and URL is stored in featuredImageUrl
-        // Just ensure it's set in the post (it should already be set, but double-check)
-        if (featuredImageUrl && !featuredImage) {
-          // Already set in post creation, no action needed
-        } else if (featuredImage) {
-          // This shouldn't happen if handleFeaturedImageSelect worked, but handle it just in case
+        // Upload featured image if it's a File object
+        if (featuredImage) {
           const fileExt = featuredImage.name.split('.').pop()
-          const fileName = `featured-${postData.id}-${Date.now()}.${fileExt}`
+          const uuid = crypto.randomUUID()
+          const fileName = `${postData.id}/${uuid}-${featuredImage.name}`
+          
           const { error: uploadError } = await supabase.storage
             .from('post-images')
             .upload(fileName, featuredImage)
-          if (!uploadError) {
+          
+          if (uploadError) {
+            console.error('Error uploading featured image:', uploadError)
+            throw new Error('Failed to upload featured image')
+          }
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('post-images')
+            .getPublicUrl(fileName)
+          
+          await supabase
+            .from('posts')
+            .update({ featured_image: publicUrl })
+            .eq('id', postData.id)
+          
+          setFeaturedImageUrl(publicUrl)
+          setFeaturedImage(null)
+        }
+
+        // Upload all selected images to storage and insert into post_images table
+        const imageFiles = images.filter((img): img is File => img instanceof File)
+        
+        if (imageFiles.length > 0) {
+          const uploadedImages: Array<{ url: string; id?: string }> = []
+          
+          // Upload each image to storage with path: postId/uuid-fileName.ext
+          const uploadPromises = imageFiles.map(async (file, index) => {
+            const fileExt = file.name.split('.').pop()
+            const uuid = crypto.randomUUID()
+            const fileName = `${postData.id}/${uuid}-${file.name}`
+            
+            // Upload to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+              .from('post-images')
+              .upload(fileName, file)
+            
+            if (uploadError) {
+              console.error('Error uploading image:', uploadError)
+              throw new Error(`Failed to upload image: ${file.name}`)
+            }
+            
+            // Get public URL
             const { data: { publicUrl } } = supabase.storage
               .from('post-images')
               .getPublicUrl(fileName)
-            await supabase
-              .from('posts')
-              .update({ featured_image: publicUrl })
-              .eq('id', postData.id)
-            setFeaturedImageUrl(publicUrl)
-            setFeaturedImage(null)
-          }
-        }
-
-        // Link already-uploaded images to the new post
-        // Images are already uploaded to storage, just need to insert into post_images
-        const uploadedImages = images.filter((img): img is { url: string; id?: string } => 
-          typeof img === 'object' && 'url' in img && !(img instanceof File)
-        )
-
-        if (uploadedImages.length > 0) {
-          const linkedImages: Array<{ url: string; id?: string }> = []
-          
-          // Use RPC function to insert images (bypasses RLS while maintaining security)
-          const linkPromises = uploadedImages.map(async (img, index) => {
+            
+            // Insert into post_images table
             const { data: insertedImage, error: dbError } = await supabase
-              .rpc('insert_post_image', {
-                p_post_id: postData.id,
-                p_url: img.url,
-                p_order_index: index
+              .from('post_images')
+              .insert({
+                post_id: postData.id,
+                url: publicUrl,
+                alt_text: file.name, // Use file name as alt_text
+                order_index: index
               })
+              .select('id, url, alt_text, order_index')
+              .single()
             
             if (dbError) {
-              console.error('Error linking image to post:', dbError)
-              throw dbError
+              console.error('Error inserting image into database:', dbError)
+              throw new Error(`Failed to save image to database: ${file.name}`)
             }
             
-            if (insertedImage && insertedImage.length > 0) {
-              const imgData = insertedImage[0] as any
-              linkedImages.push({
-                url: imgData.url,
-                id: imgData.id
+            if (insertedImage) {
+              uploadedImages.push({
+                url: (insertedImage as any).url,
+                id: (insertedImage as any).id
               })
             }
           })
           
-          await Promise.all(linkPromises)
+          await Promise.all(uploadPromises)
           
-          // Update state with database IDs
-          if (linkedImages.length > 0) {
-            setImages(linkedImages)
-          }
+          // Update state with database URLs (remove File objects, add uploaded images)
+          const existingImages = images.filter((img): img is { url: string; id?: string } => 
+            typeof img === 'object' && 'url' in img && !(img instanceof File)
+          )
+          setImages([...existingImages, ...uploadedImages])
+          
+          // Clean up preview URLs
+          imagePreviews.forEach(preview => URL.revokeObjectURL(preview))
+          setImagePreviews([])
         }
 
         // Background operations
@@ -529,7 +621,7 @@ const CreatePost = () => {
     }
   })
 
-  const handleImageSelect = async (e) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
     const newFiles = Array.from(e.target.files) as File[]
     const totalImages = images.length + newFiles.length
@@ -538,78 +630,14 @@ const CreatePost = () => {
       return
     }
 
-    setUploading(true)
-    const uploadedImages: Array<{ url: string; id?: string }> = []
-
-    try {
-      // Upload each file to storage immediately
-      const uploadPromises = newFiles.map(async (file, index) => {
-        const fileExt = file.name.split('.').pop()
-        const timestamp = Date.now()
-        const fileName = editId 
-          ? `post-${editId}-${timestamp}-${index}.${fileExt}`
-          : `temp-${timestamp}-${index}.${fileExt}`
-        
-        const { error: uploadError } = await supabase.storage
-          .from('post-images')
-          .upload(fileName, file)
-        
-        if (uploadError) {
-          console.error('Error uploading image:', uploadError)
-          throw uploadError
-        }
-
-        // Get the public URL from Supabase storage
-        const { data: { publicUrl } } = supabase.storage
-          .from('post-images')
-          .getPublicUrl(fileName)
-
-        // If editing an existing post, store in database immediately
-        if (editId) {
-          const existingImages = images.filter((img): img is { url: string; id?: string } => 
-            typeof img === 'object' && 'url' in img && !(img instanceof File)
-          )
-          const orderIndex = existingImages.length + index
-          
-          // Use RPC function to insert images (bypasses RLS while maintaining security)
-          const { data: insertedImage, error: dbError } = await supabase
-            .rpc('insert_post_image', {
-              p_post_id: editId,
-              p_url: publicUrl,
-              p_order_index: orderIndex
-            })
-          
-          if (dbError) {
-            console.error('Error storing image in database:', dbError)
-            throw dbError
-          }
-
-          if (insertedImage && insertedImage.length > 0) {
-            const imgData = insertedImage[0] as any
-            uploadedImages.push({
-              url: imgData.url,
-              id: imgData.id
-            })
-          }
-        } else {
-          // For new posts, just store the URL (will be linked to post when created)
-          uploadedImages.push({
-            url: publicUrl
-          })
-        }
-      })
-
-      await Promise.all(uploadPromises)
-      
-      // Update state with uploaded images (database URLs)
-      setImages([...images, ...uploadedImages])
-      toast.success(`${uploadedImages.length} image(s) uploaded successfully`)
-    } catch (error: any) {
-      console.error('Error uploading images:', error)
-      toast.error(error.message || 'Failed to upload images')
-    } finally {
-      setUploading(false)
-    }
+    // Store File objects (will be uploaded after post creation)
+    setImages([...images, ...newFiles])
+    
+    // Create preview URLs for immediate display
+    const newPreviews = newFiles.map(file => URL.createObjectURL(file))
+    setImagePreviews([...imagePreviews, ...newPreviews])
+    
+    toast.success(`${newFiles.length} image(s) selected`)
   }
 
   const handleFeaturedImageSelect = async (e) => {
@@ -668,18 +696,33 @@ const CreatePost = () => {
   const removeImage = async (index: number) => {
     const imageToRemove = images[index]
     
+    // If it's a File object, just remove it and revoke preview URL
+    if (imageToRemove instanceof File) {
+      // Find the corresponding preview URL index
+      const fileIndex = images.slice(0, index).filter(img => img instanceof File).length
+      if (fileIndex >= 0 && fileIndex < imagePreviews.length) {
+        URL.revokeObjectURL(imagePreviews[fileIndex])
+        setImagePreviews(imagePreviews.filter((_, i) => i !== fileIndex))
+      }
+      setImages(images.filter((_, i) => i !== index))
+      return
+    }
+    
     // If it's an existing image from database (has id), delete it from storage and database
     if (typeof imageToRemove === 'object' && 'id' in imageToRemove && imageToRemove.id) {
       try {
-        // Extract filename from URL to delete from storage
+        // Extract path from URL to delete from storage
+        // URL format: https://.../storage/v1/object/public/post-images/postId/uuid-fileName.ext
         const url = imageToRemove.url
-        const urlParts = url.split('/')
-        const fileName = urlParts[urlParts.length - 1].split('?')[0] // Remove query params
+        const urlMatch = url.match(/post-images\/(.+)$/)
+        const filePath = urlMatch ? urlMatch[1] : null
         
-        // Delete from storage
-        await supabase.storage
-          .from('post-images')
-          .remove([fileName])
+        if (filePath) {
+          // Delete from storage
+          await supabase.storage
+            .from('post-images')
+            .remove([filePath])
+        }
         
         // Delete from database if we're editing a post
         if (editId) {
@@ -1021,7 +1064,12 @@ const CreatePost = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {images.map((img, index) => {
                         const isFile = img instanceof File
-                        const imageUrl = isFile ? URL.createObjectURL(img) : (img as { url: string }).url
+                        // Use preview URL for File objects, or database URL for existing images
+                        // Calculate preview index: count File objects before this index
+                        const fileIndex = images.slice(0, index).filter(i => i instanceof File).length
+                        const imageUrl = isFile 
+                          ? (imagePreviews[fileIndex] || URL.createObjectURL(img))
+                          : (img as { url: string }).url
                         return (
                           <div
                             key={index}
@@ -1029,7 +1077,7 @@ const CreatePost = () => {
                           >
                             <img
                               src={imageUrl}
-                              alt={`Image ${index + 1}`}
+                              alt={isFile ? img.name : `Image ${index + 1}`}
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
