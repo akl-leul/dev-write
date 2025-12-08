@@ -59,6 +59,10 @@ export default defineConfig(({ mode }) => ({
             // Group other node_modules
             return 'vendor-other';
           }
+          // Keep contexts with React to prevent dependency issues
+          if (id.includes('contexts')) {
+            return 'vendor-react';
+          }
         },
         // Optimize chunk loading with cache-busting
         chunkFileNames: 'js/[name]-[hash].js',
