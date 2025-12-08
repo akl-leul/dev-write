@@ -7,7 +7,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
   <title>Chronicle - Share Your Stories With The World</title>
-  <meta name="description" content="A beautiful platform for writers and readers to connect through compelling narratives. Write, share, and discover stories that inspire.">
+  <meta name="description"
+    content="A beautiful platform for writers and readers to connect through compelling narratives. Write, share, and discover stories that inspire.">
   <meta name="keywords" content="writing, stories, blogging, reading, creative writing, storytelling">
   <meta name="author" content="Chronicle">
   <meta name="publisher" content="Chronicle">
@@ -16,19 +17,21 @@
   <meta name="rating" content="general">
   <meta name="referrer" content="no-referrer-when-downgrade">
   <meta http-equiv="Content-Language" content="en">
-  <meta name="format-detection" content="telephone=+251963889227,email=chronicle.ethiopia@gmail.com,address=Addis Ababa">
+  <meta name="format-detection"
+    content="telephone=+251963889227,email=chronicle.ethiopia@gmail.com,address=Addis Ababa">
   <meta name="theme-color" content="#3A3D5B">
 
   <!-- Preconnect to external domains for faster loading -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
-  
+
   <!-- DNS prefetch for likely navigation -->
   <link rel="dns-prefetch" href="//dev-write.vercel.app">
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
-  <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/ngAInZj6vecgBPkNZ1hyIxdsEzi2/social-images/social-1765173380448-Screenshot 2025-12-06 173830.png">
+  <meta property="og:image"
+    content="https://storage.googleapis.com/gpt-engineer-file-uploads/ngAInZj6vecgBPkNZ1hyIxdsEzi2/social-images/social-1765173380448-Screenshot 2025-12-06 173830.png">
   <meta property="og:url" content="https://dev-write.vercel.app">
   <meta property="og:site_name" content="Chronicle">
   <meta property="og:locale" content="en_US">
@@ -39,7 +42,8 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/ngAInZj6vecgBPkNZ1hyIxdsEzi2/social-images/social-1765173380448-Screenshot 2025-12-06 173830.png">
+  <meta name="twitter:image"
+    content="https://storage.googleapis.com/gpt-engineer-file-uploads/ngAInZj6vecgBPkNZ1hyIxdsEzi2/social-images/social-1765173380448-Screenshot 2025-12-06 173830.png">
   <meta name="twitter:site" content="@Chronicle">
   <meta name="twitter:creator" content="@Chronicle">
   <meta name="twitter:image:alt" content="Chronicle Logo">
@@ -74,7 +78,7 @@
       min-height: 100vh;
       background: #f8fafc;
     }
-    
+
     /* Loading spinner styles */
     .loading-spinner {
       position: fixed;
@@ -88,12 +92,17 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-    
+
     @keyframes spin {
-      0% { transform: translate(-50%, -50%) rotate(0deg); }
-      100% { transform: translate(-50%, -50%) rotate(360deg); }
+      0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+      }
+
+      100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+      }
     }
-    
+
     /* Prevent flash of unstyled content */
     body {
       margin: 0;
@@ -106,19 +115,23 @@
 
   <meta property="og:title" content="Chronicle - Share Your Stories With The World">
   <meta name="twitter:title" content="Chronicle - Share Your Stories With The World">
-  <meta property="og:description" content="A beautiful platform for writers and readers to connect through compelling narratives. Write, share, and discover stories that inspire.">
-  <meta name="twitter:description" content="A beautiful platform for writers and readers to connect through compelling narratives. Write, share, and discover stories that inspire.">
+  <meta property="og:description"
+    content="A beautiful platform for writers and readers to connect through compelling narratives. Write, share, and discover stories that inspire.">
+  <meta name="twitter:description"
+    content="A beautiful platform for writers and readers to connect through compelling narratives. Write, share, and discover stories that inspire.">
+  <script type="module" src="/src/main.tsx"></script>
 </head>
+
 <body>
-  
+
   <div id="root"></div>
-  
+
   <!-- Performance monitoring and optimization -->
   <script>
     // Clear stale cache immediately on page load to prevent slow performance
-    (function() {
+    (function () {
       'use strict';
-      
+
       // Clear old IndexedDB if it exists (Supabase might use it)
       if ('indexedDB' in window) {
         try {
@@ -142,12 +155,12 @@
           // Silently fail
         }
       }
-      
+
       // Force cache refresh if page is taking too long
       let loadStartTime = performance.now();
       const MAX_LOAD_TIME = 10000; // 10 seconds
-      
-      const checkLoadTime = setInterval(function() {
+
+      const checkLoadTime = setInterval(function () {
         const loadTime = performance.now() - loadStartTime;
         if (loadTime > MAX_LOAD_TIME && document.readyState !== 'complete') {
           // If loading takes more than 10 seconds, clear cache and reload
@@ -167,17 +180,17 @@
         }
       }, 1000);
     })();
-    
+
     // Hide loading spinner when app is ready
-    window.addEventListener('load', function() {
+    window.addEventListener('load', function () {
       const spinner = document.getElementById('loading-spinner');
       if (spinner) {
         spinner.style.display = 'none';
       }
     });
-    
+
     // Show loading spinner if JavaScript takes too long
-    setTimeout(function() {
+    setTimeout(function () {
       const spinner = document.getElementById('loading-spinner');
       const root = document.getElementById('root');
       if (spinner && root && root.children.length === 0) {
@@ -185,8 +198,9 @@
       }
     }, 1000);
   </script>
-  
+
   <!-- Main script with defer for non-blocking loading -->
-  <script type="module" src="/src/main.tsx"></script>
+
 </body>
+
 </html>
