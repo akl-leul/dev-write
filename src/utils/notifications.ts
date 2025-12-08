@@ -93,6 +93,20 @@ export const markNotificationAsRead = async (notificationId: string) => {
   return true;
 };
 
+export const deleteNotification = async (notificationId: string) => {
+  const { error } = await supabase
+    .from('notifications')
+    .delete()
+    .eq('id', notificationId);
+
+  if (error) {
+    console.error('Error deleting notification:', error);
+    return false;
+  }
+
+  return true;
+};
+
 export const markAllNotificationsAsRead = async (userId: string) => {
   const { error } = await supabase
     .from('notifications')

@@ -161,7 +161,6 @@ const AuthorProfile = () => {
       'https://plus.unsplash.com/premium_vector-1761371032807-dc44148706a2?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8Mzl8fHxlbnwwfHx8fHw%3D',
       'https://plus.unsplash.com/premium_vector-1762359738304-cae7571f2220?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8NDd8fHxlbnwwfHx8fHw%3D',
       'https://images.unsplash.com/vector-1763266642857-589735840399?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8NjB8fHxlbnwwfHx8fHw%3D',
-
     ];
     
     // Generate random index for variety on each page load
@@ -192,7 +191,7 @@ const AuthorProfile = () => {
 
   if (profileLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-background dark:bg-slate-900">
         <Header />
         <div className="container py-20 flex justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -203,34 +202,19 @@ const AuthorProfile = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <Header />
         <div className="container py-20 text-center">
-          <h1 className="text-2xl font-bold text-slate-900">Author not found</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Author not found</h1>
         </div>
       </div>
     );
   }
 
-  // Debug: Log badge data
-  console.log('Badge data:', badge);
-  console.log('Stats:', stats);
-  console.log('AuthorId:', authorId);
-  console.log('Badge condition check:', {
-    posts: stats?.posts || 0,
-    followers: stats?.followers || 0,
-    likes: 0,
-    shouldShow: (stats?.posts || 0) >= 1 || (stats?.followers || 0) >= 1 || 0 >= 3
-  });
-
   const isOwnProfile = user?.id === authorId;
 
-  // Debug: Log profile data to check what's happening
-  console.log('Profile data:', profile);
-  console.log('AuthorId:', authorId);
-
   return (
-    <div className="min-h-screen bg-background font-sans">
+    <div className="min-h-screen bg-background dark:bg-slate-900 font-sans">
       <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
            style={{ backgroundImage: 'radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
@@ -241,24 +225,23 @@ const AuthorProfile = () => {
           <div className="max-w-4xl mx-auto">
             
             {/* Profile Header Card */}
-            <Card className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden mb-8">
-           <div className="h-48 relative">
-  <img 
-    src={profileBackground} 
-    alt="Profile background" 
-    className="w-full h-full object-cover"
-  />
+            <Card className="bg-card dark:bg-slate-900 rounded-3xl border border-border dark:border-slate-800 shadow-sm overflow-hidden mb-8">
+              <div className="h-48 relative">
+                <img 
+                  src={profileBackground} 
+                  alt="Profile background" 
+                  className="w-full h-full object-cover"
+                />
 
-  {/* Stronger fade with smoother gradient */}
-  <div className="absolute inset-0 bg-gradient-to-t from-black via-white/30 to-transparent" />
-</div>
+                {/* Stronger fade with smoother gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-white/30 to-transparent" />
+              </div>
 
-              
               <div className="px-6 sm:px-8 pb-8">
                 <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16 mb-6">
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-300 via-yellow-300 to-blue-300 opacity-30 blur-md scale-110" />
-                    <Avatar className="relative h-32 w-32 border-4 border-white shadow-xl ring-4 ring-slate-100">
+                    <Avatar className="relative h-32 w-32 border-4 border-white dark:border-slate-800 shadow-xl ring-4 ring-slate-100 dark:ring-slate-700">
                       <AvatarImage src={profile.profile_image_url || ''} />
                       <AvatarFallback className="bg-slate-900 text-white text-3xl font-bold">
                         {profile.full_name?.[0]?.toUpperCase() || 'U'}
@@ -269,21 +252,20 @@ const AuthorProfile = () => {
                   
                   <div className="flex-1 text-center sm:text-left sm:ml-4">
                     <div className="flex flex-col items-center sm:flex-row sm:items-center justify-center sm:justify-start gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-  <h1 className="text-2xl sm:text-3xl text-slate-900 md:text-white font-bold drop-shadow-sm flex items-center gap-2">
-    {profile.full_name || 'Unknown User'}
+                      <div className="flex items-center gap-2">
+                        <h1 className="text-2xl sm:text-3xl text-slate-900 dark:text-slate-100 md:text-white font-bold drop-shadow-sm flex items-center gap-2">
+                          {profile.full_name || 'Unknown User'}
 
-    {badge && (
-      <span className="inline-flex items-center justify-center bg-white rounded-full p-1 shadow-lg ring-2 ring-white">
-        <ProfileBadge badge={badge} size="sm" />
-      </span>
-    )}
-  </h1>
-</div>
-
+                          {badge && (
+                            <span className="inline-flex items-center justify-center bg-white rounded-full p-1 shadow-lg ring-2 ring-white">
+                              <ProfileBadge badge={badge} size="sm" />
+                            </span>
+                          )}
+                        </h1>
+                      </div>
                     </div>
                     
-                    <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 text-sm text-slate-600 mb-3">
+                    <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 text-sm text-slate-600 dark:text-slate-400 mb-3">
                       {profile.gender ? (
                         <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full">
                           <User className="w-3 h-3 text-slate-500" />
@@ -311,7 +293,7 @@ const AuthorProfile = () => {
                       )}
                     </div>
                     
-                    <p className="text-slate-700 line-clamp-2 max-w-md bg-white/60 backdrop-blur-sm px-3 py-2 rounded-lg">
+                    <p className="text-slate-700 dark:text-slate-300 line-clamp-2 max-w-md bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm px-3 py-2 rounded-lg">
                       {profile.bio && !profile.bio.startsWith('Google user') ? profile.bio : 'No bio added yet'}
                     </p>
                   </div>
@@ -320,32 +302,32 @@ const AuthorProfile = () => {
                     {!isOwnProfile && <FollowButton userId={authorId!} size="default" />}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="default" className="rounded-xl bg-white/90 backdrop-blur-sm border-white/20">
+                        <Button variant="outline" size="default" className="rounded-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-white/20 dark:border-slate-700">
                           <Share2 className="h-4 w-4 mr-2" />
                           Share
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-xl border-slate-100 shadow-lg">
-                        <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-400 cursor-pointer">
+                      <DropdownMenuContent align="end" className="rounded-xl border-slate-100 dark:border-slate-800 shadow-lg">
+                        <DropdownMenuItem onClick={() => handleShare('copy')} className="focus:bg-slate-100 dark:focus:bg-slate-700 cursor-pointer">
                           <Copy className="h-4 w-4 mr-2 text-slate-400" />
                           Copy Link
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleShare('x')} className="focus:bg-slate-400 cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleShare('x')} className="focus:bg-slate-100 dark:focus:bg-slate-700 cursor-pointer">
                           <Twitter className="h-4 w-4 mr-2 text-blue-400" />
                           X
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-400 cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleShare('facebook')} className="focus:bg-slate-100 dark:focus:bg-slate-700 cursor-pointer">
                           <Facebook className="h-4 w-4 mr-2 text-blue-600" />
                           Facebook
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-400 cursor-pointer">
+                        <DropdownMenuItem onClick={() => handleShare('linkedin')} className="focus:bg-slate-100 dark:focus:bg-slate-700 cursor-pointer">
                           <Linkedin className="h-4 w-4 mr-2 text-blue-700" />
                           LinkedIn
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                     {isOwnProfile && (
-                      <Button variant="outline" asChild className="rounded-xl bg-white/90 backdrop-blur-sm border-white/20">
+                      <Button variant="outline" asChild className="rounded-xl bg-white/90 dark:bg-transparent backdrop-blur-sm border-white/20">
                         <Link to="/profile">Edit Profile</Link>
                       </Button>
                     )}
@@ -353,31 +335,31 @@ const AuthorProfile = () => {
                 </div>
 
                 {/* Stats Row */}
-                <div className="flex justify-center sm:justify-start gap-8 pt-4 border-t border-slate-100">
+                <div className="flex justify-center sm:justify-start gap-8 pt-4 border-t border-slate-100 dark:border-slate-800">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-slate-900">{stats?.posts || 0}</p>
-                    <p className="text-sm text-slate-500 flex items-center gap-1"><FileText className="w-3 h-3" /> Posts</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats?.posts || 0}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1"><FileText className="w-3 h-3" /> Posts</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-slate-900">{stats?.followers || 0}</p>
-                    <p className="text-sm text-slate-500 flex items-center gap-1"><Users className="w-3 h-3" /> Followers</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats?.followers || 0}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1"><Users className="w-3 h-3" /> Followers</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-slate-900">{stats?.following || 0}</p>
-                    <p className="text-sm text-slate-500 flex items-center gap-1"><Users className="w-3 h-3" /> Following</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats?.following || 0}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1"><Users className="w-3 h-3" /> Following</p>
                   </div>
                 </div>
 
                 {profile.created_at && (
-                  <p className="text-xs text-slate-400 mt-4 flex items-center gap-1">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-4 flex items-center gap-1">
                     <Calendar className="w-3 h-3" /> Joined {format(new Date(profile.created_at), 'MMMM yyyy')}
                   </p>
                 )}
 
                 {/* Social Media Links */}
                 {((profile as any).twitter || (profile as any).facebook || (profile as any).linkedin || (profile as any).instagram || (profile as any).github || (profile as any).youtube || (profile as any).website) && (
-                  <div className="mt-6 pt-6 border-t border-slate-100">
-                    <p className="text-sm font-medium text-slate-700 mb-3">Connect</p>
+                  <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Connect</p>
                     <div className="flex flex-wrap gap-3">
                       {(profile as any).twitter && (
                         <a 
@@ -465,14 +447,14 @@ const AuthorProfile = () => {
 
             {/* Tabs */}
             <Tabs defaultValue="posts" className="w-full">
-              <TabsList className="w-full justify-start bg-white border border-slate-100 rounded-2xl p-1 mb-6">
-                <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600">
+              <TabsList className="w-full justify-start bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-1 mb-6">
+                <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400">
                   Posts ({stats?.posts || 0})
                 </TabsTrigger>
-                <TabsTrigger value="followers" className="rounded-xl data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600">
+                <TabsTrigger value="followers" className="rounded-xl data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400">
                   Followers ({stats?.followers || 0})
                 </TabsTrigger>
-                <TabsTrigger value="following" className="rounded-xl data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600">
+                <TabsTrigger value="following" className="rounded-xl data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400">
                   Following ({stats?.following || 0})
                 </TabsTrigger>
               </TabsList>
@@ -483,38 +465,51 @@ const AuthorProfile = () => {
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                   </div>
                 ) : allPosts.length === 0 ? (
-                  <div className="text-center py-12 bg-white rounded-2xl border border-slate-100">
-                    <FileText className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-                    <p className="text-slate-500">No posts yet</p>
+                  <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <FileText className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+                    <p className="text-slate-500 dark:text-slate-400">No posts yet</p>
                   </div>
                 ) : (
                   <>
                     {allPosts.map((post: any) => (
                       <Link key={post.id} to={`/post/${post.slug}`} className="block group">
-                        <article className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-lg hover:border-blue-100 transition-all">
-                          <div className="flex items-center justify-between mb-3">
-                            {post.categories && (
-                              <span className="px-2 py-1 bg-slate-50 text-slate-600 rounded-full text-xs font-medium">
-                                {post.categories.name}
-                              </span>
-                            )}
-                            <span className="text-xs text-slate-400">
-                              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                            </span>
-                          </div>
-                          
-                          <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
-                            {post.title}
-                          </h3>
-                          {post.excerpt && (
-                            <p className="text-slate-500 line-clamp-2 mb-4">{post.excerpt}</p>
+                        <article className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:border-blue-100 dark:hover:border-blue-900/50 transition-all overflow-hidden">
+                          {/* Post Image */}
+                          {post.post_images && post.post_images.length > 0 && (
+                            <div className="aspect-video overflow-hidden">
+                              <img 
+                                src={post.post_images[0].url} 
+                                alt={post.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            </div>
                           )}
                           
-                          <div className="flex items-center gap-4 text-sm text-slate-400">
-                            <span className="flex items-center gap-1"><Heart className="w-4 h-4" /> {post.likes?.[0]?.count || 0}</span>
-                            <span className="flex items-center gap-1"><MessageCircle className="w-4 h-4" /> {post.comments?.[0]?.count || 0}</span>
-                            <span className="flex items-center gap-1"><Eye className="w-4 h-4" /> {post.views || 0}</span>
-                            <span className="flex items-center gap-1 text-blue-500"><Clock className="w-4 h-4" /> {post.read_time || 5} min</span>
+                          <div className="p-6">
+                            <div className="flex items-center justify-between mb-3">
+                              {post.categories && (
+                                <span className="px-2 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs font-medium">
+                                  {post.categories.name}
+                                </span>
+                              )}
+                              <span className="text-xs text-slate-400 dark:text-slate-500">
+                                {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                            
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              {post.title}
+                            </h3>
+                            {post.excerpt && (
+                              <p className="text-slate-500 dark:text-slate-400 line-clamp-2 mb-4">{post.excerpt}</p>
+                            )}
+                            
+                            <div className="flex items-center gap-4 text-sm text-slate-400 dark:text-slate-500">
+                              <span className="flex items-center gap-1"><Heart className="w-4 h-4" /> {post.likes?.[0]?.count || 0}</span>
+                              <span className="flex items-center gap-1"><MessageCircle className="w-4 h-4" /> {post.comments?.[0]?.count || 0}</span>
+                              <span className="flex items-center gap-1"><Eye className="w-4 h-4" /> {post.views || 0}</span>
+                              <span className="flex items-center gap-1 text-blue-500 dark:text-blue-400"><Clock className="w-4 h-4" /> {post.read_time || 5} min</span>
+                            </div>
                           </div>
                         </article>
                       </Link>
@@ -529,25 +524,25 @@ const AuthorProfile = () => {
 
               <TabsContent value="followers" className="space-y-4">
                 {followers?.length === 0 ? (
-                  <div className="text-center py-12 bg-white rounded-2xl border border-slate-100">
-                    <Users className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-                    <p className="text-slate-500">No followers yet</p>
+                  <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <Users className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+                    <p className="text-slate-500 dark:text-slate-400">No followers yet</p>
                   </div>
                 ) : (
                   <div className="grid gap-4">
                     {followers?.map((f: any) => (
                       <Link key={f.follower_id} to={`/author/${f.profiles.id}`} className="block">
-                        <Card className="p-4 bg-white hover:shadow-md transition-shadow rounded-2xl border border-slate-100">
+                        <Card className="p-4 bg-white dark:bg-slate-900 hover:shadow-md transition-shadow rounded-2xl border border-slate-100 dark:border-slate-800">
                           <div className="flex items-center gap-4">
                             <Avatar className="h-12 w-12">
                               <AvatarImage src={f.profiles.profile_image_url || ''} />
-                              <AvatarFallback className="bg-slate-100 font-bold">
+                              <AvatarFallback className="bg-slate-100 dark:bg-slate-800 font-bold">
                                 {f.profiles.full_name?.[0]?.toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-slate-900 truncate">{f.profiles.full_name}</p>
-                              {f.profiles.bio && <p className="text-sm text-slate-500 truncate">{f.profiles.bio}</p>}
+                              <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{f.profiles.full_name}</p>
+                              {f.profiles.bio && <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{f.profiles.bio}</p>}
                             </div>
                             <FollowButton userId={f.profiles.id} size="sm" />
                           </div>
@@ -560,25 +555,25 @@ const AuthorProfile = () => {
 
               <TabsContent value="following" className="space-y-4">
                 {following?.length === 0 ? (
-                  <div className="text-center py-12 bg-white rounded-2xl border border-slate-100">
-                    <Users className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-                    <p className="text-slate-500">Not following anyone yet</p>
+                  <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <Users className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+                    <p className="text-slate-500 dark:text-slate-400">Not following anyone yet</p>
                   </div>
                 ) : (
                   <div className="grid gap-4">
                     {following?.map((f: any) => (
                       <Link key={f.following_id} to={`/author/${f.profiles.id}`} className="block">
-                        <Card className="p-4 bg-white hover:shadow-md transition-shadow rounded-2xl border border-slate-100">
+                        <Card className="p-4 bg-white dark:bg-slate-900 hover:shadow-md transition-shadow rounded-2xl border border-slate-100 dark:border-slate-800">
                           <div className="flex items-center gap-4">
                             <Avatar className="h-12 w-12">
                               <AvatarImage src={f.profiles.profile_image_url || ''} />
-                              <AvatarFallback className="bg-slate-100 font-bold">
+                              <AvatarFallback className="bg-slate-100 dark:bg-slate-800 font-bold">
                                 {f.profiles.full_name?.[0]?.toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-slate-900 truncate">{f.profiles.full_name}</p>
-                              {f.profiles.bio && <p className="text-sm text-slate-500 truncate">{f.profiles.bio}</p>}
+                              <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{f.profiles.full_name}</p>
+                              {f.profiles.bio && <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{f.profiles.bio}</p>}
                             </div>
                             <FollowButton userId={f.profiles.id} size="sm" />
                           </div>

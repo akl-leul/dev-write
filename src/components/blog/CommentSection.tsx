@@ -228,25 +228,25 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
     const isReplying = replyTo === comment.id;
 
     return (
-      <div key={comment.id} className={`${depth > 0 ? 'ml-6 sm:ml-12 border-l-2 border-slate-100 pl-4 sm:pl-6' : ''} mb-6 transition-all`}>
+      <div key={comment.id} className={`${depth > 0 ? 'ml-6 sm:ml-12 border-l-2 border-slate-100 dark:border-slate-700 pl-4 sm:pl-6' : ''} mb-6 transition-all`}>
         <div className="flex gap-4 group">
-          <Avatar className="h-10 w-10 border border-white shadow-sm ring-1 ring-slate-100 flex-shrink-0">
+          <Avatar className="h-10 w-10 border border-white dark:border-slate-900 shadow-sm ring-1 ring-slate-100 dark:ring-slate-700 flex-shrink-0">
             <AvatarImage src={comment.profiles?.profile_image_url || ''} />
-            <AvatarFallback className="bg-slate-100 text-slate-500 font-bold">
+            <AvatarFallback className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold">
               {comment.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-2 mb-1">
-              <span className="font-bold text-slate-900 text-sm">{comment.profiles?.full_name}</span>
-              <span className="text-xs text-slate-400">
+              <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">{comment.profiles?.full_name}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">
                 {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
               </span>
             </div>
             
             {isEditing ? (
-              <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="space-y-3 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                 <Textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
@@ -274,7 +274,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                 </div>
               </div>
             ) : (
-              <div className="prose prose-sm prose-slate max-w-none mb-2 text-slate-700 leading-relaxed">
+              <div className="prose prose-sm prose-slate max-w-none mb-2 text-slate-700 dark:text-slate-300 leading-relaxed">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {comment.content_markdown}
                 </ReactMarkdown>
@@ -286,8 +286,8 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                 onClick={() => handleLikeClick(comment.id)}
                 className={`flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ${
                   isLiked 
-                    ? 'text-red-500 bg-red-50' 
-                    : 'text-slate-500 hover:text-red-500 hover:bg-red-50'
+                    ? 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20' 
+                    : 'text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
                 }`}
               >
                 <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-current' : ''}`} />
@@ -296,7 +296,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
               
               <button
                 onClick={() => handleReplyClick(comment.id)}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-full text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
                 <Reply className="h-3.5 w-3.5" />
                 Reply
@@ -309,7 +309,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                       setEditingId(comment.id);
                       setEditContent(comment.content_markdown);
                     }}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-full text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors ml-auto sm:ml-0"
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ml-auto sm:ml-0"
                   >
                     <Edit2 className="h-3.5 w-3.5" />
                     Edit
@@ -320,7 +320,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                         deleteComment.mutate(comment.id);
                       }
                     }}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-full text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     Delete
@@ -330,10 +330,10 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
             </div>
             
             {isReplying && (
-              <div className="mt-4 space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                  <span>Replying to <span className="font-bold text-slate-700">{comment.profiles?.full_name}</span></span>
-                  <button onClick={() => setReplyTo(null)} className="hover:text-slate-900"><X className="w-3 h-3" /></button>
+              <div className="mt-4 space-y-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+                  <span>Replying to <span className="font-bold text-slate-700 dark:text-slate-300">{comment.profiles?.full_name}</span></span>
+                  <button onClick={() => setReplyTo(null)} className="hover:text-slate-900 dark:hover:text-slate-100"><X className="w-3 h-3" /></button>
                 </div>
                 <Textarea
                   value={replyContent}
@@ -381,11 +381,11 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
   return (
     <div className="py-6 sm:py-10 px-6 sm:px-10">
       <div className="flex items-center gap-3 mb-8">
-        <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-xl text-blue-600 dark:text-blue-400">
            <MessageCircle className="w-6 h-6" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900">
-          Comments <span className="text-slate-400 text-lg font-normal ml-1">({comments?.length || 0})</span>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          Comments <span className="text-slate-400 dark:text-slate-500 text-lg font-normal ml-1">({comments?.length || 0})</span>
         </h2>
       </div>
       
@@ -395,7 +395,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder={user ? "Share your thoughts on this story..." : "Sign in to join the conversation..."}
-          className="min-h-[120px] bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-2xl resize-y p-4 text-base shadow-sm"
+          className="min-h-[120px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-2xl resize-y p-4 text-base shadow-sm"
           onClick={() => !user && setShowAuthDialog(true)}
         />
         <div className="absolute bottom-4 right-4">
@@ -414,11 +414,11 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
         <div className="space-y-6">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="animate-pulse flex gap-4">
-              <div className="h-10 w-10 rounded-full bg-slate-200"></div>
+              <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700"></div>
               <div className="flex-1 space-y-3">
-                <div className="h-4 bg-slate-200 rounded w-1/4"></div>
-                <div className="h-4 bg-slate-200 rounded w-full"></div>
-                <div className="h-4 bg-slate-200 rounded w-2/3"></div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/4"></div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
               </div>
             </div>
           ))}
@@ -428,24 +428,24 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           {comments.map(comment => renderComment(comment))}
         </div>
       ) : (
-        <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-          <MessageCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-900 font-medium">No comments yet</p>
-          <p className="text-slate-500 text-sm">Be the first to share your thoughts!</p>
+        <div className="text-center py-12 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+          <MessageCircle className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+          <p className="text-slate-900 dark:text-slate-100 font-medium">No comments yet</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Be the first to share your thoughts!</p>
         </div>
       )}
 
       {/* Auth Required Dialog */}
       <AlertDialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
-        <AlertDialogContent className="rounded-2xl border-slate-100 shadow-2xl">
+        <AlertDialogContent className="rounded-2xl border-slate-100 dark:border-slate-700 shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold text-slate-900">Join the Conversation</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-500">
+            <AlertDialogTitle className="text-xl font-bold text-slate-900 dark:text-slate-100">Join the Conversation</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 dark:text-slate-400">
               Please create an account or sign in to comment on this post. Join our community to share your thoughts and engage with others.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl border-slate-200">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl border-slate-200 dark:border-slate-700">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => navigate('/auth')}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"

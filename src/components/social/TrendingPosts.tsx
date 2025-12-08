@@ -56,12 +56,12 @@ export const TrendingPosts = () => {
   }
 
   return (
-    <Card className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <Card className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
       <div className="flex items-center gap-2 mb-4">
-        <div className="p-2 bg-orange-50 text-orange-500 rounded-lg">
+        <div className="p-2 bg-orange-50 dark:bg-orange-900/20 text-orange-500 dark:text-orange-400 rounded-lg">
           <TrendingUp className="h-4 w-4" />
         </div>
-        <h3 className="font-bold text-slate-900">Trending This Week</h3>
+        <h3 className="font-bold text-slate-900 dark:text-slate-100">Trending This Week</h3>
         <Flame className="h-4 w-4 text-orange-400 animate-pulse" />
       </div>
       
@@ -70,7 +70,7 @@ export const TrendingPosts = () => {
           <Link 
             key={post.id} 
             to={`/post/${post.slug}`}
-            className="group flex gap-4 items-start hover:bg-slate-50 -mx-2 px-2 py-2 rounded-xl transition-colors"
+            className="group flex gap-4 items-start hover:bg-slate-50 dark:hover:bg-slate-800 -mx-2 px-2 py-2 rounded-xl transition-colors"
           >
             <span className={`text-2xl font-bold shrink-0 w-8 ${
               index === 0 ? 'text-orange-500' : 
@@ -81,11 +81,11 @@ export const TrendingPosts = () => {
             </span>
             
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-slate-900 text-sm line-clamp-2 group-hover:text-blue-600 transition-colors leading-snug mb-1">
+              <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug mb-1">
                 {post.title}
               </h4>
               
-              <div className="flex items-center gap-3 text-xs text-slate-400">
+              <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
                 <span className="truncate">{post.profiles?.full_name}</span>
                 <span className="flex items-center gap-1">
                   <Eye className="h-3 w-3" />
@@ -101,10 +101,10 @@ export const TrendingPosts = () => {
         ))}
       </div>
       
-      <div className="mt-4 pt-4 border-t border-slate-50">
+      <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700">
         <Link 
           to="/feed" 
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline"
+          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:underline"
         >
           View all posts →
         </Link>

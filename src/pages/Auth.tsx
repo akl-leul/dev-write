@@ -39,7 +39,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const { user, signUp, signIn, signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
-  const mode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+  const [activeTab, setActiveTab] = useState(searchParams.get('mode') === 'signup' ? 'signup' : 'signin');
 
   const signUpForm = useForm<SignUpForm>({
     resolver: zodResolver(signUpSchema),
@@ -68,6 +68,11 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    const mode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+    setActiveTab(mode);
+  }, [searchParams]);
+
   const handleSignUp = async (data: SignUpForm) => {
     setLoading(true);
     const { error } = await signUp(
@@ -95,10 +100,10 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white font-sans selection:bg-blue-100 relative p-4">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/30 relative p-4">
       
       {/* Background Dot Pattern */}
-      <div className="fixed inset-0 z-0 pointer-events-none" 
+      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-30" 
            style={{
              backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
              backgroundSize: '24px 24px'
@@ -107,24 +112,24 @@ const Auth = () => {
 
       <div className="absolute top-6 left-6 z-20">
         <Link to="/">
-          <Button variant="ghost" className="text-slate-500 hover:text-slate-900 gap-2 pl-0 hover:bg-transparent">
+          <Button variant="ghost" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 gap-2 pl-0 hover:bg-transparent">
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Button>
         </Link>
       </div>
 
-      <Card className="w-full max-w-md bg-white shadow-2xl rounded-2xl border border-slate-100 z-10 relative overflow-hidden">
+      <Card className="w-full max-w-md bg-white dark:bg-slate-800 shadow-2xl rounded-2xl border border-slate-100 dark:border-slate-700 z-10 relative overflow-hidden">
         {/* Decorative top bar */}
         <div className="h-2 bg-gradient-to-r from-blue-500 to-blue-600 w-full"></div>
 
         <CardHeader className="space-y-4 text-center pb-2">
-          <div className="mx-auto w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg mb-2">
+          <div className="mx-auto w-12 h-12 bg-slate-900 dark:bg-slate-700 rounded-xl flex items-center justify-center text-white shadow-lg mb-2">
             <PenLine size={24} />
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-slate-900 tracking-tight">Welcome to Chronicle</CardTitle>
-            <CardDescription className="text-slate-500">
+            <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Welcome to Chronicle</CardTitle>
+            <CardDescription className="text-slate-500 dark:text-slate-400">
               Sign in to continue your writing journey
             </CardDescription>
           </div>
@@ -135,7 +140,7 @@ const Auth = () => {
           <Button
             variant="outline"
             type="button"
-            className="w-full mb-6 flex items-center justify-center gap-3 h-11 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+            className="w-full mb-6 flex items-center justify-center gap-3 h-11 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 hover:border-slate-300 dark:hover:border-slate-500 transition-all"
             onClick={async () => {
               setLoading(true);
               const { error } = await signInWithGoogle();
@@ -147,31 +152,31 @@ const Auth = () => {
             disabled={loading}
           >
             <FcGoogle className="w-5 h-5" />
-            <span className="text-slate-700 font-medium">Continue with Google</span>
+            <span className="text-slate-700 dark:text-slate-300 font-medium">Continue with Google</span>
           </Button>
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-200" />
+              <span className="w-full border-t border-slate-200 dark:border-slate-600" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-slate-500 font-medium">
+              <span className="bg-white dark:bg-slate-800 px-3 text-slate-500 dark:text-slate-400 font-medium">
                 Or continue with email
               </span>
             </div>
           </div>
 
-          <Tabs defaultValue={mode} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-xl mb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-slate-100 dark:bg-slate-700 p-1 rounded-xl mb-6">
               <TabsTrigger 
                 value="signin" 
-                className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm transition-all"
+                className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-sm transition-all"
               >
                 Sign In
               </TabsTrigger>
               <TabsTrigger 
                 value="signup" 
-                className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm transition-all"
+                className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-sm transition-all"
               >
                 Sign Up
               </TabsTrigger>
@@ -180,12 +185,12 @@ const Auth = () => {
             <TabsContent value="signin" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
               <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email" className="text-slate-700 font-medium">Email</Label>
+                  <Label htmlFor="signin-email" className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
                   <Input
                     id="signin-email"
                     type="email"
                     placeholder="you@example.com"
-                    className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    className="bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
                     {...signInForm.register('email')}
                   />
                   {signInForm.formState.errors.email && (
@@ -195,10 +200,10 @@ const Auth = () => {
                 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="signin-password" className="text-slate-700 font-medium">Password</Label>
+                    <Label htmlFor="signin-password" className="text-slate-700 dark:text-slate-300 font-medium">Password</Label>
                     <Link
                       to="/forgot-password"
-                      className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
                     >
                       Forgot password?
                     </Link>
@@ -206,7 +211,7 @@ const Auth = () => {
                   <Input
                     id="signin-password"
                     type="password"
-                    className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    className="bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
                     {...signInForm.register('password')}
                   />
                   {signInForm.formState.errors.password && (
@@ -218,9 +223,9 @@ const Auth = () => {
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
 
-                <div className="text-center text-sm text-slate-500 mt-4">
+                <div className="text-center text-sm text-slate-500 dark:text-slate-400 mt-4">
                   Don't have an account?{' '}
-                  <Link to="/auth?mode=signup" className="text-blue-600 hover:underline font-bold">
+                  <Link to="/auth?mode=signup" className="text-blue-600 dark:text-blue-400 hover:underline font-bold">
                     Create one now
                   </Link>
                 </div>
@@ -230,11 +235,11 @@ const Auth = () => {
             <TabsContent value="signup" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
               <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name" className="text-slate-700 font-medium">Full Name</Label>
+                  <Label htmlFor="signup-name" className="text-slate-700 dark:text-slate-300 font-medium">Full Name</Label>
                   <Input
                     id="signup-name"
                     placeholder="John Doe"
-                    className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    className="bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
                     {...signUpForm.register('fullName')}
                   />
                   {signUpForm.formState.errors.fullName && (
@@ -244,11 +249,11 @@ const Auth = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-age" className="text-slate-700 font-medium">Age</Label>
+                    <Label htmlFor="signup-age" className="text-slate-700 dark:text-slate-300 font-medium">Age</Label>
                     <Input
                       id="signup-age"
                       type="number"
-                      className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      className="bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
                       {...signUpForm.register('age', { valueAsNumber: true })}
                     />
                     {signUpForm.formState.errors.age && (
@@ -257,15 +262,15 @@ const Auth = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-gender" className="text-slate-700 font-medium">Gender</Label>
+                    <Label htmlFor="signup-gender" className="text-slate-700 dark:text-slate-300 font-medium">Gender</Label>
                     <Select onValueChange={(value) => signUpForm.setValue('gender', value)}>
-                      <SelectTrigger id="signup-gender" className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20">
-                        <SelectValue placeholder="Select" />
+                      <SelectTrigger id="signup-gender" className="bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20">
+                        <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        </SelectContent>
+                      <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600">
+                        <SelectItem value="male" className="text-slate-900 dark:text-slate-100 focus:bg-slate-50 dark:focus:bg-slate-700">Male</SelectItem>
+                        <SelectItem value="female" className="text-slate-900 dark:text-slate-100 focus:bg-slate-50 dark:focus:bg-slate-700">Female</SelectItem>
+                      </SelectContent>
                     </Select>
                     {signUpForm.formState.errors.gender && (
                       <p className="text-sm text-red-500 font-medium">{signUpForm.formState.errors.gender.message}</p>
@@ -274,12 +279,12 @@ const Auth = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="signup-phone" className="text-slate-700 font-medium">Phone</Label>
+                  <Label htmlFor="signup-phone" className="text-slate-700 dark:text-slate-300 font-medium">Phone</Label>
                   <Input
                     id="signup-phone"
                     type="tel"
                     placeholder="+1234567890"
-                    className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    className="bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
                     {...signUpForm.register('phone')}
                   />
                   {signUpForm.formState.errors.phone && (
@@ -288,12 +293,12 @@ const Auth = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-slate-700 font-medium">Email</Label>
+                  <Label htmlFor="signup-email" className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
                   <Input
                     id="signup-email"
                     type="email"
                     placeholder="you@example.com"
-                    className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                    className="bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
                     {...signUpForm.register('email')}
                   />
                   {signUpForm.formState.errors.email && (
@@ -303,11 +308,11 @@ const Auth = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-slate-700 font-medium">Password</Label>
+                    <Label htmlFor="signup-password" className="text-slate-700 dark:text-slate-300 font-medium">Password</Label>
                     <Input
                       id="signup-password"
                       type="password"
-                      className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      className="bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
                       {...signUpForm.register('password')}
                     />
                     {signUpForm.formState.errors.password && (
@@ -316,11 +321,11 @@ const Auth = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-confirm" className="text-slate-700 font-medium">Confirm</Label>
+                    <Label htmlFor="signup-confirm" className="text-slate-700 dark:text-slate-300 font-medium">Confirm</Label>
                     <Input
                       id="signup-confirm"
                       type="password"
-                      className="bg-slate-50 text-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      className="bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500/20"
                       {...signUpForm.register('confirmPassword')}
                     />
                     {signUpForm.formState.errors.confirmPassword && (
@@ -333,9 +338,9 @@ const Auth = () => {
                   {loading ? 'Creating account...' : 'Create Account'}
                 </Button>
 
-                <div className="text-center text-sm text-slate-500 mt-4">
+                <div className="text-center text-sm text-slate-500 dark:text-slate-400 mt-4">
                   Already have an account?{' '}
-                  <Link to="/auth" className="text-blue-600 hover:underline font-bold">
+                  <Link to="/auth?mode=signin" className="text-blue-600 dark:text-blue-400 hover:underline font-bold">
                     Sign in instead
                   </Link>
                 </div>

@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Check, FileText, Heart, MessageCircle, UserPlus, Sparkles } from 'lucide-react';
+import { Bell, Check, FileText, Heart, MessageCircle, UserPlus, Sparkles, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -40,7 +40,7 @@ export const NotificationDropdown = () => {
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(10);
 
       if (error) {
         console.error('Error fetching notifications:', error);
@@ -119,6 +119,21 @@ export const NotificationDropdown = () => {
     },
   });
 
+  const deleteNotification = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      toast.success('Notification deleted');
+    },
+  });
+
   const unreadCount = notifications?.filter((n: any) => !n.read).length || 0;
 
   const getNotificationIcon = (type: string) => {
@@ -172,9 +187,15 @@ export const NotificationDropdown = () => {
     // Navigate based on notification type
     if (notification.type === 'follow' && notification.from_user_id) {
       navigate(`/author/${notification.from_user_id}`);
-    } else if (notification.posts?.slug) {
-      navigate(`/post/${notification.posts.slug}`);
+    } else if (notification.post?.slug) {
+      navigate(`/post/${notification.post.slug}`);
     }
+  };
+
+  const handleDeleteNotification = (e: React.MouseEvent, notificationId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    deleteNotification.mutate(notificationId);
   };
 
   const handleDropdownOpen = () => {
@@ -192,23 +213,23 @@ export const NotificationDropdown = () => {
       }
     }}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl w-10 h-10 transition-colors">
+        <Button variant="ghost" size="icon" className="relative text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl w-10 h-10 transition-colors">
           <Bell className={`h-5 w-5 ${hasNewNotification ? 'animate-bounce' : ''}`} />
           {unreadCount > 0 && (
-            <span className={`absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-red-500 border-2 border-white text-[10px] text-white font-bold flex items-center justify-center ${hasNewNotification ? 'animate-pulse' : ''}`}>
+            <span className={`absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-red-500 border-2 border-white dark:border-slate-900 text-[10px] text-white font-bold flex items-center justify-center ${hasNewNotification ? 'animate-pulse' : ''}`}>
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-80 sm:w-96 max-h-[85vh] overflow-y-auto rounded-2xl border-slate-100 shadow-xl p-0 bg-white">
+      <DropdownMenuContent align="end" className="w-80 sm:w-96 max-h-[85vh] overflow-y-auto rounded-2xl border-slate-200 dark:border-slate-700 shadow-xl p-0 bg-white dark:bg-slate-900">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-slate-100 p-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-700 p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900">Notifications</span>
+            <span className="font-bold text-slate-900 dark:text-slate-100">Notifications</span>
             {unreadCount > 0 && (
-              <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2 py-0.5 rounded-full">
+              <span className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-bold px-2 py-0.5 rounded-full">
                 {unreadCount} new
               </span>
             )}
@@ -217,7 +238,7 @@ export const NotificationDropdown = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs h-7 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
+              className="text-xs h-7 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
               onClick={(e) => {
                 e.preventDefault();
                 markAllAsRead.mutate();
@@ -232,19 +253,19 @@ export const NotificationDropdown = () => {
         <div className="py-2">
           {notifications?.length === 0 ? (
             <div className="py-12 px-4 text-center">
-              <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+              <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400 dark:text-slate-500">
                 <Sparkles className="h-6 w-6" />
               </div>
-              <p className="text-slate-900 font-medium">No notifications yet</p>
-              <p className="text-sm text-slate-500">We'll let you know when something arrives.</p>
+              <p className="text-slate-900 dark:text-slate-100 font-medium">No notifications yet</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">We'll let you know when something arrives.</p>
             </div>
           ) : (
             notifications?.map((notification: any) => (
               <DropdownMenuItem
                 key={notification.id}
-                className={`flex items-start gap-4 px-4 py-3 cursor-pointer focus:bg-slate-400 transition-colors border-l-2 ${
+                className={`flex items-start gap-4 px-4 py-3 cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800 transition-colors border-l-2 group ${
                   !notification.read 
-                    ? 'border-blue-500 bg-blue-50/30' 
+                    ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-900/20' 
                     : 'border-transparent'
                 }`}
                 onClick={() => handleNotificationClick(notification)}
@@ -252,7 +273,7 @@ export const NotificationDropdown = () => {
                 {getNotificationIcon(notification.type)}
                 
                 <div className="flex-1 min-w-0 space-y-1">
-                  <div className="text-sm text-slate-900 leading-snug">
+                  <div className="text-sm text-slate-900 dark:text-slate-100 leading-snug">
                     {notification.type === 'follow' && (
                       <p><span className="font-semibold">{notification.from_user?.full_name || 'Someone'}</span> started following you</p>
                     )}
@@ -277,19 +298,29 @@ export const NotificationDropdown = () => {
                   </div>
                   
                   {notification.message && !['follow', 'like', 'comment', 'mention', 'new_post'].includes(notification.type) && (
-                    <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                       {notification.message}
                     </p>
                   )}
                   
-                  <p className="text-xs text-slate-400 font-medium pt-1">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 font-medium pt-1">
                     {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                   </p>
                 </div>
                 
-                {!notification.read && (
-                  <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 self-center animate-pulse" />
-                )}
+                <div className="flex items-center gap-2 shrink-0">
+                  {!notification.read && (
+                    <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 self-center animate-pulse" />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    onClick={(e) => handleDeleteNotification(e, notification.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
               </DropdownMenuItem>
             ))
           )}

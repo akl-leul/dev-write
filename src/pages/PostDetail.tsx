@@ -231,16 +231,16 @@ const PostDetail = () => {
   // Loading State
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <Header />
         <div className="container mx-auto py-12 px-4">
           <div className="max-w-4xl mx-auto space-y-6">
-            <div className="h-12 bg-slate-200 rounded-xl w-3/4 animate-pulse"></div>
-            <div className="h-80 bg-white rounded-2xl border border-slate-100 shadow-sm animate-pulse"></div>
+            <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-xl w-3/4 animate-pulse"></div>
+            <div className="h-80 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm animate-pulse"></div>
             <div className="space-y-4">
-              <div className="h-4 bg-slate-200 rounded w-full animate-pulse"></div>
-              <div className="h-4 bg-slate-200 rounded w-full animate-pulse"></div>
-              <div className="h-4 bg-slate-200 rounded w-2/3 animate-pulse"></div>
+              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full animate-pulse"></div>
+              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full animate-pulse"></div>
+              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-2/3 animate-pulse"></div>
             </div>
           </div>
         </div>
@@ -250,14 +250,14 @@ const PostDetail = () => {
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <Header />
         <div className="container py-20 text-center">
-          <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-            <h1 className="text-3xl font-bold text-slate-900 mb-4">
+          <div className="max-w-md mx-auto bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
               Post not found
             </h1>
-            <p className="text-slate-500 mb-6">
+            <p className="text-slate-500 dark:text-slate-400 mb-6">
               The story you are looking for might have been removed or is
               unavailable.
             </p>
@@ -347,12 +347,12 @@ const PostDetail = () => {
         <article className="container mx-auto py-12 px-4">
           <div className="max-w-4xl mx-auto">
             {/* Header / Meta Information */}
-            <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm mb-8">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm mb-8">
               {/* Category, Tags & Date Row */}
               <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div className="flex flex-wrap items-center gap-3">
                   {post.categories && (
-                    <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold uppercase tracking-wider">
+                    <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold uppercase tracking-wider">
                       {post.categories.name}
                     </span>
                   )}
@@ -360,9 +360,9 @@ const PostDetail = () => {
                   {/* Tags */}
                   {post.post_tags && post.post_tags.length > 0 && (
                     <>
-                      <span className="text-slate-300">|</span>
+                      <span className="text-slate-300 dark:text-slate-600">|</span>
                       <div className="flex flex-wrap items-center gap-2">
-                        <TagIcon className="w-4 h-4 text-slate-400" />
+                        <TagIcon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                         {post.post_tags.map((postTag, index) => (
                           <span
                             key={postTag.tags.id}
@@ -381,13 +381,13 @@ const PostDetail = () => {
                   )}
 
                   <span className="text-slate-300">|</span>
-                  <div className="flex items-center gap-1.5 text-slate-500 text-sm font-medium">
+                  <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-sm font-medium">
                     <Clock className="w-4 h-4" />
                     <span>{post.read_time || 5} min read</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 text-sm text-slate-400 font-medium">
+                <div className="flex items-center gap-4 text-sm text-slate-400 dark:text-slate-500 font-medium">
                   <div className="flex items-center gap-1.5">
                     <Eye className="w-4 h-4" />
                     <span>{post.views || 0}</span>
@@ -400,17 +400,17 @@ const PostDetail = () => {
               </div>
 
               {/* Title */}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-8 leading-tight tracking-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-8 leading-tight tracking-tight">
                 {post.title}
               </h1>
 
               {/* Author & Actions Row */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-6 border-t border-slate-50">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-6 border-t border-slate-50 dark:border-slate-700">
                 <Link
                   to={`/author/${post.author_id}`}
                   className="flex items-center gap-4 group"
                 >
-                  <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-2 ring-slate-50 group-hover:ring-blue-100 transition-all">
+                  <Avatar className="h-12 w-12 border-2 border-white dark:border-slate-900 shadow-sm ring-2 ring-slate-50 dark:ring-slate-700 group-hover:ring-blue-100 dark:group-hover:ring-blue-900/20 transition-all">
                     <AvatarImage src={post.profiles?.profile_image_url || ""} />
                     <AvatarFallback className="bg-slate-900 text-white font-bold">
                       {post.profiles?.full_name?.[0]?.toUpperCase() || "U"}
@@ -418,12 +418,12 @@ const PostDetail = () => {
                   </Avatar>
                   <div>
                     <div className="flex items-center gap-3 mb-1">
-                      <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                      <p className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {post.profiles?.full_name}
                       </p>
                       <FollowButton userId={post.author_id} />
                     </div>
-                    <p className="text-xs text-slate-500">Author</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Author</p>
                   </div>
                 </Link>
 
@@ -435,7 +435,7 @@ const PostDetail = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 sm:flex-none border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl"
+                        className="flex-1 sm:flex-none border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 rounded-xl"
                       >
                         <Share2 className="h-4 w-4 mr-2" />
                         Share
@@ -443,46 +443,46 @@ const PostDetail = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"
-                      className="rounded-xl border-slate-100 shadow-lg"
+                      className="rounded-xl border-slate-200 dark:border-slate-700 shadow-lg"
                     >
                       <DropdownMenuItem
                         onClick={() => handleShare("copy")}
-                        className="focus:bg-slate-400 cursor-pointer"
+                        className="focus:bg-slate-100 dark:focus:bg-slate-800 cursor-pointer"
                       >
-                        <Copy className="h-4 w-4 mr-2 text-slate-400" />
+                        <Copy className="h-4 w-4 mr-2 text-slate-400 dark:text-slate-500" />
                         Copy Link
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleShare("twitter")}
-                        className="focus:bg-slate-400 cursor-pointer"
+                        className="focus:bg-slate-100 dark:focus:bg-slate-800 cursor-pointer"
                       >
-                        <Twitter className="h-4 w-4 mr-2 text-blue-400" />
+                        <Twitter className="h-4 w-4 mr-2 text-blue-400 dark:text-blue-400" />
                         Twitter
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleShare("facebook")}
-                        className="focus:bg-slate-400 cursor-pointer"
+                        className="focus:bg-slate-100 dark:focus:bg-slate-800 cursor-pointer"
                       >
-                        <Facebook className="h-4 w-4 mr-2 text-blue-600" />
+                        <Facebook className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-500" />
                         Facebook
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleShare("linkedin")}
-                        className="focus:bg-slate-400 cursor-pointer"
+                        className="focus:bg-slate-100 dark:focus:bg-slate-800 cursor-pointer"
                       >
-                        <Linkedin className="h-4 w-4 mr-2 text-blue-700" />
+                        <Linkedin className="h-4 w-4 mr-2 text-blue-700 dark:text-blue-600" />
                         LinkedIn
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
 
                   {isAuthor && (
-                    <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-100">
+                    <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-100 dark:border-slate-700">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => navigate(`/create?edit=${post.id}`)}
-                        className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg h-9 w-9"
+                        className="text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg h-9 w-9"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -498,7 +498,7 @@ const PostDetail = () => {
                             deletePost.mutate();
                           }
                         }}
-                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg h-9 w-9"
+                        className="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg h-9 w-9"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -514,7 +514,7 @@ const PostDetail = () => {
               <div className="mb-10 sm:mb-12">
                 {post.featured_image ? (
                   <div
-                    className="rounded-3xl overflow-hidden shadow-xl shadow-blue-900/5 border border-slate-100 cursor-pointer group"
+                    className="rounded-3xl overflow-hidden shadow-xl shadow-blue-900/5 border border-slate-100 dark:border-slate-700 cursor-pointer group"
                     onClick={() => openLightbox(0)}
                   >
                     <img
@@ -531,7 +531,7 @@ const PostDetail = () => {
                 ) : (
                   post.post_images &&
                   post.post_images.length > 0 && (
-                    <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100">
+                    <div className="bg-white dark:bg-slate-800 p-2 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
                       <Carousel className="w-full rounded-2xl overflow-hidden">
                         <CarouselContent>
                           {post.post_images
@@ -563,13 +563,13 @@ const PostDetail = () => {
                         </CarouselContent>
                         {post.post_images.length > 1 && (
                           <>
-                            <CarouselPrevious className="left-4 bg-white/80 hover:bg-white border-0 shadow-lg" />
-                            <CarouselNext className="right-4 bg-white/80 hover:bg-white border-0 shadow-lg" />
+                            <CarouselPrevious className="left-4 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border-0 shadow-lg" />
+                            <CarouselNext className="right-4 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border-0 shadow-lg" />
                           </>
                         )}
                       </Carousel>
                       {post.post_images.length > 1 && (
-                        <p className="text-center text-xs text-slate-400 py-2 font-medium">
+                        <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-2 font-medium">
                           {post.post_images.length} images in gallery • Click to
                           expand
                         </p>
@@ -581,8 +581,8 @@ const PostDetail = () => {
             )}
 
             {/* Content Body */}
-            <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm mb-12">
-              <div className="prose prose-lg prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-600 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-2xl">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm mb-12">
+              <div className="prose prose-lg prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-img:rounded-2xl">
                 <div
                   dangerouslySetInnerHTML={{ __html: post.content_markdown }}
                 />
@@ -598,7 +598,7 @@ const PostDetail = () => {
                 className={`rounded-full px-8 h-12 shadow-lg transition-all ${
                   isLiked
                     ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 border-red-500"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-red-200 hover:text-red-500 hover:bg-red-50"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-800 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                 }`}
               >
                 <Heart
@@ -610,7 +610,7 @@ const PostDetail = () => {
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded-full px-8 h-12 bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600 hover:bg-blue-50 shadow-lg shadow-slate-200/50"
+                className="rounded-full px-8 h-12 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-800 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 shadow-lg shadow-slate-200/50 dark:shadow-slate-800/50"
                 onClick={() => {
                   document
                     .getElementById("comments-section")
@@ -625,7 +625,7 @@ const PostDetail = () => {
             {/* Comments Section */}
             <div
               id="comments-section"
-              className="bg-slate-50/50 rounded-3xl border border-slate-100 overflow-hidden"
+              className="bg-slate-50/50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700 overflow-hidden"
             >
               <CommentSection postId={post.id} />
             </div>

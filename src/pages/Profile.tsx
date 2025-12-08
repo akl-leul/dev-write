@@ -298,7 +298,7 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <Header />
         <div className="container py-20 flex justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -308,7 +308,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background font-sans selection:bg-accent/20">
+    <div className="min-h-screen bg-background dark:bg-slate-900 font-sans selection:bg-accent/20 dark:selection:bg-blue-900/20">
       
       {/* Background Dot Pattern */}
       <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
@@ -326,40 +326,40 @@ const Profile = () => {
             
             {/* Header Title */}
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center text-blue-600">
+              <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400">
                 <User size={24} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Profile Settings</h1>
-                <p className="text-slate-500">Manage your personal information and security</p>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Profile Settings</h1>
+                <p className="text-slate-500 dark:text-slate-400">Manage your personal information and security</p>
               </div>
             </div>
             {/* Stats Card */}
-            <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden mb-8">
+            <Card className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden mb-8">
               <CardContent className="p-6">
                 <div className="flex flex-wrap justify-center sm:justify-start gap-8">
                   <Link to={user ? `/author/${user.id}` : '#'} className="text-center hover:opacity-80 transition-opacity">
-                    <p className="text-3xl font-bold text-slate-900">{stats?.posts || 0}</p>
-                    <p className="text-sm text-slate-500 flex items-center justify-center gap-1"><FileText className="w-3 h-3" /> Posts</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{stats?.posts || 0}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1"><FileText className="w-3 h-3" /> Posts</p>
                   </Link>
                   <Link to={user ? `/author/${user.id}` : '#'} className="text-center hover:opacity-80 transition-opacity">
-                    <p className="text-3xl font-bold text-slate-900">{stats?.followers || 0}</p>
-                    <p className="text-sm text-slate-500 flex items-center justify-center gap-1"><Users className="w-3 h-3" /> Followers</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{stats?.followers || 0}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1"><Users className="w-3 h-3" /> Followers</p>
                   </Link>
                   <Link to={user ? `/author/${user.id}` : '#'} className="text-center hover:opacity-80 transition-opacity">
-                    <p className="text-3xl font-bold text-slate-900">{stats?.following || 0}</p>
-                    <p className="text-sm text-slate-500 flex items-center justify-center gap-1"><Users className="w-3 h-3" /> Following</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{stats?.following || 0}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1"><Users className="w-3 h-3" /> Following</p>
                   </Link>
                 </div>
               </CardContent>
             </Card>
 
             {/* Profile Edit Card */}
-            <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
+            <Card className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
               <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-              <CardHeader className="border-b border-slate-50">
-                <CardTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <UserCircle className="w-5 h-5 text-slate-500" />
+              <CardHeader className="border-b border-slate-50 dark:border-slate-800">
+                <CardTitle className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <UserCircle className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                   Personal Information
                 </CardTitle>
                 <CardDescription>Update your photo and personal details here.</CardDescription>
@@ -396,29 +396,29 @@ const Profile = () => {
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-2">
-                        <p className="text-sm font-medium text-slate-900">Profile Photo</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Profile Photo</p>
                         {badge && (
                           <ProfileBadge badge={badge} size="sm" />
                         )}
                       </div>
-                      <p className="text-xs text-slate-500">Click the camera icon to upload</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Click the camera icon to upload</p>
                     </div>
                   </div>
 
                   {/* Background Image Upload Section */}
-                  <div className="border-t border-slate-100 pt-6">
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <Label className="text-slate-700 font-medium flex items-center gap-2">
+                          <Label className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                             <Image className="w-4 h-4 text-slate-500" />
                             Profile Background Image
                           </Label>
-                          <p className="text-xs text-slate-500 mt-1">Upload a custom background image for your profile</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Upload a custom background image for your profile</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <label htmlFor="background-upload" className="cursor-pointer">
-                            <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                            <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors">
                               {uploadingBackground ? (
                                 <Loader2 className="h-4 w-4 text-slate-600 animate-spin" />
                               ) : (
@@ -497,18 +497,18 @@ const Profile = () => {
 
                   <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="full_name" className="text-slate-700 font-medium">Full Name</Label>
+                      <Label htmlFor="full_name" className="text-slate-700 dark:text-slate-300 font-medium">Full Name</Label>
                       <Input
                         id="full_name"
                         value={formData.full_name}
                         onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="email" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                           <Mail className="w-3 h-3 text-slate-400" /> Email
                         </Label>
                         <Input
@@ -520,7 +520,7 @@ const Profile = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Label htmlFor="phone" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                           <Phone className="w-3 h-3 text-slate-400" /> Phone
                         </Label>
                         <Input
@@ -529,10 +529,10 @@ const Profile = () => {
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           placeholder="Enter your phone number"
-                          className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                          className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                         />
                         <div className="flex items-center justify-between pt-2">
-                          <Label htmlFor="show_phone" className="text-sm text-slate-600 cursor-pointer">
+                          <Label htmlFor="show_phone" className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
                             Make phone number visible on profile
                           </Label>
                           <Switch
@@ -545,20 +545,20 @@ const Profile = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="bio" className="text-slate-700 font-medium">Bio</Label>
+                      <Label htmlFor="bio" className="text-slate-700 dark:text-slate-300 font-medium">Bio</Label>
                       <Textarea
                         id="bio"
                         value={formData.bio}
                         onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                         placeholder="Tell us a little bit about yourself..."
                         rows={4}
-                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
+                        className="bg-slate-50 dark:bg-slate-900 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="age" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Label htmlFor="age" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                            <Calendar className="w-3 h-3 text-slate-400" /> Age
                         </Label>
                         <Input
@@ -566,19 +566,19 @@ const Profile = () => {
                           type="number"
                           value={formData.age}
                           onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) })}
-                          className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                          className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="gender" className="text-slate-700 font-medium flex items-center gap-2">
+                        <Label htmlFor="gender" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                            <User className="w-3 h-3 text-slate-400" /> Gender
                         </Label>
                         <Input
                           id="gender"
                           value={formData.gender}
                           onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                          className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                          className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                         />
                       </div>
                     </div>
@@ -602,11 +602,11 @@ const Profile = () => {
             </Card>
 
             {/* Social Media Card */}
-            <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
+            <Card className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
               <div className="h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
-              <CardHeader className="border-b border-slate-50">
-                <CardTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-slate-500" />
+              <CardHeader className="border-b border-slate-50 dark:border-slate-800">
+                <CardTitle className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                   Social Media Profiles
                 </CardTitle>
                 <CardDescription>Add your social media links to connect with your audience.</CardDescription>
@@ -615,7 +615,7 @@ const Profile = () => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="twitter" className="text-slate-700 font-medium flex items-center gap-2">
+                      <Label htmlFor="twitter" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                         <Twitter className="w-3 h-3 text-blue-400" /> Twitter
                       </Label>
                       <Input
@@ -623,12 +623,12 @@ const Profile = () => {
                         value={formData.twitter}
                         onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
                         placeholder="@username"
-                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="facebook" className="text-slate-700 font-medium flex items-center gap-2">
+                      <Label htmlFor="facebook" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                         <Facebook className="w-3 h-3 text-blue-600" /> Facebook
                       </Label>
                       <Input
@@ -636,12 +636,12 @@ const Profile = () => {
                         value={formData.facebook}
                         onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
                         placeholder="facebook.com/username"
-                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="linkedin" className="text-slate-700 font-medium flex items-center gap-2">
+                      <Label htmlFor="linkedin" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                         <Linkedin className="w-3 h-3 text-blue-700" /> LinkedIn
                       </Label>
                       <Input
@@ -649,12 +649,12 @@ const Profile = () => {
                         value={formData.linkedin}
                         onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
                         placeholder="linkedin.com/in/username"
-                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="instagram" className="text-slate-700 font-medium flex items-center gap-2">
+                      <Label htmlFor="instagram" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                         <Instagram className="w-3 h-3 text-pink-600" /> Instagram
                       </Label>
                       <Input
@@ -662,12 +662,12 @@ const Profile = () => {
                         value={formData.instagram}
                         onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
                         placeholder="@username"
-                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="github" className="text-slate-700 font-medium flex items-center gap-2">
+                      <Label htmlFor="github" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                         <Github className="w-3 h-3 text-slate-800" /> GitHub
                       </Label>
                       <Input
@@ -675,12 +675,12 @@ const Profile = () => {
                         value={formData.github}
                         onChange={(e) => setFormData({ ...formData, github: e.target.value })}
                         placeholder="github.com/username"
-                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="youtube" className="text-slate-700 font-medium flex items-center gap-2">
+                      <Label htmlFor="youtube" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                         <Youtube className="w-3 h-3 text-red-600" /> YouTube
                       </Label>
                       <Input
@@ -688,12 +688,12 @@ const Profile = () => {
                         value={formData.youtube}
                         onChange={(e) => setFormData({ ...formData, youtube: e.target.value })}
                         placeholder="youtube.com/channel/username"
-                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                       />
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="website" className="text-slate-700 font-medium flex items-center gap-2">
+                      <Label htmlFor="website" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
                         <Globe className="w-3 h-3 text-slate-600" /> Website
                       </Label>
                       <Input
@@ -701,7 +701,7 @@ const Profile = () => {
                         value={formData.website}
                         onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                         placeholder="https://yourwebsite.com"
-                        className="bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                       />
                     </div>
                   </div>
@@ -724,10 +724,10 @@ const Profile = () => {
             </Card>
 
             {/* Password Update Card */}
-            <Card className="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
-              <CardHeader className="border-b border-slate-50 bg-slate-50/50">
-                <CardTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-slate-500" />
+            <Card className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+              <CardHeader className="border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                <CardTitle className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-slate-500 dark:text-slate-400" />
                   Security
                 </CardTitle>
                 <CardDescription>Manage your password and security settings.</CardDescription>
@@ -736,9 +736,9 @@ const Profile = () => {
                 <form onSubmit={handlePasswordSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="newPassword" className="text-slate-700 font-medium">New Password</Label>
+                      <Label htmlFor="newPassword" className="text-slate-700 dark:text-slate-300 font-medium">New Password</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
                         <Input
                           id="newPassword"
                           type="password"
@@ -746,15 +746,15 @@ const Profile = () => {
                           onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                           placeholder="Min 6 characters"
                           required
-                          className="pl-10 bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                          className="pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="text-slate-700 font-medium">Confirm New Password</Label>
+                      <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-300 font-medium">Confirm New Password</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
                         <Input
                           id="confirmPassword"
                           type="password"
@@ -762,7 +762,7 @@ const Profile = () => {
                           onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                           placeholder="Confirm new password"
                           required
-                          className="pl-10 bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                          className="pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20"
                         />
                       </div>
                     </div>
@@ -772,7 +772,7 @@ const Profile = () => {
                     <Button
                       type="submit"
                       variant="outline"
-                      className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-xl px-6"
+                      className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 rounded-xl px-6"
                       disabled={updatePassword.isPending || !passwordData.newPassword || !passwordData.confirmPassword}
                     >
                       {updatePassword.isPending ? (

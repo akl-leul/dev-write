@@ -116,7 +116,7 @@ export const Header = () => {
                   </Link>
                   
                   <Link to="/bookmarks">
-                    <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg" title="Bookmarks">
+                    <Button variant="ghost" size="icon" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg" title="Bookmarks">
                       <Bookmark className="h-5 w-5" />
                     </Button>
                   </Link>
@@ -135,7 +135,7 @@ export const Header = () => {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="relative h-10 w-10 rounded-full ml-1 hover:bg-transparent px-0">
-                        <Avatar className="h-9 w-9 border border-white shadow-sm transition-transform hover:scale-105">
+                        <Avatar className="h-9 w-9 border border-white dark:border-slate-900 shadow-sm transition-transform hover:scale-105">
                           <AvatarImage src={profile?.profile_image_url || ''} />
                           <AvatarFallback className="bg-slate-900 text-white font-medium">
                             {profile?.full_name?.[0]?.toUpperCase() || 'U'}
@@ -143,42 +143,42 @@ export const Header = () => {
                         </Avatar>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-60 rounded-xl border-slate-100 shadow-xl p-2 bg-white mt-2">
-                      <div className="flex items-center justify-start gap-3 p-3 bg-slate-50 rounded-lg mb-2">
-                        <Avatar className="h-10 w-10 border border-white shadow-sm">
+                    <DropdownMenuContent align="end" className="w-60 rounded-xl border-slate-200 dark:border-slate-700 shadow-xl p-2 bg-white dark:bg-slate-900 mt-2">
+                      <div className="flex items-center justify-start gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg mb-2">
+                        <Avatar className="h-10 w-10 border border-white dark:border-slate-900 shadow-sm">
                           <AvatarImage src={profile?.profile_image_url || ''} />
                           <AvatarFallback className="bg-slate-900 text-white">
                             {profile?.full_name?.[0]?.toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col overflow-hidden">
-                          <p className="text-sm font-bold text-slate-900 truncate">{profile?.full_name}</p>
-                          <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                          <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{profile?.full_name}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
                         </div>
                       </div>
                       
-                      <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-lg cursor-pointer   focus:bg-slate-400">
-                        <User className="mr-2 h-4 w-4 text-slate-500" />
+                      <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-lg cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800">
+                        <User className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
                         Profile Settings
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/analytics')} className="rounded-lg cursor-pointer focus:bg-slate-400">
-                        <BarChart3 className="mr-2 h-4 w-4 text-slate-500" />
+                      <DropdownMenuItem onClick={() => navigate('/analytics')} className="rounded-lg cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800">
+                        <BarChart3 className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
                         Analytics Dashboard
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/bookmarks')} className="rounded-lg cursor-pointer focus:bg-slate-400">
-                        <Bookmark className="mr-2 h-4 w-4 text-slate-500" />
+                      <DropdownMenuItem onClick={() => navigate('/bookmarks')} className="rounded-lg cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800">
+                        <Bookmark className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
                         Saved Stories
                       </DropdownMenuItem>
                       
                       {/* Show Google Profile link only for Google users */}
                       {user?.identities?.some(identity => identity.provider === 'google') && (
-                        <DropdownMenuItem onClick={() => navigate('/google-profile')} className="rounded-lg cursor-pointer focus:bg-slate-400">
-                          <Globe className="mr-2 h-4 w-4 text-slate-500" />
+                        <DropdownMenuItem onClick={() => navigate('/google-profile')} className="rounded-lg cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800">
+                          <Globe className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
                           Google Profile Data
                         </DropdownMenuItem>
                       )}
                       
-                      <DropdownMenuSeparator className="bg-slate-100 my-2" />
+                      <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-700 my-2" />
                       
                       <DropdownMenuItem onClick={handleSignOut} className="rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-600 text-red-500">
                         <LogOut className="mr-2 h-4 w-4" />
@@ -202,6 +202,7 @@ export const Header = () => {
 
             {/* Mobile Menu Button */}
             <div className="flex items-center gap-2 md:hidden">
+               <ThemeToggle />
               {user && <NotificationDropdown />}
               <Button
                 variant="ghost"
@@ -218,25 +219,25 @@ export const Header = () => {
         {/* Floating Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden mt-2 animate-in fade-in slide-in-from-top-4 duration-200">
-            <div className="bg-white/95 backdrop-blur-xl border border-slate-100 rounded-2xl shadow-xl p-4 overflow-hidden">
+            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl p-4 overflow-hidden">
               {/* Mobile Search */}
               <form onSubmit={handleSearch} className="mb-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
                   <Input
                     type="search"
                     placeholder="Search posts..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-slate-50 border-slate-200 rounded-xl"
+                    className="pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
                   />
                 </div>
               </form>
 
               <nav className="flex flex-col gap-1">
                 <Link to="/feed" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
-                    <Home className="mr-3 h-5 w-5 text-slate-400" />
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl h-10">
+                    <Home className="mr-3 h-5 w-5 text-slate-400 dark:text-slate-500" />
                     Feed
                   </Button>
                 </Link>
@@ -250,38 +251,38 @@ export const Header = () => {
                       </Button>
                     </Link>
 
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 py-2 mt-2">
+                    <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 py-2 mt-2">
                       Library
                     </div>
 
                     <Link to="/my-posts" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
-                        <FileText className="mr-3 h-5 w-5 text-slate-400" />
+                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl h-10">
+                        <FileText className="mr-3 h-5 w-5 text-slate-400 dark:text-slate-500" />
                         My Posts
                       </Button>
                     </Link>
                     
                     <Link to="/bookmarks" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
-                        <Bookmark className="mr-3 h-5 w-5 text-slate-400" />
+                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl h-10">
+                        <Bookmark className="mr-3 h-5 w-5 text-slate-400 dark:text-slate-500" />
                         Bookmarks
                       </Button>
                     </Link>
 
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 py-2 mt-2">
+                    <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 py-2 mt-2">
                       Account
                     </div>
                     
                     <Link to="/analytics" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
-                        <BarChart3 className="mr-3 h-5 w-5 text-slate-400" />
+                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl h-10">
+                        <BarChart3 className="mr-3 h-5 w-5 text-slate-400 dark:text-slate-500" />
                         Analytics
                       </Button>
                     </Link>
 
                     <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
-                        <Settings className="mr-3 h-5 w-5 text-slate-400" />
+                      <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl h-10">
+                        <Settings className="mr-3 h-5 w-5 text-slate-400 dark:text-slate-500" />
                         Profile Settings
                       </Button>
                     </Link>
@@ -289,18 +290,18 @@ export const Header = () => {
                     {/* Show Google Profile link only for Google users */}
                     {user?.identities?.some(identity => identity.provider === 'google') && (
                       <Link to="/google-profile" onClick={() => setMobileMenuOpen(false)}>
-                        <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:bg-slate-50 rounded-xl h-10">
-                          <Globe className="mr-3 h-5 w-5 text-slate-400" />
+                        <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl h-10">
+                          <Globe className="mr-3 h-5 w-5 text-slate-400 dark:text-slate-500" />
                           Google Profile Data
                         </Button>
                       </Link>
                     )}
 
-                    <div className="border-t border-slate-100 my-2 pt-2">
+                    <div className="border-t border-slate-100 dark:border-slate-700 my-2 pt-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl h-10"
+                        className="w-full justify-start text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-300 rounded-xl h-10"
                         onClick={handleSignOut}
                       >
                         <LogOut className="mr-3 h-5 w-5" />
@@ -311,7 +312,7 @@ export const Header = () => {
                 ) : (
                   <div className="grid grid-cols-2 gap-3 mt-2">
                     <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="outline" size="sm" className="w-full border-slate-200 rounded-xl">Sign In</Button>
+                      <Button variant="outline" size="sm" className="w-full border-slate-200 dark:border-slate-700 rounded-xl">Sign In</Button>
                     </Link>
                     <Link to="/auth?mode=signup" onClick={() => setMobileMenuOpen(false)}>
                       <Button size="sm" className="w-full bg-slate-900 text-white rounded-xl">Get Started</Button>

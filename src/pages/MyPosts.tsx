@@ -207,8 +207,8 @@ const MyPosts = () => {
   ) || [];
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100">
-      <div className="fixed inset-0 z-0 pointer-events-none" 
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/20">
+      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
            style={{
              backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
              backgroundSize: '24px 24px'
@@ -222,38 +222,39 @@ const MyPosts = () => {
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-10">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center text-blue-600">
+                <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400">
                   <FileText size={24} />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900 tracking-tight">My Posts</h1>
-                  <p className="text-slate-500">Manage your stories and community interactions</p>
+                  <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">My Posts</h1>
+                  <p className="text-slate-500 dark:text-slate-400">Manage your stories and community interactions</p>
                 </div>
               </div>
               <Link to="/create">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 px-4 py-2 sm:px-6 text-sm sm:text-base">
                   <PenLine className="w-4 h-4 mr-2" />
-                  Write New Story
+                  <span className="hidden sm:inline">Write New Story</span>
+                  <span className="sm:hidden">Write</span>
                 </Button>
               </Link>
             </div>
 
             {pendingComments.length > 0 && (
               <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
-                <Card className="bg-white border-orange-100 shadow-sm rounded-2xl overflow-hidden">
-                  <CardHeader className="bg-orange-50/50 border-b border-orange-100 py-4">
-                    <div className="flex items-center gap-2 text-orange-700 font-semibold">
+                <Card className="bg-white dark:bg-slate-900 border-orange-100 dark:border-orange-900/20 shadow-sm rounded-2xl overflow-hidden">
+                  <CardHeader className="bg-orange-50/50 dark:bg-orange-900/10 border-b border-orange-100 dark:border-orange-900/20 py-4">
+                    <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 font-semibold">
                       <AlertCircle className="w-5 h-5" />
                       Pending Comments
-                      <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full ml-1">
+                      <span className="bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 text-xs px-2 py-0.5 rounded-full ml-1">
                         {pendingComments.length} needs action
                       </span>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="divide-y divide-slate-100">
+                    <div className="divide-y divide-slate-100 dark:divide-slate-700">
                       {pendingComments.map((comment) => (
-                        <div key={comment.id} className="p-6 hover:bg-slate-50 transition-colors">
+                        <div key={comment.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                           <div className="flex flex-col md:flex-row md:items-start gap-4">
                             <div className="flex items-center gap-3 min-w-[200px]">
                               <PostAuthorBadge 
@@ -270,10 +271,10 @@ const MyPosts = () => {
                             </div>
                             
                             <div className="flex-1 space-y-2">
-                              <Link to={`/post/${comment.postSlug}`} className="text-xs text-blue-600 hover:underline font-medium">
+                              <Link to={`/post/${comment.postSlug}`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
                                 On: {comment.postTitle}
                               </Link>
-                              <div className="prose prose-sm prose-slate max-w-none text-slate-600 bg-white p-3 rounded-lg border border-slate-100">
+                              <div className="prose prose-sm prose-slate max-w-none text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {comment.content_markdown}
                                 </ReactMarkdown>
@@ -301,14 +302,14 @@ const MyPosts = () => {
                                       }
                                     }}
                                     disabled={rejectComment.isPending || rejectingComments.has(comment.id)}
-                                    className="text-red-500 border-red-100 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                                    className="text-red-500 dark:text-red-400 border-red-100 dark:border-red-900/20 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-50"
                                   >
                                     <X className="h-4 w-4 mr-1" /> 
                                     {rejectingComments.has(comment.id) ? 'Rejecting...' : 'Reject'}
                                   </Button>
                                 </>
                               ) : (
-                                <div className="flex items-center gap-2 text-green-600 font-medium">
+                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
                                   <Check className="h-4 w-4" />
                                   Approved
                                 </div>
@@ -330,14 +331,14 @@ const MyPosts = () => {
                   const pendingCount = post.comments.filter(c => !c.approved).length;
                   
                   return (
-                    <Card key={post.id} className="group bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:border-blue-100 transition-all duration-300 rounded-2xl overflow-hidden">
+                    <Card key={post.id} className="group bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 rounded-2xl overflow-hidden">
                       <CardContent className="p-6">
                         <div className="flex flex-col md:flex-row gap-6">
                           {(() => {
                             console.log('Post images for', post.title, ':', post.post_images);
                             const featuredImage = post.post_images?.find(img => img.order_index === 0) || post.post_images?.[0];
                             return featuredImage ? (
-                              <div className="w-full md:w-48 h-32 flex-shrink-0 rounded-xl overflow-hidden border border-slate-100">
+                              <div className="w-full md:w-48 h-32 flex-shrink-0 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-700">
                                 <img
                                   src={featuredImage.url}
                                   alt={post.title}
@@ -347,7 +348,7 @@ const MyPosts = () => {
                                 />
                               </div>
                             ) : (
-                              <div className="w-full flex flex-col md:w-48 h-32 flex-shrink-0 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
+                              <div className="w-full flex flex-col md:w-48 h-32 flex-shrink-0 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500">
                                 <AlertCircle className="w-10 h-10" /> <p>No featured image</p>
                               </div>
                             );
@@ -356,22 +357,22 @@ const MyPosts = () => {
                           <div className="flex-1 min-w-0 flex flex-col justify-between">
                             <div>
                               <div className="flex items-start justify-between gap-4 mb-2">
-                                <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
                                   {post.title}
                                 </h3>
                                 <Badge 
                                   variant="outline" 
                                   className={`rounded-full px-3 py-0.5 border-0 font-medium ${
                                     post.status === 'published' 
-                                      ? 'bg-green-50 text-green-700' 
-                                      : 'bg-slate-100 text-slate-600'
+                                      ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' 
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                                   }`}
                                 >
                                   {post.status === 'published' ? 'Published' : 'Draft'}
                                 </Badge>
                               </div>
                               
-                              <div className="flex items-center gap-4 text-sm text-slate-500 mb-4">
+                              <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4">
                                 <div className="flex items-center gap-1.5">
                                   <Calendar className="w-3.5 h-3.5" />
                                   <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
@@ -381,22 +382,22 @@ const MyPosts = () => {
                                   <span>{approvedCount} comments</span>
                                 </div>
                                 {pendingCount > 0 && (
-                                  <span className="text-orange-600 font-medium text-xs bg-orange-50 px-2 py-0.5 rounded-full">
+                                  <span className="text-orange-600 dark:text-orange-400 font-medium text-xs bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-full">
                                     {pendingCount} pending review
                                   </span>
                                 )}
                               </div>
                             </div>
                             
-                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-50 mt-2">
+                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-50 dark:border-slate-700 mt-2">
                               <Link to={`/post/${post.slug}`}>
-                                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
+                                <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
                                   <Eye className="h-4 w-4 mr-2" />
                                   View
                                 </Button>
                               </Link>
                               <Link to={`/create?edit=${post.id}`}>
-                                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
+                                <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit
                                 </Button>
@@ -410,7 +411,7 @@ const MyPosts = () => {
                                     deletePost.mutate(post.id);
                                   }
                                 }}
-                                className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                className="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -423,13 +424,13 @@ const MyPosts = () => {
                   );
                 })
               ) : (
-                <Card className="border-dashed border-2 border-slate-200 shadow-none bg-slate-50/50 rounded-2xl">
+                <Card className="border-dashed border-2 border-slate-200 dark:border-slate-700 shadow-none bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl">
                   <CardContent className="p-16 text-center">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-300">
+                    <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-300 dark:text-slate-600">
                       <PenLine className="w-8 h-8" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">No stories yet</h3>
-                    <p className="text-slate-500 mb-8 max-w-sm mx-auto">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">No stories yet</h3>
+                    <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-sm mx-auto">
                       You haven't published any stories yet. Share your first thought with the world!
                     </p>
                     <Link to="/create">

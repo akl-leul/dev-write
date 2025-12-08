@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { 
   ArrowRight, 
   PenLine, 
@@ -49,10 +50,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-blue-100">
+    <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/30">
       
       {/* Background Dot Pattern */}
-      <div className="fixed inset-0 z-0 pointer-events-none" 
+      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-30" 
            style={{
              backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
              backgroundSize: '24px 24px'
@@ -61,36 +62,38 @@ const Index = () => {
 
       <div className="relative z-10">
         {/* Navigation */}
-        <nav className="container mx-auto px-4 md:px-6 py-4 md:py-6 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-50 border-b border-transparent transition-all">
+        <nav className="container mx-auto px-4 md:px-6 py-4 md:py-6 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-50 border-b border-transparent dark:border-slate-800 transition-all">
           <div className="flex items-center gap-2">
             <Link to="/" className="flex items-center gap-2" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
               <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white">
                 <PenLine size={18} />
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900">Chronicle</h1>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Chronicle</h1>
             </Link>
           </div>
           
           {/* Desktop Links */}
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-            <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hover:text-blue-600 transition-colors cursor-pointer">Features</a>
-            <a href="#community" onClick={(e) => scrollToSection(e, 'community')} className="hover:text-blue-600 transition-colors cursor-pointer">Community</a>
-            <a href="#resources" onClick={(e) => scrollToSection(e, 'resources')} className="hover:text-blue-600 transition-colors cursor-pointer">Resources</a>
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-400">
+            <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">Features</a>
+            <a href="#community" onClick={(e) => scrollToSection(e, 'community')} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">Community</a>
+            <a href="#resources" onClick={(e) => scrollToSection(e, 'resources')} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">Resources</a>
           </div>
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">
+            <ThemeToggle />
             <Link to="/auth">
-              <Button variant="ghost" className="text-slate-600 hover:text-slate-900 hover:bg-slate-100">Sign In</Button>
+              <Button variant="ghost" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800">Sign In</Button>
             </Link>
             <Link to="/auth?mode=signup">
-              <Button className="bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 shadow-sm rounded-lg">Get Started</Button>
+              <Button className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm rounded-lg">Get Started</Button>
             </Link>
           </div>
 
           {/* Mobile Menu Toggle */}
           <div className="md:hidden flex items-center">
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600">
+           <ThemeToggle />
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600 dark:text-slate-400">
               {isMobileMenuOpen ? <X /> : <Menu />}
             </button>
           </div>
@@ -98,13 +101,14 @@ const Index = () => {
 
         {/* Mobile Menu Dropdown */}
         {isMobileMenuOpen && (
-          <div className="md:hidden fixed inset-x-0 top-[70px] bg-white border-b border-slate-100 shadow-xl z-40 p-4 animate-in slide-in-from-top-5 duration-200">
+          <div className="md:hidden fixed inset-x-0 top-[70px] bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-xl z-40 p-4 animate-in slide-in-from-top-5 duration-200">
              <div className="flex flex-col gap-4">
-                <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-lg font-medium text-slate-600 py-2 border-b border-slate-50">Features</a>
-                <a href="#community" onClick={(e) => scrollToSection(e, 'community')} className="text-lg font-medium text-slate-600 py-2 border-b border-slate-50">Community</a>
-                <a href="#resources" onClick={(e) => scrollToSection(e, 'resources')} className="text-lg font-medium text-slate-600 py-2 border-b border-slate-50">Resources</a>
+                 
+                <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-lg font-medium text-slate-600 dark:text-slate-400 py-2 border-b border-slate-50 dark:border-slate-800">Features</a>
+                <a href="#community" onClick={(e) => scrollToSection(e, 'community')} className="text-lg font-medium text-slate-600 dark:text-slate-400 py-2 border-b border-slate-50 dark:border-slate-800">Community</a>
+                <a href="#resources" onClick={(e) => scrollToSection(e, 'resources')} className="text-lg font-medium text-slate-600 dark:text-slate-400 py-2 border-b border-slate-50 dark:border-slate-800">Resources</a>
                 <div className="flex gap-3 mt-2">
-                  <Link to="/auth" className="w-full"><Button variant="outline" className="w-full bg-slate-100 justify-center text-slate-600">Sign In</Button></Link>
+                  <Link to="/auth" className="w-full"><Button variant="outline" className="w-full bg-slate-100 dark:bg-slate-800 justify-center text-slate-600 dark:text-slate-400">Sign In</Button></Link>
                   <Link to="/auth?mode=signup" className="w-full"><Button className="w-full justify-center bg-blue-600 text-white">Get Started</Button></Link>
                 </div>
              </div>
@@ -112,11 +116,11 @@ const Index = () => {
         )}
 
         {/* Hero Section */}
-        <section className="relative pt-12 pb-20 md:pt-20 md:pb-40 overflow-hidden">
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
           <div className="container mx-auto px-4 relative z-10 text-center max-w-5xl">
             
             {/* Center Icon */}
-            <div className="mx-auto w-16 h-16 md:w-20 md:h-20 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-8 md:mb-10 border border-slate-100 rotate-3 hover:rotate-6 transition-transform duration-500">
+            <div className="mx-auto w-16 h-16 md:w-20 md:h-20 bg-white dark:bg-slate-800 rounded-2xl shadow-xl flex items-center justify-center mb-8 md:mb-10 border border-slate-100 dark:border-slate-700 rotate-3 hover:rotate-6 transition-transform duration-500">
               <div className="grid grid-cols-2 gap-1.5">
                 <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-blue-500"></div>
                 <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-slate-800"></div>
@@ -126,12 +130,12 @@ const Index = () => {
             </div>
 
             {/* Main Headlines - Responsive Text Sizes */}
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-slate-900 mb-6 tracking-tight leading-[1.1]">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-slate-900 dark:text-slate-100 mb-6 tracking-tight leading-[1.1]">
               Share Your Stories, <br />
-              <span className="text-slate-400">Connect with the World</span>
+              <span className="text-slate-400 dark:text-slate-500">Connect with the World</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-slate-500 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
+            <p className="text-lg md:text-xl text-slate-500 dark:text-slate-400 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed px-4">
               A beautiful platform for writers and readers to connect through compelling narratives. Think, write, and publish all in one place.
             </p>
 
@@ -142,23 +146,25 @@ const Index = () => {
                 </Button>
               </Link> 
               <Link to="/feed" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto bg-transparent outline-2 outline-blue-600 hover:bg-blue-100 text-blue-700 rounded-xl h-14 px-8 text-lg shadow-lg shadow-blue-600/20">
+                <Button size="lg" className="w-full sm:w-auto bg-transparent outline-2 outline-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-xl h-14 px-8 text-lg shadow-lg shadow-blue-600/20">
                   Read Now
                 </Button>
               </Link>
             </div>
           </div>
 
+         
+
           {/* Floating Decorative Elements - Hidden on Mobile to prevent clutter */}
           <div className="absolute inset-0 pointer-events-none max-w-[1400px] mx-auto hidden lg:block">
             {/* Top Left: Sticky Note */}
             <div className="absolute top-32 left-10 transform -rotate-6 hover:-rotate-3 transition-transform duration-300">
-              <div className="bg-[#fef9c3] p-6 w-64 h-64 shadow-lg flex flex-col items-center justify-center text-center relative">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-red-500 shadow-sm border-2 border-red-600"></div>
-                <p className="font-handwriting text-slate-700 text-lg leading-relaxed font-medium">
+              <div className="bg-[#fef9c3] dark:bg-slate-700 p-6 w-64 h-64 shadow-lg flex flex-col items-center justify-center text-center relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-red-500 dark:bg-red-600 shadow-sm border-2 border-red-600 dark:border-red-600"></div>
+                <p className="font-handwriting text-slate-700 dark:text-slate-400 text-lg leading-relaxed font-medium">
                   "Draft ideas for the new novel chapter. Remember to focus on character development!"
                 </p>
-                <div className="absolute -bottom-8 -left-8 bg-white p-4 rounded-2xl shadow-xl border border-slate-100">
+                <div className="absolute -bottom-8 -left-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700">
                   <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                     <Check className="text-white w-6 h-6" />
                   </div>
@@ -167,18 +173,18 @@ const Index = () => {
             </div>
 
             {/* Top Right: Reminders Card */}
-            <div className="absolute top-20 right-10 w-72 bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-100 shadow-2xl p-4 transform rotate-2">
+            <div className="absolute top-20 right-10 w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-100 dark:border-slate-700 shadow-2xl p-4 transform rotate-2">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-slate-800">Reminders</h3>
-                <div className="bg-slate-100 p-1 rounded-md">
-                   <Clock className="w-4 h-4 text-slate-500" />
+                <h3 className="font-bold text-slate-800 dark:text-slate-200">Reminders</h3>
+                <div className="bg-slate-100 dark:bg-slate-700 p-1 rounded-md">
+                   <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                 </div>
               </div>
               <div className="space-y-3">
-                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                  <p className="text-xs font-bold text-slate-700">Editor's Meeting</p>
-                  <p className="text-[10px] text-slate-400">Call with publishing team</p>
-                  <div className="mt-2 flex items-center text-blue-500 text-[10px] font-medium bg-blue-50 w-fit px-2 py-1 rounded">
+                <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Editor's Meeting</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500">Call with publishing team</p>
+                  <div className="mt-2 flex items-center text-blue-500 text-[10px] font-medium bg-blue-50 dark:bg-blue-900/20 w-fit px-2 py-1 rounded">
                     <Clock className="w-3 h-3 mr-1" /> 13:00 - 13:45
                   </div>
                 </div>
@@ -186,15 +192,15 @@ const Index = () => {
             </div>
 
             {/* Bottom Left: Tasks/Stats Card */}
-            <div className="absolute bottom-10 left-20 w-80 bg-white rounded-2xl border border-slate-100 shadow-2xl p-6 transform rotate-2">
-              <h3 className="font-bold text-slate-800 mb-4">Writing Progress</h3>
+            <div className="absolute bottom-10 left-20 w-80 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-2xl p-6 transform rotate-2">
+              <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4">Writing Progress</h3>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="font-medium">Chapter 4 Draft</span>
                     <span className="text-slate-400">60%</span>
                   </div>
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div className="h-full w-[60%] bg-blue-500 rounded-full"></div>
                   </div>
                 </div>
@@ -202,16 +208,16 @@ const Index = () => {
             </div>
 
             {/* Bottom Right: Integrations */}
-            <div className="absolute bottom-0 right-20 w-64 bg-white rounded-2xl border border-slate-100 shadow-2xl p-6 transform -rotate-3">
-              <h3 className="font-bold text-slate-800 mb-4">100+ Integrations</h3>
+            <div className="absolute bottom-0 right-20 w-64 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-2xl p-6 transform -rotate-3">
+              <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4">100+ Integrations</h3>
               <div className="flex justify-between items-center gap-2">
-                <div className="w-14 h-14 bg-white border border-slate-100 shadow-md rounded-2xl flex items-center justify-center">
+                <div className="w-14 h-14 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 shadow-md rounded-2xl flex items-center justify-center">
                    <Mail className="w-6 h-6 text-red-500" />
                 </div>
-                <div className="w-14 h-14 bg-white border border-slate-100 shadow-md rounded-2xl flex items-center justify-center">
+                <div className="w-14 h-14 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 shadow-md rounded-2xl flex items-center justify-center">
                    <MessageSquare className="w-6 h-6 text-green-500" />
                 </div>
-                <div className="w-14 h-14 bg-white border border-slate-100 shadow-md rounded-2xl flex items-center justify-center">
+                <div className="w-14 h-14 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 shadow-md rounded-2xl flex items-center justify-center">
                    <Calendar className="w-6 h-6 text-blue-500" />
                 </div>
               </div>
@@ -220,14 +226,14 @@ const Index = () => {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-16 md:py-24 bg-slate-50 relative z-20">
+        <section id="features" className="py-16 md:py-24 bg-slate-50 dark:bg-slate-800 relative z-20">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
               <span className="text-blue-600 font-semibold tracking-wide uppercase text-sm">Features</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mt-2 mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 mt-2 mb-4">
                 Everything You Need to Tell Your Story
               </h2>
-              <p className="text-slate-500 text-lg">
+              <p className="text-slate-500 dark:text-slate-400 text-lg">
                 Powerful tools designed to help you focus on what matters most—your writing.
               </p>
             </div>
@@ -235,67 +241,67 @@ const Index = () => {
             {/* Responsive Grid: 1 col mobile, 2 col tablet, 3 col desktop */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {/* Feature 1 */}
-              <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group">
-                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-6 text-blue-600 group-hover:scale-110 transition-transform">
+              <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-shadow group">
+                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
                   <PenLine className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">Rich Editor</h3>
-                <p className="text-slate-500 leading-relaxed">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3">Rich Editor</h3>
+                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
                   Write with markdown support, add images, and format your content beautifully without distractions.
                 </p>
               </div>
               
               {/* Feature 2 */}
-              <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group">
-                <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mb-6 text-purple-600 group-hover:scale-110 transition-transform">
+              <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-shadow group">
+                <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center mb-6 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
                   <BarChart3 className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">Analytics</h3>
-                <p className="text-slate-500 leading-relaxed">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3">Analytics</h3>
+                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
                   Track your readership. See who is reading, where they are from, and what stories resonate the most.
                 </p>
               </div>
               
               {/* Feature 3 */}
-              <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group">
-                <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-6 text-orange-600 group-hover:scale-110 transition-transform">
+              <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-shadow group">
+                <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center mb-6 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
                   <Sparkles className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">Discovery Engine</h3>
-                <p className="text-slate-500 leading-relaxed">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3">Discovery Engine</h3>
+                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
                   Our algorithm helps your stories get found by the right people, boosting your reach automatically.
                 </p>
               </div>
 
               {/* Feature 4 */}
-              <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group">
-                <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-6 text-green-600 group-hover:scale-110 transition-transform">
+              <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-shadow group">
+                <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center mb-6 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
                   <Zap className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">Lightning Fast</h3>
-                <p className="text-slate-500 leading-relaxed">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3">Lightning Fast</h3>
+                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
                   Optimized for speed. Your profile and stories load instantly, keeping your readers engaged.
                 </p>
               </div>
 
               {/* Feature 5 */}
-              <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group">
-                <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mb-6 text-red-600 group-hover:scale-110 transition-transform">
+              <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-shadow group">
+                <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center mb-6 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform">
                   <Shield className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">Secure & Private</h3>
-                <p className="text-slate-500 leading-relaxed">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3">Secure & Private</h3>
+                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
                   You own your data. We provide industry-standard security to keep your drafts and account safe.
                 </p>
               </div>
 
               {/* Feature 6 */}
-              <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group">
-                <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center mb-6 text-teal-600 group-hover:scale-110 transition-transform">
+              <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-shadow group">
+                <div className="w-12 h-12 bg-teal-50 dark:bg-teal-900/20 rounded-xl flex items-center justify-center mb-6 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform">
                   <Globe className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">Custom Domain</h3>
-                <p className="text-slate-500 leading-relaxed">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3">Custom Domain</h3>
+                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
                   Make it yours. Connect your own domain to your Chronicle blog for a fully branded experience.
                 </p>
               </div>
@@ -410,51 +416,51 @@ const Index = () => {
         </section>
 
         {/* Resources Section */}
-        <section id="resources" className="py-16 md:py-24 bg-white relative">
+        <section id="resources" className="py-16 md:py-24 bg-white dark:bg-slate-900 relative">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">
                 Resources to Help You Grow
               </h2>
-              <p className="text-slate-500 text-lg">
+              <p className="text-slate-500 dark:text-slate-400 text-lg">
                 Whether you're just starting or a seasoned professional, we have the tools to support you.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Resource 1 */}
-              <div className="group border border-slate-200 rounded-2xl p-1 bg-white hover:border-blue-200 transition-colors">
-                <div className="bg-slate-50 rounded-xl p-6 md:p-8 h-full flex flex-col items-center text-center group-hover:bg-blue-50/50 transition-colors">
-                  <BookOpen className="w-10 h-10 text-slate-700 mb-4 group-hover:text-blue-600 transition-colors" />
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">The Writer's Handbook</h3>
-                  <p className="text-slate-500 text-sm mb-6">
+              <div className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-1 bg-white dark:bg-slate-800 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 md:p-8 h-full flex flex-col items-center text-center group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/20 transition-colors">
+                  <BookOpen className="w-10 h-10 text-slate-700 dark:text-slate-300 mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">The Writer's Handbook</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
                     A comprehensive guide to publishing on Chronicle, SEO best practices, and writing tips.
                   </p>
-                  <Button variant="link" className="mt-auto text-blue-600">Read Guide <ArrowRight className="w-4 h-4 ml-1" /></Button>
+                  <Button variant="link" className="mt-auto text-blue-600 dark:text-blue-400">Read Guide <ArrowRight className="w-4 h-4 ml-1" /></Button>
                 </div>
               </div>
 
               {/* Resource 2 */}
-              <div className="group border border-slate-200 rounded-2xl p-1 bg-white hover:border-blue-200 transition-colors">
-                <div className="bg-slate-50 rounded-xl p-6 md:p-8 h-full flex flex-col items-center text-center group-hover:bg-blue-50/50 transition-colors">
-                  <Code2 className="w-10 h-10 text-slate-700 mb-4 group-hover:text-blue-600 transition-colors" />
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">Developer API</h3>
-                  <p className="text-slate-500 text-sm mb-6">
+              <div className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-1 bg-white dark:bg-slate-800 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 md:p-8 h-full flex flex-col items-center text-center group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/20 transition-colors">
+                  <Code2 className="w-10 h-10 text-slate-700 dark:text-slate-300 mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Developer API</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
                     Access your content programmatically. Build custom front-ends or integrate with other tools.
                   </p>
-                  <Button variant="link" className="mt-auto text-blue-600">View Docs <ArrowRight className="w-4 h-4 ml-1" /></Button>
+                  <Button variant="link" className="mt-auto text-blue-600 dark:text-blue-400">View Docs <ArrowRight className="w-4 h-4 ml-1" /></Button>
                 </div>
               </div>
 
               {/* Resource 3 */}
-              <div className="group border border-slate-200 rounded-2xl p-1 bg-white hover:border-blue-200 transition-colors">
-                <div className="bg-slate-50 rounded-xl p-6 md:p-8 h-full flex flex-col items-center text-center group-hover:bg-blue-50/50 transition-colors">
-                  <Users className="w-10 h-10 text-slate-700 mb-4 group-hover:text-blue-600 transition-colors" />
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">Help Center</h3>
-                  <p className="text-slate-500 text-sm mb-6">
+              <div className="group border border-slate-200 dark:border-slate-700 rounded-2xl p-1 bg-white dark:bg-slate-800 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6 md:p-8 h-full flex flex-col items-center text-center group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/20 transition-colors">
+                  <Users className="w-10 h-10 text-slate-700 dark:text-slate-300 mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Help Center</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
                     Got questions? Our support team and community forum are here to help you solve any issue.
                   </p>
-                  <Button variant="link" className="mt-auto text-blue-600">Get Support <ArrowRight className="w-4 h-4 ml-1" /></Button>
+                  <Button variant="link" className="mt-auto text-blue-600 dark:text-blue-400">Get Support <ArrowRight className="w-4 h-4 ml-1" /></Button>
                 </div>
               </div>
             </div>
@@ -462,17 +468,17 @@ const Index = () => {
         </section>
 
         {/* CTA Section */}
-        <section className="py-16 md:py-24 relative bg-slate-50">
+        <section className="py-16 md:py-24 relative bg-slate-50 dark:bg-slate-800">
           <div className="container mx-auto px-4 text-center">
             {/* Visual Anchor */}
-            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-8 transform -rotate-3 hover:rotate-0 transition-transform">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-8 transform -rotate-3 hover:rotate-0 transition-transform">
               <PenLine size={32} />
             </div>
 
-            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-6 tracking-tight">
               Ready to Share Your Voice?
             </h2>
-            <p className="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-slate-500 dark:text-slate-400 mb-10 max-w-2xl mx-auto">
               Join thousands of writers and readers connecting through stories. Start your journey with Chronicle today.
             </p>
             
@@ -485,22 +491,22 @@ const Index = () => {
               </Link>
             </div>
             
-            <p className="mt-8 text-sm text-slate-400">
+            <p className="mt-8 text-sm text-slate-400 dark:text-slate-500">
               Free forever for readers · No credit card required
             </p>
           </div>
         </section>
 
         {/* Footer */}
-        <footer className="py-12 bg-white border-t border-slate-100">
+        <footer className="py-12 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
           <div className="container mx-auto px-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-4 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                <div className="w-6 h-6 bg-slate-900 rounded-md flex items-center justify-center text-white">
                   <PenLine size={12} />
                </div>
-               <p className="font-bold text-xl text-slate-900">Chronicle</p>
+               <p className="font-bold text-xl text-slate-900 dark:text-slate-100">Chronicle</p>
             </div>
-            <p className="text-slate-400 text-sm mb-6">&copy; 2025 Chronicle. All rights reserved.</p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm mb-6">&copy; 2025 Chronicle. All rights reserved.</p>
             
           </div>
         </footer>

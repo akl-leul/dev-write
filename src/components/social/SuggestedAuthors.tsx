@@ -66,31 +66,31 @@ export const SuggestedAuthors = () => {
   }
 
   return (
-    <Card className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
+    <Card className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
-        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg">
           <Users className="h-4 w-4" />
         </div>
-        <h3 className="font-bold text-slate-900">Suggested Authors</h3>
+        <h3 className="font-bold text-slate-900 dark:text-slate-100">Suggested Authors</h3>
       </div>
       
       <div className="space-y-4">
         {suggestedAuthors.map((author: any) => (
           <div key={author.id} className="flex items-center gap-3">
             <Link to={`/author/${author.id}`} className="shrink-0">
-              <Avatar className="h-10 w-10 border-2 border-white shadow-sm hover:ring-2 hover:ring-blue-100 transition-all">
+              <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-900 shadow-sm hover:ring-2 hover:ring-blue-100 dark:hover:ring-blue-900/20 transition-all">
                 <AvatarImage src={author.profile_image_url || ''} />
-                <AvatarFallback className="bg-slate-100 text-slate-600 font-bold text-sm">
+                <AvatarFallback className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-sm">
                   {author.full_name?.[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
             </Link>
             
             <div className="flex-1 min-w-0">
-              <Link to={`/author/${author.id}`} className="hover:text-blue-600 transition-colors">
-                <p className="font-semibold text-slate-900 text-sm truncate">{author.full_name}</p>
+              <Link to={`/author/${author.id}`} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate">{author.full_name}</p>
               </Link>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 dark:text-slate-500">
                 {author.followers?.[0]?.count || 0} followers · {author.posts?.[0]?.count || 0} posts
               </p>
             </div>

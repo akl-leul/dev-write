@@ -122,19 +122,19 @@ const Analytics = () => {
   // Loading State
   if (postsLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <Header />
         <div className="container mx-auto py-12 px-4">
           <div className="max-w-6xl mx-auto space-y-6">
-            <div className="h-10 w-64 bg-slate-200 rounded-lg animate-pulse mb-8"></div>
+            <div className="h-10 w-64 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse mb-8"></div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-white rounded-2xl border border-slate-100 shadow-sm animate-pulse"></div>
+                <div key={i} className="h-32 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm animate-pulse"></div>
               ))}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <div className="h-80 bg-white rounded-2xl border border-slate-100 shadow-sm animate-pulse"></div>
-              <div className="h-80 bg-white rounded-2xl border border-slate-100 shadow-sm animate-pulse"></div>
+              <div className="h-80 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm animate-pulse"></div>
+              <div className="h-80 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm animate-pulse"></div>
             </div>
           </div>
         </div>
@@ -146,8 +146,8 @@ const Analytics = () => {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-slate-100 shadow-lg rounded-xl text-xs">
-          <p className="font-bold text-slate-800 mb-1">{label}</p>
+        <div className="bg-white dark:bg-slate-800 p-3 border border-slate-100 dark:border-slate-700 shadow-lg rounded-xl text-xs">
+          <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }}>
               {entry.name}: {entry.value}
@@ -160,7 +160,7 @@ const Analytics = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/20">
       
       {/* Background Dot Pattern */}
       <div className="fixed inset-0 z-0 pointer-events-none" 
@@ -178,68 +178,68 @@ const Analytics = () => {
             
             {/* Header */}
             <div className="flex items-center gap-3 mb-10">
-              <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center text-blue-600">
+              <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400">
                 <Activity size={24} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Analytics Dashboard</h1>
-                <p className="text-slate-500">Track your content performance and audience growth</p>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Analytics Dashboard</h1>
+                <p className="text-slate-500 dark:text-slate-400">Track your content performance and audience growth</p>
               </div>
             </div>
             
             {/* Primary Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Card className="bg-white border-slate-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl">
+              <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow rounded-2xl">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-blue-50 text-blue-600">
+                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
                       <Eye className="h-6 w-6" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-slate-900">{totalViews.toLocaleString()}</p>
-                      <p className="text-sm font-medium text-slate-500">Total Views</p>
+                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalViews.toLocaleString()}</p>
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Views</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
               
-              <Card className="bg-white border-slate-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl">
+              <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow rounded-2xl">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-red-50 text-red-500">
+                    <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400">
                       <Heart className="h-6 w-6" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-slate-900">{totalLikes.toLocaleString()}</p>
-                      <p className="text-sm font-medium text-slate-500">Total Likes</p>
+                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalLikes.toLocaleString()}</p>
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Likes</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
               
-              <Card className="bg-white border-slate-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl">
+              <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow rounded-2xl">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-green-50 text-green-600">
+                    <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
                       <MessageCircle className="h-6 w-6" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-slate-900">{totalComments.toLocaleString()}</p>
-                      <p className="text-sm font-medium text-slate-500">Comments</p>
+                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalComments.toLocaleString()}</p>
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Comments</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
               
-              <Card className="bg-white border-slate-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl">
+              <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow rounded-2xl">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
+                    <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
                       <FileText className="h-6 w-6" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-slate-900">{totalPosts}</p>
-                      <p className="text-sm font-medium text-slate-500">Total Stories</p>
+                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalPosts}</p>
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Stories</p>
                     </div>
                   </div>
                 </CardContent>
@@ -248,32 +248,32 @@ const Analytics = () => {
 
             {/* Audience Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">Followers</p>
-                  <p className="text-xl font-bold text-slate-900">{followersData?.followers || 0}</p>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Followers</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{followersData?.followers || 0}</p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-600">
+                <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
                   <Users className="h-5 w-5" />
                 </div>
               </div>
               
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">Following</p>
-                  <p className="text-xl font-bold text-slate-900">{followersData?.following || 0}</p>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Following</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{followersData?.following || 0}</p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-600">
+                <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
                   <TrendingUp className="h-5 w-5" />
                 </div>
               </div>
               
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">Bookmarked</p>
-                  <p className="text-xl font-bold text-slate-900">{bookmarksCount || 0}</p>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Bookmarked</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{bookmarksCount || 0}</p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-600">
+                <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
                   <BookMarked className="h-5 w-5" />
                 </div>
               </div>
@@ -283,11 +283,11 @@ const Analytics = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               
               {/* Views Trend Chart */}
-              <Card className="bg-white border-slate-100 shadow-sm rounded-2xl overflow-hidden">
-                <CardHeader className="border-b border-slate-50 bg-white pb-4">
-                  <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+                <CardHeader className="border-b border-slate-50 dark:border-slate-800 bg-white dark:bg-slate-900 pb-4">
+                  <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-blue-500" />
-                    Views Trend <span className="text-xs font-normal text-slate-400 ml-auto">Last 7 Days</span>
+                    Views Trend <span className="text-xs font-normal text-slate-400 dark:text-slate-500 ml-auto">Last 7 Days</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
@@ -329,9 +329,9 @@ const Analytics = () => {
               </Card>
 
               {/* Category Pie Chart */}
-              <Card className="bg-white border-slate-100 shadow-sm rounded-2xl overflow-hidden">
-                <CardHeader className="border-b border-slate-50 bg-white pb-4">
-                  <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+                <CardHeader className="border-b border-slate-50 dark:border-slate-800 bg-white dark:bg-slate-900 pb-4">
+                  <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <PieChartIcon className="w-4 h-4 text-purple-500" />
                     Content by Category
                   </CardTitle>
@@ -349,22 +349,22 @@ const Analytics = () => {
                             outerRadius={80}
                             paddingAngle={5}
                             dataKey="value"
-                          >
+                           className="">
                             {pieData.map((_, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
                             ))}
                           </Pie>
                           <Tooltip content={<CustomTooltip />} />
-                          <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-slate-900 font-bold text-2xl">
+                          <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-slate-900 dark:fill-slate-100 font-bold text-2xl">
                             {totalPosts}
                           </text>
-                          <text x="50%" y="58%" textAnchor="middle" dominantBaseline="middle" className="fill-slate-400 text-xs">
+                          <text x="50%" y="58%" textAnchor="middle" dominantBaseline="middle" className="fill-slate-400 dark:fill-slate-500 text-xs">
                             Total Posts
                           </text>
                         </PieChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                      <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-500">
                         <PieChartIcon className="w-12 h-12 mb-2 opacity-20" />
                         <p>No category data available</p>
                       </div>
@@ -373,7 +373,7 @@ const Analytics = () => {
                   {/* Custom Legend */}
                   <div className="flex flex-wrap justify-center gap-4 mt-4">
                     {pieData.map((entry, index) => (
-                      <div key={index} className="flex items-center gap-2 text-xs text-slate-600">
+                      <div key={index} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                         {entry.name}
                       </div>
@@ -384,9 +384,9 @@ const Analytics = () => {
             </div>
 
             {/* Top Posts Bar Chart */}
-            <Card className="bg-white border-slate-100 shadow-sm rounded-2xl overflow-hidden">
-              <CardHeader className="border-b border-slate-50 bg-white pb-4">
-                <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+              <CardHeader className="border-b border-slate-50 dark:border-slate-800 bg-white dark:bg-slate-900 pb-4">
+                <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-indigo-500" />
                   Top Performing Stories
                 </CardTitle>
@@ -396,13 +396,13 @@ const Analytics = () => {
                   {topPosts.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={topPosts} layout="vertical" barSize={20}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" className="dark:stroke-slate-700" />
                         <XAxis type="number" hide />
                         <YAxis 
                           dataKey="title" 
                           type="category" 
                           width={150} 
-                          tick={{fill: '#475569', fontSize: 12, fontWeight: 500}} 
+                          tick={{fill: '#475569', fontSize: 12, fontWeight: 500}} className="dark:fill-slate-400" 
                           axisLine={false}
                           tickLine={false}
                         />
@@ -412,7 +412,7 @@ const Analytics = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-500">
                       <BarChart3 className="w-12 h-12 mb-2 opacity-20" />
                       <p>Create your first post to see analytics!</p>
                     </div>

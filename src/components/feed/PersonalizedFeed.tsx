@@ -79,13 +79,13 @@ export const PersonalizedFeed = () => {
 
   if (!user) {
     return (
-      <div className="text-center py-20 bg-white rounded-3xl border border-slate-100">
-        <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-500">
+      <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800">
+        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-500 dark:text-blue-400">
           <Sparkles className="w-8 h-8" />
         </div>
-        <h3 className="text-lg font-bold text-slate-900 mb-2">Sign in to see your feed</h3>
-        <p className="text-slate-500 mb-4">Follow authors to see their posts here</p>
-        <Link to="/auth" className="text-blue-600 font-medium hover:underline">Sign in</Link>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Sign in to see your feed</h3>
+        <p className="text-slate-500 dark:text-slate-400 mb-4">Follow authors to see their posts here</p>
+        <Link to="/auth" className="text-blue-600 dark:text-blue-400 font-medium hover:underline">Sign in</Link>
       </div>
     );
   }
@@ -100,12 +100,12 @@ export const PersonalizedFeed = () => {
 
   if (allPosts.length === 0) {
     return (
-      <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 border-dashed">
-        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+      <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 border-dashed">
+        <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 dark:text-slate-600">
           <Sparkles className="w-8 h-8" />
         </div>
-        <h3 className="text-lg font-bold text-slate-900 mb-2">Your feed is empty</h3>
-        <p className="text-slate-500">Follow some authors to see their posts here!</p>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Your feed is empty</h3>
+        <p className="text-slate-500 dark:text-slate-400">Follow some authors to see their posts here!</p>
       </div>
     );
   }
@@ -113,7 +113,7 @@ export const PersonalizedFeed = () => {
   return (
     <div className="space-y-8">
       {allPosts.map((post: any) => (
-        <article key={post.id} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 transition-all duration-300 relative overflow-hidden">
+        <article key={post.id} className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 relative overflow-hidden">
           
           <div className="flex items-center justify-between mb-6">
             <PostAuthorBadge 
@@ -125,54 +125,57 @@ export const PersonalizedFeed = () => {
             />
             
             {post.categories && (
-              <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-full text-xs font-semibold tracking-wide">
+              <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700 rounded-full text-xs font-semibold tracking-wide">
                 {post.categories.name}
               </span>
             )}
           </div>
 
           <Link to={`/post/${post.slug}`} className="block group">
+            {/* Featured Image */}
+            {(post.featured_image || post.post_images?.[0]) && (
+              <div className="w-full h-52 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 mb-6">
+                <img 
+                  src={post.featured_image || post.post_images[0].url} 
+                  alt={post.title} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                />
+              </div>
+            )}
+            
             <div className="grid md:grid-cols-[1fr_180px] gap-6">
               <div>
-                <h2 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors leading-tight">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
                   {post.title}
                 </h2>
                 
                 {post.excerpt && (
-                  <p className="text-slate-500 leading-relaxed mb-6 line-clamp-2 text-sm">
+                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-6 line-clamp-2 text-sm">
                     {post.excerpt}
                   </p>
                 )}
 
                 <div className="flex flex-wrap items-center gap-4 mt-auto pt-2">
-                  <div className="flex items-center gap-1.5 text-slate-400 text-sm font-medium">
+                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
                     <Heart className="h-4 w-4" />
                     <span>{post.likes?.[0]?.count || 0}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-slate-400 text-sm font-medium">
+                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
                     <MessageCircle className="h-4 w-4" />
                     <span>{post.comments?.[0]?.count || 0}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-slate-400 text-sm font-medium">
+                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
                     <Eye className="h-4 w-4" />
                     <span>{post.views || 0}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-blue-500 text-xs font-bold bg-blue-50 px-2 py-1 rounded-md ml-auto sm:ml-0">
+                  <div className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400 text-xs font-bold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md ml-auto sm:ml-0">
                     <Clock className="h-3 w-3" />
                     <span>{post.read_time || 5} min</span>
                   </div>
                 </div>
               </div>
 
-              {(post.featured_image || post.post_images?.[0]) && (
-                <div className="hidden md:block w-full h-28 rounded-2xl overflow-hidden border border-slate-100">
-                  <img 
-                    src={post.featured_image || post.post_images[0].url} 
-                    alt={post.title} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                  />
-                </div>
-              )}
+             
             </div>
           </Link>
         </article>
