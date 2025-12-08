@@ -3,22 +3,102 @@
 export const measurePageLoad = () => {
   if (typeof window === 'undefined') return;
   
-  const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-  const loadTime = navigation.loadEventEnd - navigation.loadEventStart;
+  try {
+    // Try to use Navigation Timing API
+    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    
+    if (navigation && navigation.loadEventEnd && navigation.fetchStart) {
+      // Calculate total page load time from fetch start to load event end
+      const totalLoadTime = navigation.loadEventEnd - navigation.fetchStart;
+      
+      // Validate that we have a reasonable load time (should be more than 100ms for real pages)
+      if (totalLoadTime > 100 && totalLoadTime < 60000) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Page load time: ${totalLoadTime.toFixed(2)}ms`);
+        }
+        
+        // Log detailed timing with validation
+        const metrics = {
+          dns: Math.max(0, navigation.domainLookupEnd - navigation.domainLookupStart),
+          tcp: Math.max(0, navigation.connectEnd - navigation.connectStart),
+          request: Math.max(0, navigation.responseStart - navigation.requestStart),
+          response: Math.max(0, navigation.responseEnd - navigation.responseStart),
+          dom: Math.max(0, navigation.domContentLoadedEventStart - navigation.responseEnd),
+          domInteractive: Math.max(0, navigation.domInteractive - navigation.fetchStart),
+          load: totalLoadTime,
+        };
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.table(metrics);
+        }
+        
+        // Report to analytics if needed
+        reportMetric('page_load_time', totalLoadTime);
+        reportMetric('dns_time', metrics.dns);
+        reportMetric('tcp_time', metrics.tcp);
+        reportMetric('request_time', metrics.request);
+        reportMetric('response_time', metrics.response);
+        reportMetric('dom_time', metrics.dom);
+        reportMetric('dom_interactive_time', metrics.domInteractive);
+        return;
+      }
+    }
+    
+    // Fallback: Use performance.now() for timing measurement
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Navigation timing not available or invalid, using fallback measurement');
+    }
+    measurePageLoadFallback();
+    
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error measuring page load:', error);
+    }
+    measurePageLoadFallback();
+  }
+};
+
+// Fallback timing measurement using performance.now()
+export const measurePageLoadFallback = () => {
+  if (typeof window === 'undefined') return;
   
-  console.log(`Page load time: ${loadTime.toFixed(2)}ms`);
-  
-  // Log detailed timing
-  const metrics = {
-    dns: navigation.domainLookupEnd - navigation.domainLookupStart,
-    tcp: navigation.connectEnd - navigation.connectStart,
-    request: navigation.responseStart - navigation.requestStart,
-    response: navigation.responseEnd - navigation.responseStart,
-    dom: navigation.domContentLoadedEventStart - navigation.responseEnd,
-    load: loadTime,
-  };
-  
-  console.table(metrics);
+  // Use window.performance.timing as fallback
+  const timing = (window.performance as any).timing;
+  if (timing && timing.loadEventEnd && timing.navigationStart) {
+    const totalLoadTime = timing.loadEventEnd - timing.navigationStart;
+    
+    // Validate that we have a reasonable load time
+    if (totalLoadTime > 100 && totalLoadTime < 60000) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Fallback page load time: ${totalLoadTime.toFixed(2)}ms`);
+      }
+      
+      const metrics = {
+        dns: Math.max(0, timing.domainLookupEnd - timing.domainLookupStart),
+        tcp: Math.max(0, timing.connectEnd - timing.connectStart),
+        request: Math.max(0, timing.requestStart - timing.requestStart),
+        response: Math.max(0, timing.responseEnd - timing.responseStart),
+        dom: Math.max(0, timing.domContentLoadedEventStart - timing.responseEnd),
+        domInteractive: Math.max(0, timing.domInteractive - timing.navigationStart),
+        load: totalLoadTime,
+      };
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.table(metrics);
+      }
+      reportMetric('fallback_page_load_time', totalLoadTime);
+    } else {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Invalid fallback timing detected');
+      }
+      reportMetric('invalid_fallback_timing', totalLoadTime || 0);
+    }
+  } else {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Performance timing completely unavailable');
+    }
+    reportMetric('timing_unavailable', 1);
+  }
 };
 
 export const measureComponentRender = (componentName: string) => {
@@ -27,7 +107,10 @@ export const measureComponentRender = (componentName: string) => {
   return {
     end: () => {
       const end = performance.now();
-      console.log(`${componentName} render time: ${(end - start).toFixed(2)}ms`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`${componentName} render time: ${(end - start).toFixed(2)}ms`);
+      }
+      reportMetric(`${componentName}_render_time`, end - start);
     }
   };
 };
@@ -84,7 +167,15 @@ export const checkMemoryUsage = () => {
     limit: (memory.jsHeapSizeLimit / 1048576).toFixed(2),
   };
   
-  console.log('Memory usage (MB):', usage);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Memory usage (MB):', usage);
+  }
+  
+  // Report memory usage in production for monitoring
+  reportMetric('memory_used_mb', parseFloat(usage.used));
+  reportMetric('memory_total_mb', parseFloat(usage.total));
+  reportMetric('memory_limit_mb', parseFloat(usage.limit));
+  
   return usage;
 };
 
@@ -97,10 +188,15 @@ export const trackWebVitals = () => {
     new PerformanceObserver((entryList) => {
       const entries = entryList.getEntries();
       const lastEntry = entries[entries.length - 1];
-      console.log('LCP:', lastEntry.startTime);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('LCP:', lastEntry.startTime);
+      }
+      reportMetric('lcp', lastEntry.startTime);
     }).observe({ entryTypes: ['largest-contentful-paint'] });
   } catch (e) {
-    console.warn('LCP tracking not supported');
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('LCP tracking not supported');
+    }
   }
 
   // First Input Delay (FID)
@@ -108,11 +204,17 @@ export const trackWebVitals = () => {
     new PerformanceObserver((entryList) => {
       const entries = entryList.getEntries();
       entries.forEach((entry) => {
-        console.log('FID:', (entry as any).processingStart - entry.startTime);
+        const fid = (entry as any).processingStart - entry.startTime;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('FID:', fid);
+        }
+        reportMetric('fid', fid);
       });
     }).observe({ entryTypes: ['first-input'] });
   } catch (e) {
-    console.warn('FID tracking not supported');
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('FID tracking not supported');
+    }
   }
 
   // Cumulative Layout Shift (CLS)
@@ -124,10 +226,15 @@ export const trackWebVitals = () => {
           clsValue += (entry as any).value;
         }
       }
-      console.log('CLS:', clsValue);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('CLS:', clsValue);
+      }
+      reportMetric('cls', clsValue);
     }).observe({ entryTypes: ['layout-shift'] });
   } catch (e) {
-    console.warn('CLS tracking not supported');
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('CLS tracking not supported');
+    }
   }
 };
 
@@ -170,10 +277,24 @@ export const reportMetric = (name: string, value: number) => {
 // Initialize performance tracking
 export const initPerformanceTracking = () => {
   if (typeof window !== 'undefined') {
-    // Track page load
-    window.addEventListener('load', () => {
-      measurePageLoad();
-    });
+    // Track page load with multiple fallbacks
+    const measureLoad = () => {
+      // Wait a bit for all timing data to be available
+      setTimeout(() => {
+        measurePageLoad();
+      }, 100);
+    };
+    
+    // Try multiple events to ensure we capture timing
+    if (document.readyState === 'complete') {
+      measureLoad();
+    } else {
+      window.addEventListener('load', measureLoad);
+      // Also try on DOMContentLoaded as backup
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(measureLoad, 500);
+      });
+    }
     
     // Track web vitals
     trackWebVitals();
@@ -182,5 +303,66 @@ export const initPerformanceTracking = () => {
     if (process.env.NODE_ENV === 'development') {
       setInterval(checkMemoryUsage, 30000); // Every 30 seconds
     }
+  }
+};
+
+// Cache management utilities
+export const clearCache = () => {
+  if (typeof window === 'undefined') return;
+  
+  // Clear service worker cache
+  if ('caches' in window) {
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => caches.delete(cacheName))
+      );
+    });
+  }
+  
+  // Clear localStorage and sessionStorage
+  localStorage.clear();
+  sessionStorage.clear();
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Cache cleared successfully');
+  }
+};
+
+export const forceReload = () => {
+  clearCache();
+  // Add timestamp to prevent caching
+  const timestamp = new Date().getTime();
+  const url = new URL(window.location.href);
+  url.searchParams.set('t', timestamp.toString());
+  window.location.href = url.toString();
+};
+
+// Check if cache is stale and needs refresh
+export const checkCacheFreshness = (maxAge: number = 3600000) => { // 1 hour default
+  if (typeof window === 'undefined') return false;
+  
+  const cacheTimestamp = localStorage.getItem('cache_timestamp');
+  if (!cacheTimestamp) return true;
+  
+  const now = new Date().getTime();
+  const cacheAge = now - parseInt(cacheTimestamp);
+  
+  return cacheAge > maxAge;
+};
+
+// Set cache timestamp
+export const setCacheTimestamp = () => {
+  if (typeof window === 'undefined') return;
+  
+  localStorage.setItem('cache_timestamp', new Date().getTime().toString());
+};
+
+// Auto-refresh cache if stale
+export const autoRefreshCache = () => {
+  if (checkCacheFreshness()) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Cache is stale, refreshing...');
+    }
+    forceReload();
   }
 };

@@ -7,6 +7,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    headers: {
+      // Cache control for development
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    },
   },
   plugins: [react()].filter(Boolean),
   resolve: {
@@ -25,7 +31,7 @@ export default defineConfig(({ mode }) => ({
           router: ['react-router-dom'],
           query: ['@tanstack/react-query'],
         },
-        // Optimize chunk loading
+        // Optimize chunk loading with cache-busting
         chunkFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
           return `js/[name]-[hash].js`;
@@ -67,6 +73,8 @@ export default defineConfig(({ mode }) => ({
     cssCodeSplit: true,
     // Optimize assets
     assetsInlineLimit: 4096, // Inline assets smaller than 4kb
+    // Add build timestamp for cache-busting
+    reportCompressedSize: false,
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
@@ -80,6 +88,13 @@ export default defineConfig(({ mode }) => ({
       } else {
         return { relative: true };
       }
+    },
+  },
+  // Add preview server configuration for production testing
+  preview: {
+    port: 4173,
+    headers: {
+      'Cache-Control': 'public, max-age=31536000, immutable',
     },
   },
 }));

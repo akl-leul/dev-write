@@ -51,7 +51,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .select(`
           id,
           full_name,
-          email,
           role,
           is_active,
           last_login_at,
@@ -79,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userProfile: UserProfile = {
           id: data.id,
           full_name: data.full_name,
-          email: data.email,
+          email: null, // Email is not stored in profiles table
           role: data.role,
           is_active: data.is_active,
           permissions: permissions || {},
