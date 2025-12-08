@@ -18,6 +18,7 @@ export const MentionOverlay: React.FC<MentionOverlayProps> = ({
   position,
   editorRef
 }) => {
+  console.log('MentionOverlay rendered with query:', query, 'position:', position);
   const [users, setUsers] = useState<UserSearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -25,7 +26,7 @@ export const MentionOverlay: React.FC<MentionOverlayProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchUsers = useCallback(async () => {
-    if (query.length < 2) {
+    if (query.length < 2 && query.length > 0) {
       setUsers([]);
       return;
     }
@@ -90,12 +91,12 @@ export const MentionOverlay: React.FC<MentionOverlayProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [users, selectedIndex, onSelect, onClose]);
 
-  if (!query || query.length < 2) return null;
+  if (!query) return null;
 
   return (
     <div
       ref={containerRef}
-      className="fixed z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-2 max-h-64 overflow-y-auto"
+      className="fixed z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-2 max-h-64 overflow-y-auto theme-transition"
       style={{
         top: `${position.top}px`,
         left: `${position.left}px`,
@@ -104,15 +105,15 @@ export const MentionOverlay: React.FC<MentionOverlayProps> = ({
       }}
     >
       {loading ? (
-        <div className="px-3 py-2 text-sm text-slate-500">Searching...</div>
+        <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">Searching...</div>
       ) : users.length === 0 ? (
-        <div className="px-3 py-2 text-sm text-slate-500">No users found</div>
+        <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">No users found</div>
       ) : (
         users.map((user, index) => (
           <div
             key={user.id}
-            className={`px-3 py-2 cursor-pointer flex items-center gap-3 hover:bg-slate-50 transition-colors ${
-              index === selectedIndex ? 'bg-slate-50' : ''
+            className={`px-3 py-2 cursor-pointer flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
+              index === selectedIndex ? 'bg-slate-50 dark:bg-slate-800' : ''
             }`}
             onClick={() => onSelect(user)}
           >
@@ -128,7 +129,7 @@ export const MentionOverlay: React.FC<MentionOverlayProps> = ({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-slate-900 text-sm truncate">
+              <div className="font-medium text-slate-900 dark:text-slate-100 text-sm truncate">
                 {user.full_name}
               </div>
             </div>

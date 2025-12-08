@@ -10,7 +10,8 @@ interface TagMentionState {
 
 export const useTagMentions = (
   inputRef: React.RefObject<HTMLInputElement>,
-  tagInput: string
+  tagInput: string,
+  onTagInputChange?: (newValue: string) => void
 ) => {
   const [mentionState, setMentionState] = useState<TagMentionState>({
     active: false,
@@ -53,8 +54,12 @@ export const useTagMentions = (
         },
       });
       
-      // Search for users (no auth dependency)
-      searchUsers(query).then(setSearchResults);
+      // Search for users (no auth dependency) - only search if query is empty or >= 2 chars
+      if (query.length === 0 || query.length >= 2) {
+        searchUsers(query).then(setSearchResults);
+      } else {
+        setSearchResults([]);
+      }
     } else {
       setMentionState(prev => ({
         ...prev,
@@ -67,7 +72,7 @@ export const useTagMentions = (
   }, [inputRef, tagInput]);
 
   const insertMention = useCallback((user: UserSearchResult) => {
-    if (!inputRef.current) return;
+    if (!inputRef.current) return '';
 
     const cursorPos = inputRef.current.selectionStart || 0;
     const beforeMention = tagInput.substring(0, mentionState.startIndex);
@@ -81,6 +86,11 @@ export const useTagMentions = (
     const newCursorPos = beforeMention.length + user.full_name.length + 1;
     inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
     
+    // Update parent component's state if callback is provided
+    if (onTagInputChange) {
+      onTagInputChange(newTagInput);
+    }
+    
     // Reset mention state
     setMentionState({
       active: false,
@@ -89,7 +99,9 @@ export const useTagMentions = (
       position: null,
     });
     setSearchResults([]);
-  }, [inputRef, tagInput, mentionState.startIndex]);
+    
+    return newTagInput;
+  }, [inputRef, tagInput, mentionState.startIndex, onTagInputChange]);
 
   const closeMentions = useCallback(() => {
     setMentionState(prev => ({

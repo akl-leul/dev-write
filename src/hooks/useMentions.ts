@@ -17,14 +17,24 @@ export const useMentions = (editorRef: React.RefObject<HTMLElement>) => {
   });
 
   const checkForMention = useCallback(() => {
-    if (!editorRef.current) return;
+    console.log('checkForMention called');
+    if (!editorRef.current) {
+      console.log('No editor ref');
+      return;
+    }
 
     // For TipTap editor, we need to check the actual text content
     const editorElement = editorRef.current.querySelector('.ProseMirror');
-    if (!editorElement) return;
+    if (!editorElement) {
+      console.log('No ProseMirror element found');
+      return;
+    }
     
     const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return;
+    if (!selection || !selection.rangeCount) {
+      console.log('No selection');
+      return;
+    }
 
     const range = selection.getRangeAt(0);
     // Get the text content from the current node or its parent
@@ -37,7 +47,9 @@ export const useMentions = (editorRef: React.RefObject<HTMLElement>) => {
 
     // Get text before cursor
     const textBefore = textContent.substring(0, cursorPos);
-    const mentionMatch = textBefore.match(/@(\w+(?:\s+\w+)*)$/);
+    console.log('Text before cursor:', textBefore);
+    const mentionMatch = textBefore.match(/@(\w*(?:\s+\w*)*)?$/);
+    console.log('Mention match:', mentionMatch);
 
     if (mentionMatch) {
       const query = mentionMatch[1];
@@ -47,6 +59,7 @@ export const useMentions = (editorRef: React.RefObject<HTMLElement>) => {
       const rect = range.getBoundingClientRect();
       const editorRect = editorRef.current.getBoundingClientRect();
       
+      console.log('Setting mention state to active');
       setMentionState({
         active: true,
         query,
@@ -57,6 +70,7 @@ export const useMentions = (editorRef: React.RefObject<HTMLElement>) => {
         },
       });
     } else {
+      console.log('No mention found, closing');
       setMentionState(prev => ({
         ...prev,
         active: false,

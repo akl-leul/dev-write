@@ -57,7 +57,7 @@ const CreatePost = () => {
     checkForMention: checkTagMentions, 
     insertMention: insertTagMention, 
     closeMentions: closeTagMentions 
-  } = useTagMentions(tagInputRef, tagInput);
+  } = useTagMentions(tagInputRef, tagInput, setTagInput);
 
   // Fetch categories and tags
   const { data: categories } = useQuery({
@@ -93,17 +93,24 @@ const CreatePost = () => {
   useEffect(() => {
     const setupEventListeners = () => {
       const editorElement = editorRef.current?.querySelector('.ProseMirror');
-      if (!editorElement) return;
+      if (!editorElement) {
+        console.log('Editor element not found');
+        return;
+      }
+      console.log('Setting up event listeners on ProseMirror element');
 
       const handleKeyUp = (e: KeyboardEvent) => {
+        console.log('Key up event triggered');
         checkForMention();
       };
 
       const handleClick = (e: MouseEvent) => {
+        console.log('Click event triggered');
         checkForMention();
       };
 
       const handleInput = (e: InputEvent) => {
+        console.log('Input event triggered');
         checkForMention();
       };
 
@@ -703,13 +710,16 @@ const CreatePost = () => {
                     />
                   </div>
                   {mentionState.active && mentionState.position && (
-                    <MentionOverlay
-                      query={mentionState.query}
-                      onSelect={insertMention}
-                      onClose={closeMentions}
-                      position={mentionState.position}
-                      editorRef={editorRef}
-                    />
+                    <>
+                      {console.log('Rendering MentionOverlay with state:', mentionState)}
+                      <MentionOverlay
+                        query={mentionState.query}
+                        onSelect={insertMention}
+                        onClose={closeMentions}
+                        position={mentionState.position}
+                        editorRef={editorRef}
+                      />
+                    </>
                   )}
                 </div>
               </div>
