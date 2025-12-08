@@ -63,8 +63,7 @@ export const syncGoogleUserToProfile = async (user: User): Promise<void> => {
     const { error } = await supabase
       .from('profiles')
       .upsert(profileData, {
-        onConflict: 'id',
-        ignoreDuplicates: false
+        onConflict: 'id'
       });
 
     if (error) {
