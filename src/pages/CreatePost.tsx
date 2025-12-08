@@ -560,51 +560,38 @@ const CreatePost = () => {
           setImagePreviews([])
         }
 
-        // Background operations
-        Promise.resolve().then(async () => {
-          try {
+        // Handle tags for new post
+        if (tags.length > 0) {
+          const tagPromises = tags.map(async (tagName) => {
+            const slug = tagName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
+            let tagId
 
-            // Handle tags
-            if (tags.length > 0) {
-              const tagPromises = tags.map(async (tagName) => {
-                const slug = tagName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
-                let tagId
+            const { data: existingTag } = await supabase
+              .from('tags')
+              .select('id')
+              .eq('slug', slug)
+              .single()
 
-                const { data: existingTag } = await supabase
-                  .from('tags')
-                  .select('id')
-                  .eq('slug', slug)
-                  .single()
-
-                if (existingTag) {
-                  tagId = (existingTag as any).id
-                } else {
-                  const { data: newTag } = await supabase
-                    .from('tags')
-                    .insert({ name: tagName, slug })
-                    .select('id')
-                    .single()
-                  tagId = (newTag as any)?.id
-                }
-                return tagId
-              })
-
-              const tagIds = await Promise.all(tagPromises)
-              const postData = post as any
-              const postTagPromises = tagIds.map(async (tagId) => {
-                if (tagId) {
-                  await supabase.from('post_tags').insert({
-                    post_id: postData.id,
-                    tag_id: tagId
-                  })
-                }
-              })
-              await Promise.all(postTagPromises)
+            if (existingTag) {
+              tagId = (existingTag as any).id
+            } else {
+              const { data: newTag } = await supabase
+                .from('tags')
+                .insert({ name: tagName, slug })
+                .select('id')
+                .single()
+              tagId = (newTag as any)?.id
             }
-          } catch (error) {
-            console.warn('Background operations failed:', error)
-          }
-        })
+
+            if (tagId) {
+              await supabase.from('post_tags').insert({
+                post_id: postData.id,
+                tag_id: tagId
+              })
+            }
+          })
+          await Promise.all(tagPromises)
+        }
 
         return post
       }

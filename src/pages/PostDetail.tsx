@@ -519,16 +519,16 @@ const PostDetail = () => {
             </div>
 
             {/* Featured Image / Carousel */}
-            {(post.featured_image ||
+            {(post.post_images ||
               (post.post_images && post.post_images.length > 0)) && (
               <div className="mb-10 sm:mb-12">
-                {post.featured_image ? (
+                {post.post_images ? (
                   <div
                     className="rounded-3xl overflow-hidden shadow-xl shadow-blue-900/5 border border-slate-100 dark:border-slate-700 cursor-pointer group"
                     onClick={() => openLightbox(0)}
                   >
                     <img
-                      src={post.featured_image}
+                      src={post.post_images && post.post_images.length > 0 ? post.post_images.sort((a: any, b: any) => a.order_index - b.order_index)[0].url : ''}
                       alt={post.title}
                       className="w-full h-auto max-h-[600px] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     />
