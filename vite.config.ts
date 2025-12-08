@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks: (id) => {
           // More aggressive code splitting for better cache performance
           if (id.includes('node_modules')) {
-            // Bundle all React-related dependencies together
+            // Bundle ALL React-related dependencies together to prevent hook errors
             if (id.includes('react') || 
                 id.includes('react-dom') ||
                 id.includes('react-router') ||
@@ -44,7 +44,15 @@ export default defineConfig(({ mode }) => ({
                 id.includes('next-themes') ||
                 id.includes('class-variance-authority') ||
                 id.includes('clsx') ||
-                id.includes('tailwind-merge')) {
+                id.includes('tailwind-merge') ||
+                id.includes('date-fns') ||
+                id.includes('react-markdown') ||
+                id.includes('remark-gfm') ||
+                id.includes('react-image-crop') ||
+                id.includes('react-day-picker') ||
+                id.includes('react-helmet-async') ||
+                id.includes('react-icons') ||
+                id.includes('react-resizable-panels')) {
               return 'vendor-react';
             }
             if (id.includes('@radix-ui')) {
@@ -62,11 +70,12 @@ export default defineConfig(({ mode }) => ({
             // Group other node_modules
             return 'vendor-other';
           }
-          // Keep contexts and any React-dependent code with React
+          // Keep ALL React-dependent code with React
           if (id.includes('contexts') || 
               id.includes('hooks') ||
               id.includes('utils') ||
-              id.includes('components')) {
+              id.includes('components') ||
+              id.includes('pages')) {
             return 'vendor-react';
           }
         },
