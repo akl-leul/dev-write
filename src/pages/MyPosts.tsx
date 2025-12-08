@@ -244,18 +244,18 @@ const MyPosts = () => {
         `)
         .eq('author_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50); // Limit initial load
+        .limit(100); // Increased limit but still bounded
       
       if (error) {
         console.error('Query error:', error);
         throw error;
       }
       
-      return data as Post[];
+      return (data || []) as Post[];
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const approveComment = useMutation({

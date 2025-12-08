@@ -115,11 +115,61 @@
   
   <div id="root"></div>
   
-  <!-- Main script with defer for non-blocking loading -->
-  <script type="module" src="/src/main.tsx"></script>
-  
   <!-- Performance monitoring and optimization -->
   <script>
+    // Clear stale cache immediately on page load to prevent slow performance
+    (function() {
+      'use strict';
+      
+      // Clear old IndexedDB if it exists (Supabase might use it)
+      if ('indexedDB' in window) {
+        try {
+          // List all databases and check their age
+          indexedDB.databases().then(databases => {
+            databases.forEach(db => {
+              // Clear databases older than 1 hour
+              const dbTimestamp = localStorage.getItem(`db_${db.name}_timestamp`);
+              if (dbTimestamp) {
+                const dbAge = Date.now() - parseInt(dbTimestamp);
+                if (dbAge > 60 * 60 * 1000) {
+                  indexedDB.deleteDatabase(db.name);
+                  localStorage.removeItem(`db_${db.name}_timestamp`);
+                }
+              }
+            });
+          }).catch(() => {
+            // Silently fail
+          });
+        } catch (error) {
+          // Silently fail
+        }
+      }
+      
+      // Force cache refresh if page is taking too long
+      let loadStartTime = performance.now();
+      const MAX_LOAD_TIME = 10000; // 10 seconds
+      
+      const checkLoadTime = setInterval(function() {
+        const loadTime = performance.now() - loadStartTime;
+        if (loadTime > MAX_LOAD_TIME && document.readyState !== 'complete') {
+          // If loading takes more than 10 seconds, clear cache and reload
+          if ('caches' in window) {
+            caches.keys().then(cacheNames => {
+              return Promise.all(cacheNames.map(name => caches.delete(name)));
+            }).then(() => {
+              // Only reload if still loading after cache clear
+              if (document.readyState !== 'complete') {
+                window.location.reload();
+              }
+            });
+          }
+          clearInterval(checkLoadTime);
+        } else if (document.readyState === 'complete') {
+          clearInterval(checkLoadTime);
+        }
+      }, 1000);
+    })();
+    
     // Hide loading spinner when app is ready
     window.addEventListener('load', function() {
       const spinner = document.getElementById('loading-spinner');
@@ -136,14 +186,9 @@
         spinner.style.display = 'block';
       }
     }, 1000);
-    
-    // Preload critical resources
-    if ('serviceWorker' in navigator) {
-      // Register service worker for PWA capabilities (if implemented)
-      window.addEventListener('load', function() {
-        // navigator.serviceWorker.register('/sw.js');
-      });
-    }
   </script>
+  
+  <!-- Main script with defer for non-blocking loading -->
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

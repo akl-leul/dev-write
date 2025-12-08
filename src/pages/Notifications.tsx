@@ -43,7 +43,8 @@ export default function Notifications() {
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100); // Limit to prevent huge queries
 
       if (error) throw error;
       setNotifications(data || []);

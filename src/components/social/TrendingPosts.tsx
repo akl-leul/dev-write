@@ -39,6 +39,7 @@ export const TrendingPosts = () => {
       }) || [];
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   if (isLoading) {

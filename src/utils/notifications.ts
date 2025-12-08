@@ -69,7 +69,8 @@ export const getUnreadNotifications = async (userId: string) => {
     `)
     .eq('user_id', userId)
     .eq('read', false)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(50); // Limit to prevent huge queries
 
   if (error) {
     console.error('Error fetching notifications:', error);

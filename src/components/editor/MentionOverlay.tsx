@@ -26,14 +26,15 @@ export const MentionOverlay: React.FC<MentionOverlayProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchUsers = useCallback(async () => {
-    if (query.length < 2 && query.length > 0) {
+    // Show users when @ is typed (empty query) or when query is 2+ chars
+    if (query.length > 0 && query.length < 2) {
       setUsers([]);
       return;
     }
 
     setLoading(true);
     try {
-      const results = await searchUsers(query); // No auth dependency
+      const results = await searchUsers(query); // No auth dependency - currentUserId is optional
       setUsers(results);
       setSelectedIndex(0);
     } catch (error) {
@@ -106,8 +107,10 @@ export const MentionOverlay: React.FC<MentionOverlayProps> = ({
     >
       {loading ? (
         <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">Searching...</div>
-      ) : users.length === 0 ? (
+      ) : users.length === 0 && query.length > 0 ? (
         <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">No users found</div>
+      ) : users.length === 0 && query === '' ? (
+        <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">Type to search users...</div>
       ) : (
         users.map((user, index) => (
           <div

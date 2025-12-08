@@ -8,6 +8,13 @@ const SYNC_COOLDOWN = 30000; // 30 seconds
 /**
  * Sync Google user data to the profiles table
  * This ensures that Google OAuth users have their profile data properly stored
+ * 
+ * IMPORTANT: This function ALWAYS preserves user-edited fields (like full_name/username).
+ * Users can set their own custom username/name in their profile, and this sync will
+ * NEVER overwrite their custom choice. It only updates fields that:
+ * - Are empty/missing
+ * - Match Google's default values exactly
+ * - Haven't been manually edited by the user
  */
 export const syncGoogleUserToProfile = async (user: User): Promise<void> => {
   try {
@@ -26,53 +33,143 @@ export const syncGoogleUserToProfile = async (user: User): Promise<void> => {
     }
     syncCache.set(user.id, now);
 
+    // First, fetch the existing profile to check if user has manually edited fields
+    const { data: existingProfileData } = await supabase
+      .from('profiles')
+      .select('full_name, profile_image_url, phone, bio, age, gender, badge')
+      .eq('id', user.id)
+      .single();
+
+    const existingProfile = existingProfileData as any; // Type assertion for Supabase query result
     const userMetadata = user.user_metadata || {};
     
-    // Debug: Log what we're getting from Google
-    console.log('Google user metadata:', userMetadata);
-    console.log('Available fields:', Object.keys(userMetadata));
+    // Extract Google's full name
+    const googleFullName = userMetadata.full_name || userMetadata.name || 'Google User';
+    const googleName = userMetadata.name || 'Google User';
     
-    // Extract first and last name from full name
-    const fullName = userMetadata.full_name || userMetadata.name || 'Google User';
-    const nameParts = fullName.split(' ');
-    const firstName = userMetadata.given_name || nameParts[0] || '';
-    const lastName = userMetadata.family_name || nameParts.slice(1).join(' ') || '';
+    // Determine if we should update the name/username
+    // NEVER overwrite if user has set a custom name that differs from Google's
+    const currentName = existingProfile?.full_name;
+    const isDefaultName = !currentName || 
+                         currentName === 'Google User' || 
+                         currentName === 'User' ||
+                         currentName.trim() === '';
+    
+    // Only update name if:
+    // 1. Profile doesn't exist (new user)
+    // 2. Name is empty/missing
+    // 3. Name matches Google's name exactly (user hasn't customized it)
+    // 4. Name is a default value
+    const shouldUpdateName = !existingProfile || 
+                            isDefaultName ||
+                            currentName === googleFullName ||
+                            currentName === googleName;
     
     // Prepare profile data from Google metadata
-    const profileData = {
+    // Only update fields that haven't been manually edited by the user
+    const profileData: any = {
       id: user.id,
-      full_name: fullName,
-      first_name: firstName,
-      last_name: lastName,
-      email: user.email,
-      profile_image_url: userMetadata.avatar_url || userMetadata.picture || userMetadata.image_url,
-      phone: userMetadata.phone || user.phone,
-      bio: userMetadata.bio && !userMetadata.bio.startsWith('Google user -') ? userMetadata.bio : null, // Clean up existing "Google user -" bios
-      age: userMetadata.age ? parseInt(userMetadata.age) : null,
-      gender: userMetadata.gender || null,
-      // Add a star badge for Google users
-      badge: 'star',
-      // Additional Google-specific data
-      locale: userMetadata.locale,
-      google_domain: userMetadata.hd,
-      verified: user.email_confirmed_at ? true : false,
       updated_at: new Date().toISOString()
     };
 
-    // Upsert the profile data
-    const { error } = await supabase
-      .from('profiles')
-      .upsert(profileData, {
-        onConflict: 'id'
-      });
+    // Only update full_name (username) if user hasn't customized it
+    // This preserves the user's custom username/name choice
+    if (shouldUpdateName) {
+      profileData.full_name = googleFullName;
+    }
+    // Otherwise, preserve the user's custom username/name (don't include it in the update)
 
-    if (error) {
-      // Don't log errors for invalid user states, just handle gracefully
-      if (error.code === 'PGRST116' || error.code === '42501') {
-        // Profile not found or permission denied - user might not be properly set up
-        return;
+    // Only update profile_image_url if it's missing or matches Google's exactly
+    // This preserves the user's custom profile picture if they've uploaded their own
+    const googleImageUrl = userMetadata.avatar_url || userMetadata.picture || userMetadata.image_url;
+    const currentImageUrl = existingProfile?.profile_image_url;
+    if (googleImageUrl && (!currentImageUrl || currentImageUrl === googleImageUrl)) {
+      profileData.profile_image_url = googleImageUrl;
+    }
+    // If user has a custom profile image (different from Google's), preserve it
+
+    // Only update phone if it's missing (preserve user's custom phone number)
+    if (!existingProfile?.phone && (userMetadata.phone || user.phone)) {
+      profileData.phone = userMetadata.phone || user.phone;
+    }
+
+    // Only update bio if it's missing or is the default "Google user" bio
+    // Preserve user's custom bio if they've written one
+    const googleBio = userMetadata.bio;
+    const currentBio = existingProfile?.bio;
+    if (googleBio && !googleBio.startsWith('Google user -')) {
+      if (!currentBio || 
+          currentBio === 'Google user' || 
+          currentBio?.startsWith('Google user -') ||
+          currentBio.trim() === '') {
+        profileData.bio = googleBio;
       }
-      console.error('Error syncing Google user to profile:', error);
+    }
+    // If user has a custom bio, preserve it
+
+    // Only update age/gender if they're missing (preserve user's custom values)
+    if (!existingProfile?.age && userMetadata.age) {
+      profileData.age = parseInt(userMetadata.age);
+    }
+    if (!existingProfile?.gender && userMetadata.gender) {
+      profileData.gender = userMetadata.gender;
+    }
+
+    // Add a star badge for Google users (only if they don't have a badge already)
+    // This is a one-time assignment and won't overwrite if user has a different badge
+    if (!existingProfile || !existingProfile.badge) {
+      profileData.badge = 'star';
+    }
+
+    // Ensure full_name is always present (required field)
+    // Only set default if user hasn't customized it
+    if (!profileData.full_name && (!currentName || isDefaultName)) {
+      profileData.full_name = googleFullName || 'User';
+    }
+
+    // Only perform update if there are fields to update
+    if (Object.keys(profileData).length > 2) { // More than just id and updated_at
+      // Check if profile exists first
+      if (existingProfile) {
+        // Profile exists - perform update
+        const { error } = await supabase
+          .from('profiles')
+          .update(profileData)
+          .eq('id', user.id);
+
+        if (error) {
+          // Handle common database errors gracefully
+          if (error.code === 'PGRST116' || error.code === '42501' || error.code === '400') {
+            // Profile not found, permission denied, or bad request - user might not be properly set up
+            console.warn('Profile sync skipped - user setup incomplete:', error.message);
+            return;
+          }
+          console.error('Error syncing Google user to profile:', error);
+        }
+      } else {
+        // Profile doesn't exist - perform insert (new user, first time sync)
+        // For new users, we can safely use Google's data
+        // Users can customize their profile later, and future syncs will preserve their choices
+        const insertData = {
+          ...profileData,
+          full_name: profileData.full_name || googleFullName || 'User',
+          created_at: new Date().toISOString()
+        };
+
+        const { error } = await supabase
+          .from('profiles')
+          .insert(insertData);
+
+        if (error) {
+          // Handle common database errors gracefully
+          if (error.code === 'PGRST116' || error.code === '42501' || error.code === '400') {
+            // Profile not found, permission denied, or bad request - user might not be properly set up
+            console.warn('Profile sync skipped - user setup incomplete:', error.message);
+            return;
+          }
+          console.error('Error syncing Google user to profile:', error);
+        }
+      }
     }
   } catch (error) {
     // Don't log unexpected errors for invalid auth states

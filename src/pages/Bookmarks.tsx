@@ -17,27 +17,42 @@ const Bookmarks = () => {
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
-        .from('bookmarks')
-        .select(`
-          id,
-          created_at,
-          posts (
-            *,
-            profiles:author_id (full_name, profile_image_url),
-            likes (count),
-            comments (count),
-            post_images (url),
-            categories:category_id (name, slug)
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from('bookmarks')
+          .select(`
+            id,
+            created_at,
+            posts (
+              *,
+              profiles:author_id (full_name, profile_image_url),
+              likes (count),
+              comments (count),
+              post_images (url),
+              categories:category_id (name, slug)
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(100); // Limit to prevent huge queries
+        
+        if (error) {
+          // Handle table not existing or permission errors gracefully
+          if (error.code === 'PGRST116' || error.code === '42501' || error.code === '400') {
+            console.warn('Bookmarks table not available:', error.message);
+            return [];
+          }
+          throw error;
+        }
+        return data || [];
+      } catch (error) {
+        console.warn('Failed to load bookmarks:', error);
+        return [];
+      }
     },
     enabled: !!user,
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   if (!user) {

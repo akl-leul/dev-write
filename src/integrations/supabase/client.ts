@@ -13,5 +13,12 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: false, // Disable URL session detection for faster loads
+    flowType: 'pkce', // Use PKCE flow for better performance
+  },
+  global: {
+    headers: {
+      'x-client-info': 'dev-write-web',
+    },
+  },
 });

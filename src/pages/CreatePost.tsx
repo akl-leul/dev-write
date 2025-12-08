@@ -1,256 +1,246 @@
-import { useState, useRef, useEffect } from 'react';
-// import { useAuth } from '@/contexts/AuthContext'; // Removed auth dependency
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Header } from '@/components/layout/Header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { X, Upload, Loader2, Image as ImageIcon, PenLine, FileText, Globe, MessageCircle, ChevronDown, ChevronUp, Tag as TagIcon, Plus } from 'lucide-react';
-import { toast } from 'sonner';
-import { RichTextEditor } from '@/components/editor/RichTextEditor';
-import { MentionOverlay } from '@/components/editor/MentionOverlay';
-import { TagMentionOverlay } from '@/components/editor/TagMentionOverlay';
-import { useMentions } from '@/hooks/useMentions';
-import { useTagMentions } from '@/hooks/useTagMentions';
-import { extractMentions, findUsersByNames, extractMentionsFromTags } from '@/utils/userSearch';
-import { format } from 'date-fns';
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
+import { Header } from '@/components/layout/Header'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import {
+  X,
+  Upload,
+  Loader2,
+  Image as ImageIcon,
+  PenLine,
+  FileText,
+  Globe,
+  MessageCircle,
+  Tag as TagIcon,
+  Plus
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { RichTextEditor } from '@/components/editor/RichTextEditor'
+import { MentionOverlay } from '@/components/editor/MentionOverlay'
+import { TagMentionOverlay } from '@/components/editor/TagMentionOverlay'
+import { useMentions } from '@/hooks/useMentions'
+import { useTagMentions } from '@/hooks/useTagMentions'
+import { extractMentions, findUsersByNames } from '@/utils/userSearch'
+import { format } from 'date-fns'
 
 const CreatePost = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const editId = searchParams.get('edit');
-  
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [excerpt, setExcerpt] = useState('');
-  const [status, setStatus] = useState<'draft' | 'published' | 'archived'>('published');
-  const [isPublished, setIsPublished] = useState(true);
-  const [categoryId, setCategoryId] = useState<string>('');
-  const [readTime, setReadTime] = useState(5);
-  const [featuredImage, setFeaturedImage] = useState<File | null>(null);
-  const [featuredImageUrl, setFeaturedImageUrl] = useState<string>('');
-  const [images, setImages] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [commentsEnabled, setCommentsEnabled] = useState(true);
-  const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState<Array<{ id: string; content: string; created_at: string; author: { full_name: string; profile_image_url?: string } }>>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  const [availableTags, setAvailableTags] = useState<Array<{ id: string; name: string; slug: string; color: string }>>([]);
-  
-  // Mention functionality
-  const editorRef = useRef<HTMLDivElement>(null);
-  const { mentionState, checkForMention, insertMention, closeMentions } = useMentions(editorRef);
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const editId = searchParams.get('edit')
 
-  // Tag mention functionality
-  const tagInputRef = useRef<HTMLInputElement>(null);
-  const { 
-    mentionState: tagMentionState, 
-    searchResults: tagSearchResults, 
-    checkForMention: checkTagMentions, 
-    insertMention: insertTagMention, 
-    closeMentions: closeTagMentions 
-  } = useTagMentions(tagInputRef, tagInput, setTagInput);
+  // State
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+  const [excerpt, setExcerpt] = useState('') // Store plain text for editing
+  const [status, setStatus] = useState('published')
+  const [isPublished, setIsPublished] = useState(true)
+  const [categoryId, setCategoryId] = useState('')
+  const [readTime, setReadTime] = useState(5)
+  const [featuredImage, setFeaturedImage] = useState(null)
+  const [featuredImageUrl, setFeaturedImageUrl] = useState('')
+  const [images, setImages] = useState<Array<File | { url: string; id?: string }>>([]) // Can be File objects (new) or URL objects (existing)
+  const [uploading, setUploading] = useState(false)
+  const [commentsEnabled, setCommentsEnabled] = useState(true)
+  const [tags, setTags] = useState([])
+  const [tagInput, setTagInput] = useState('')
+  const [availableTags, setAvailableTags] = useState([])
 
-  // Fetch categories and tags
+  // Refs
+  const editorRef = useRef<any>(null)
+  const editorInstanceRef = useRef<any>(null)
+  const tagInputRef = useRef(null)
+
+  // Mentions
+  const {
+    mentionState,
+    checkForMention,
+    insertMention,
+    closeMentions
+  } = useMentions(editorInstanceRef)
+
+  const {
+    mentionState: tagMentionState,
+    searchResults: tagSearchResults,
+    checkForMention: checkTagMentions,
+    insertMention: insertTagMention,
+    closeMentions: closeTagMentions
+  } = useTagMentions(tagInputRef, tagInput, setTagInput)
+
+  // Categories query
   const { data: categories } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
+        .order('name')
+      if (error) throw error
+      return data
+    }
+  })
 
+  // Tags query
   const { data: tagsData } = useQuery({
     queryKey: ['tags'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tags')
         .select('*')
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
+        .order('name')
+      if (error) throw error
+      return data
+    }
+  })
 
-  // Update available tags when data changes
-  if (tagsData && tagsData !== availableTags) {
-    setAvailableTags(tagsData);
-  }
-
-  // Add event listeners for TipTap editor mention detection
+  // Update available tags
   useEffect(() => {
-    const setupEventListeners = () => {
-      const editorElement = editorRef.current?.querySelector('.ProseMirror');
-      if (!editorElement) {
-        console.log('Editor element not found');
-        return;
-      }
-      console.log('Setting up event listeners on ProseMirror element');
+    if (tagsData && tagsData.length > 0 && !availableTags.length) {
+      setAvailableTags(tagsData)
+    }
+  }, [tagsData])
 
-      const handleKeyUp = (e: KeyboardEvent) => {
-        console.log('Key up event triggered');
+  // Editor mention detection - listen to TipTap editor updates
+  useEffect(() => {
+    if (!editorInstanceRef.current) return;
+
+    const editor = editorInstanceRef.current;
+    
+    // Use TipTap's transaction system to detect mentions
+    const handleUpdate = () => {
+      // Small delay to ensure editor state is updated
+      setTimeout(() => {
         checkForMention();
-      };
-
-      const handleClick = (e: MouseEvent) => {
-        console.log('Click event triggered');
-        checkForMention();
-      };
-
-      const handleInput = (e: InputEvent) => {
-        console.log('Input event triggered');
-        checkForMention();
-      };
-
-      // Add event listeners
-      editorElement.addEventListener('keyup', handleKeyUp);
-      editorElement.addEventListener('click', handleClick);
-      editorElement.addEventListener('input', handleInput);
-
-      // Cleanup function
-      return () => {
-        editorElement.removeEventListener('keyup', handleKeyUp);
-        editorElement.removeEventListener('click', handleClick);
-        editorElement.removeEventListener('input', handleInput);
-      };
+      }, 0);
     };
 
-    // Try to setup immediately
-    const cleanup = setupEventListeners();
-    
-    // If not ready, set up a MutationObserver to wait for the editor
-    if (!cleanup) {
-      const observer = new MutationObserver(() => {
-        const cleanup = setupEventListeners();
-        if (cleanup) {
-          observer.disconnect();
-        }
-      });
+    // Listen to editor updates and selection changes
+    editor.on('update', handleUpdate);
+    editor.on('selectionUpdate', handleUpdate);
 
-      observer.observe(editorRef.current!, {
-        childList: true,
-        subtree: true,
-      });
-
-      // Also try after a delay as fallback
-      const timer = setTimeout(() => {
-        const cleanup = setupEventListeners();
-        if (cleanup) {
-          observer.disconnect();
-        }
-      }, 500);
-
-      return () => {
-        observer.disconnect();
-        clearTimeout(timer);
-      };
-    }
-
-    return cleanup;
-  }, [checkForMention]);
+    return () => {
+      editor.off('update', handleUpdate);
+      editor.off('selectionUpdate', handleUpdate);
+    };
+  }, [checkForMention])
 
   // Load existing post if editing
-  useQuery({
+  const { isLoading: isLoadingPost } = useQuery({
     queryKey: ['post-edit', editId],
     queryFn: async () => {
-      if (!editId) return null;
+      if (!editId) return null
+
       const { data, error } = await supabase
         .from('posts')
-        .select('*')
+        .select(`
+          *,
+          category_id,
+          post_tags(*, tags(name,slug)),
+          post_images(url)
+        `)
         .eq('id', editId)
-        .single();
-      
-      if (error) throw error;
+        .single()
+
+      if (error) throw error
+
       if (data) {
-        setTitle(data.title);
-        setContent(data.content_markdown);
-        setExcerpt(data.excerpt || '');
-        setStatus(data.status as 'draft' | 'published' | 'archived');
-        setIsPublished(data.status === 'published');
-        setCategoryId(data.category_id || '');
-        setReadTime(data.read_time || 5);
-        setFeaturedImageUrl(data.featured_image || '');
-        
+        const postData = data as any; // Type assertion for post data
+        // Set all form fields
+        setTitle(postData.title || '')
+        setContent(postData.content_markdown || '')
+        // Strip HTML tags from excerpt for display in textarea
+        const excerptText = postData.excerpt ? postData.excerpt.replace(/<[^>]*>/g, '') : ''
+        setExcerpt(excerptText)
+        setStatus(postData.status || 'draft')
+        setIsPublished(postData.status === 'published')
+        setCategoryId(postData.category_id || '')
+        setReadTime(postData.read_time || 5)
+        setFeaturedImageUrl(postData.featured_image || '')
+        setCommentsEnabled(postData.comments_enabled !== false)
+
+        // Load existing post_images
+        if (postData.post_images && Array.isArray(postData.post_images) && postData.post_images.length > 0) {
+          const existingImages = (postData.post_images as any[]).map((img: any) => ({
+            url: img.url || '',
+            id: img.id
+          }))
+          setImages(existingImages)
+        } else {
+          setImages([])
+        }
+
         // Load existing tags
-        const { data: postTags } = await supabase
-          .from('post_tags')
-          .select(`
-            tags (
-              name
-            )
-          `)
-          .eq('post_id', editId);
-        
-        if (postTags) {
-          const tagNames = postTags.map(pt => pt.tags.name);
-          setTags(tagNames);
+        if (postData.post_tags && Array.isArray(postData.post_tags) && postData.post_tags.length > 0) {
+          const tagNames = postData.post_tags
+            .map((pt: any) => pt.tags?.name)
+            .filter((name: string) => name)
+          setTags(tagNames)
+        } else {
+          setTags([])
         }
       }
-      return data;
+
+      return data
     },
     enabled: !!editId,
-  });
+    staleTime: 5 * 60 * 1000, // 5 minutes - edit data doesn't change often
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  })
 
-  // Generate slug from title and date
   const generateSlug = () => {
-    const now = new Date();
-    const day = format(now, 'dd');
-    const month = format(now, 'MM');
-    const year = format(now, 'yyyy');
+    const now = new Date()
+    const day = format(now, 'dd')
+    const month = format(now, 'MM')
+    const year = format(now, 'yyyy')
     const titleSlug = title
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-    return `${day}/${month}/${year}/${titleSlug}`;
-  };
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+    return `${day}/${month}/${year}/${titleSlug}`
+  }
 
   const createPost = useMutation({
     mutationFn: async () => {
       if (!title.trim() || !content.trim()) {
-        throw new Error('Title and content are required');
+        throw new Error('Title and content are required')
       }
       if (images.length > 5) {
-        throw new Error('Maximum 5 images allowed');
+        throw new Error('Maximum 5 images allowed')
       }
 
-      setUploading(true);
+      setUploading(true)
 
-      // Upload featured image if exists
-      let uploadedFeaturedImageUrl = featuredImageUrl;
-      if (featuredImage) {
-        const fileExt = featuredImage.name.split('.').pop();
-        const fileName = `anonymous/featured/${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('post-images')
-          .upload(fileName, featuredImage);
-        
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('post-images')
-          .getPublicUrl(fileName);
-        
-        uploadedFeaturedImageUrl = publicUrl;
-      }
+      const slug = generateSlug()
+      const finalStatus = isPublished ? 'published' : status
+      // Wrap excerpt in <p> tags if it's plain text, otherwise use as is
+      const finalExcerpt = excerpt.trim() 
+        ? (excerpt.trim().startsWith('<') ? excerpt.trim() : `<p>${excerpt.trim()}</p>`)
+        : (content ? content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200) : '')
 
-      const finalStatus = isPublished ? 'published' : status;
-      const finalExcerpt = excerpt.trim() || content.replace(/<[^>]*>/g, '').slice(0, 200);
+      const user = await supabase.auth.getUser()
+      const authorId = user.data.user?.id || '00000000-0000-0000-0000-000000000000'
 
-      // If editing, update existing post
       if (editId) {
+        // UPDATE existing post
         const { error: updateError } = await supabase
           .from('posts')
           .update({
@@ -260,299 +250,535 @@ const CreatePost = () => {
             status: finalStatus,
             category_id: categoryId || null,
             read_time: readTime,
-            featured_image: uploadedFeaturedImageUrl || null,
+            comments_enabled: commentsEnabled,
+            updated_at: new Date().toISOString()
           })
-          .eq('id', editId);
-
-        if (updateError) throw updateError;
-        
-        // Get existing slug for navigation
-        const { data: existingPost } = await supabase
-          .from('posts')
-          .select('slug')
           .eq('id', editId)
-          .single();
-        
-        // Extract mentions from content
-        const mentionedNames = extractMentions(content);
-        if (mentionedNames.length > 0) {
-          const mentionedUsers = await findUsersByNames(mentionedNames);
-          const mentionedUserIds = mentionedUsers.map(u => u.id);
+
+        if (updateError) throw updateError
+
+        // Featured image is already uploaded and stored in database when selected
+        // Just ensure it's set if we have a URL
+        if (featuredImageUrl && !featuredImage) {
+          // Already stored in database, no action needed
+        } else if (featuredImage) {
+          // This shouldn't happen if handleFeaturedImageSelect worked, but handle it just in case
+          const fileExt = featuredImage.name.split('.').pop()
+          const fileName = `featured-${editId}-${Date.now()}.${fileExt}`
+          const { error: uploadError } = await supabase.storage
+            .from('post-images')
+            .upload(fileName, featuredImage)
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('post-images')
+              .getPublicUrl(fileName)
+            await supabase
+              .from('posts')
+              .update({ featured_image: publicUrl })
+              .eq('id', editId)
+            setFeaturedImageUrl(publicUrl)
+            setFeaturedImage(null)
+          }
         }
-        
-        // Handle tags for edited post
-        if (tags.length > 0) {
-          // Remove existing post tags
-          await supabase
-            .from('post_tags')
-            .delete()
-            .eq('post_id', editId);
+
+        // Handle post_images for edited post
+        // All images should already be uploaded and stored (as { url, id? } objects)
+        const existingImages = images.filter((img): img is { url: string; id?: string } => 
+          typeof img === 'object' && 'url' in img && !(img instanceof File)
+        )
+
+        // Get current post_images from database
+        const { data: currentPostImages } = await supabase
+          .from('post_images')
+          .select('id, url')
+          .eq('post_id', editId)
+          .order('order_index')
+
+        // Delete images that were removed (exist in DB but not in current images array)
+        if (currentPostImages && Array.isArray(currentPostImages) && currentPostImages.length > 0) {
+          const existingUrls = existingImages.map(img => img.url)
+          const imagesToDelete = currentPostImages.filter(
+            (dbImg: any) => !existingUrls.includes(dbImg.url)
+          )
           
-          // Create or find tags and associate with post
+          if (imagesToDelete.length > 0) {
+            const idsToDelete = imagesToDelete.map((img: any) => img.id)
+            await supabase
+              .from('post_images')
+              .delete()
+              .in('id', idsToDelete)
+          }
+        }
+
+        // Update order_index for all remaining images to match current order
+        if (existingImages.length > 0) {
+          const updatePromises = existingImages.map(async (img, index) => {
+            if (img.id) {
+              // Image already in database, just update order
+              await supabase
+                .from('post_images')
+                .update({ order_index: index })
+                .eq('id', img.id)
+            } else {
+              // Image uploaded but not yet in database (shouldn't happen for edits, but handle it)
+              const { data: insertedImage } = await supabase
+                .from('post_images')
+                .insert({
+                  post_id: editId,
+                  url: img.url,
+                  order_index: index
+                })
+                .select('id, url')
+                .single()
+              
+              if (insertedImage) {
+                img.id = (insertedImage as any).id
+              }
+            }
+          })
+          await Promise.all(updatePromises)
+        }
+
+        // Handle tags for edited post (clear existing first)
+        if (tags.length > 0) {
+          await supabase.from('post_tags').delete().eq('post_id', editId)
+
           const tagPromises = tags.map(async (tagName) => {
-            const slug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-            
-            // Try to find existing tag
+            const slug = tagName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
+            let tagId
+
             const { data: existingTag } = await supabase
               .from('tags')
               .select('id')
               .eq('slug', slug)
-              .single();
-            
-            const tagId = existingTag?.id || (
-              (await supabase
+              .single()
+
+            if (existingTag) {
+              tagId = (existingTag as any).id
+            } else {
+              const { data: newTag } = await supabase
                 .from('tags')
                 .insert({ name: tagName, slug })
                 .select('id')
-                .single())?.data?.id
-            );
-            
-            if (tagId) {
-              return supabase
-                .from('post_tags')
-                .insert({ post_id: editId, tag_id: tagId });
+                .single()
+              tagId = (newTag as any)?.id
             }
-          });
-          
-          await Promise.all(tagPromises);
-          
-          // Extract mentions from tags
-          const tagMentions = extractMentionsFromTags(tags);
-          if (tagMentions.length > 0) {
-            const mentionedUsersFromTags = await findUsersByNames(tagMentions);
-            const mentionedUserIdsFromTags = mentionedUsersFromTags.map(u => u.id);
-          }
-        } else {
-          // Remove all tags if none are selected
-          await supabase
-            .from('post_tags')
-            .delete()
-            .eq('post_id', editId);
+
+            if (tagId) {
+              await supabase.from('post_tags').insert({
+                post_id: editId,
+                tag_id: tagId
+              })
+            }
+          })
+          await Promise.all(tagPromises)
         }
-        
-        return { id: editId, slug: existingPost?.slug };
-      }
 
-      // Create slug from title and date
-      const slug = generateSlug();
+        const { data: existingPost } = await supabase
+          .from('posts')
+          .select('slug')
+          .eq('id', editId)
+          .single()
 
-      // Create new post
-      const { data: post, error: postError } = await supabase
-        .from('posts')
-        .insert({
-          author_id: 'anonymous',
-          title,
-          slug,
-          content_markdown: content,
-          excerpt: finalExcerpt,
-          status: finalStatus,
-          category_id: categoryId || null,
-          read_time: readTime,
-          featured_image: uploadedFeaturedImageUrl || null,
-        })
-        .select()
-        .single();
+        return { id: editId, slug: (existingPost as any)?.slug }
+      } else {
+        // CREATE new post
+        const { data: post, error: postError } = await supabase
+          .from('posts')
+          .insert({
+            author_id: authorId,
+            title,
+            slug,
+            content_markdown: content,
+            excerpt: finalExcerpt,
+            status: finalStatus,
+            category_id: categoryId || null,
+            read_time: readTime,
+            featured_image: featuredImageUrl || null,
+            comments_enabled: commentsEnabled
+          })
+          .select()
+          .single()
 
-      if (postError) throw postError;
+        if (postError) throw postError
 
-      // Extract mentions from content
-      const mentionedNames = extractMentions(content);
-      if (mentionedNames.length > 0) {
-        const mentionedUsers = await findUsersByNames(mentionedNames);
-        const mentionedUserIds = mentionedUsers.map(u => u.id);
-      }
+        const postData = post as any
 
-      // Upload images
-      if (images.length > 0) {
-        const imagePromises = images.map(async (file, index) => {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `anonymous/${post.id}/${Date.now()}-${index}.${fileExt}`;
-
+        // Featured image is already uploaded and URL is stored in featuredImageUrl
+        // Just ensure it's set in the post (it should already be set, but double-check)
+        if (featuredImageUrl && !featuredImage) {
+          // Already set in post creation, no action needed
+        } else if (featuredImage) {
+          // This shouldn't happen if handleFeaturedImageSelect worked, but handle it just in case
+          const fileExt = featuredImage.name.split('.').pop()
+          const fileName = `featured-${postData.id}-${Date.now()}.${fileExt}`
           const { error: uploadError } = await supabase.storage
             .from('post-images')
-            .upload(fileName, file);
+            .upload(fileName, featuredImage)
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('post-images')
+              .getPublicUrl(fileName)
+            await supabase
+              .from('posts')
+              .update({ featured_image: publicUrl })
+              .eq('id', postData.id)
+            setFeaturedImageUrl(publicUrl)
+            setFeaturedImage(null)
+          }
+        }
 
-          if (uploadError) throw uploadError;
+        // Link already-uploaded images to the new post
+        // Images are already uploaded to storage, just need to insert into post_images
+        const uploadedImages = images.filter((img): img is { url: string; id?: string } => 
+          typeof img === 'object' && 'url' in img && !(img instanceof File)
+        )
 
-          const { data: { publicUrl } } = supabase.storage
-            .from('post-images')
-            .getPublicUrl(fileName);
+        if (uploadedImages.length > 0) {
+          const linkedImages: Array<{ url: string; id?: string }> = []
+          
+          // Use RPC function to insert images (bypasses RLS while maintaining security)
+          const linkPromises = uploadedImages.map(async (img, index) => {
+            const { data: insertedImage, error: dbError } = await supabase
+              .rpc('insert_post_image', {
+                p_post_id: postData.id,
+                p_url: img.url,
+                p_order_index: index
+              })
+            
+            if (dbError) {
+              console.error('Error linking image to post:', dbError)
+              throw dbError
+            }
+            
+            if (insertedImage && insertedImage.length > 0) {
+              const imgData = insertedImage[0] as any
+              linkedImages.push({
+                url: imgData.url,
+                id: imgData.id
+              })
+            }
+          })
+          
+          await Promise.all(linkPromises)
+          
+          // Update state with database IDs
+          if (linkedImages.length > 0) {
+            setImages(linkedImages)
+          }
+        }
 
-          return supabase.from('post_images').insert({
-            post_id: post.id,
-            url: publicUrl,
-            order_index: index,
-          });
+        // Background operations
+        Promise.resolve().then(async () => {
+          try {
 
-        });
-        await Promise.all(imagePromises);
+            // Handle tags
+            if (tags.length > 0) {
+              const tagPromises = tags.map(async (tagName) => {
+                const slug = tagName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')
+                let tagId
+
+                const { data: existingTag } = await supabase
+                  .from('tags')
+                  .select('id')
+                  .eq('slug', slug)
+                  .single()
+
+                if (existingTag) {
+                  tagId = (existingTag as any).id
+                } else {
+                  const { data: newTag } = await supabase
+                    .from('tags')
+                    .insert({ name: tagName, slug })
+                    .select('id')
+                    .single()
+                  tagId = (newTag as any)?.id
+                }
+                return tagId
+              })
+
+              const tagIds = await Promise.all(tagPromises)
+              const postData = post as any
+              const postTagPromises = tagIds.map(async (tagId) => {
+                if (tagId) {
+                  await supabase.from('post_tags').insert({
+                    post_id: postData.id,
+                    tag_id: tagId
+                  })
+                }
+              })
+              await Promise.all(postTagPromises)
+            }
+          } catch (error) {
+            console.warn('Background operations failed:', error)
+          }
+        })
+
+        return post
+      }
+    },
+    onSuccess: (post) => {
+      setUploading(false)
+      toast.success(editId ? 'Post updated successfully' : 'Post created successfully')
+      const postData = post as any
+      navigate(isPublished ? `/post/${postData.slug || postData.id}` : '/my-posts')
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to create post')
+      setUploading(false)
+    }
+  })
+
+  const handleImageSelect = async (e) => {
+    if (!e.target.files) return
+    const newFiles = Array.from(e.target.files) as File[]
+    const totalImages = images.length + newFiles.length
+    if (totalImages > 5) {
+      toast.error('Maximum 5 images allowed')
+      return
+    }
+
+    setUploading(true)
+    const uploadedImages: Array<{ url: string; id?: string }> = []
+
+    try {
+      // Upload each file to storage immediately
+      const uploadPromises = newFiles.map(async (file, index) => {
+        const fileExt = file.name.split('.').pop()
+        const timestamp = Date.now()
+        const fileName = editId 
+          ? `post-${editId}-${timestamp}-${index}.${fileExt}`
+          : `temp-${timestamp}-${index}.${fileExt}`
+        
+        const { error: uploadError } = await supabase.storage
+          .from('post-images')
+          .upload(fileName, file)
+        
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError)
+          throw uploadError
+        }
+
+        // Get the public URL from Supabase storage
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(fileName)
+
+        // If editing an existing post, store in database immediately
+        if (editId) {
+          const existingImages = images.filter((img): img is { url: string; id?: string } => 
+            typeof img === 'object' && 'url' in img && !(img instanceof File)
+          )
+          const orderIndex = existingImages.length + index
+          
+          // Use RPC function to insert images (bypasses RLS while maintaining security)
+          const { data: insertedImage, error: dbError } = await supabase
+            .rpc('insert_post_image', {
+              p_post_id: editId,
+              p_url: publicUrl,
+              p_order_index: orderIndex
+            })
+          
+          if (dbError) {
+            console.error('Error storing image in database:', dbError)
+            throw dbError
+          }
+
+          if (insertedImage && insertedImage.length > 0) {
+            const imgData = insertedImage[0] as any
+            uploadedImages.push({
+              url: imgData.url,
+              id: imgData.id
+            })
+          }
+        } else {
+          // For new posts, just store the URL (will be linked to post when created)
+          uploadedImages.push({
+            url: publicUrl
+          })
+        }
+      })
+
+      await Promise.all(uploadPromises)
+      
+      // Update state with uploaded images (database URLs)
+      setImages([...images, ...uploadedImages])
+      toast.success(`${uploadedImages.length} image(s) uploaded successfully`)
+    } catch (error: any) {
+      console.error('Error uploading images:', error)
+      toast.error(error.message || 'Failed to upload images')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleFeaturedImageSelect = async (e) => {
+    if (!e.target.files?.[0]) return
+    
+    const file = e.target.files[0]
+    setUploading(true)
+
+    try {
+      const fileExt = file.name.split('.').pop()
+      const timestamp = Date.now()
+      const fileName = editId
+        ? `featured-${editId}-${timestamp}.${fileExt}`
+        : `temp-featured-${timestamp}.${fileExt}`
+
+      // Upload to storage immediately
+      const { error: uploadError } = await supabase.storage
+        .from('post-images')
+        .upload(fileName, file)
+
+      if (uploadError) {
+        console.error('Error uploading featured image:', uploadError)
+        throw uploadError
       }
 
-      // Handle tags
-      if (tags.length > 0) {
-        // Create or find tags
-        const tagPromises = tags.map(async (tagName) => {
-          const slug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-          
-          // Try to find existing tag
-          const { data: existingTag } = await supabase
-            .from('tags')
-            .select('id')
-            .eq('slug', slug)
-            .single();
-          
-          if (existingTag) {
-            return existingTag.id;
-          } else {
-            // Create new tag
-            const { data: newTag } = await supabase
-              .from('tags')
-              .insert({ name: tagName, slug })
-              .select('id')
-              .single();
-            return newTag?.id;
-          }
-        });
-        
-        const tagIds = await Promise.all(tagPromises);
-        
-        // Associate tags with post
-        const postTagPromises = tagIds.map((tagId) => {
-          if (tagId) {
-            return supabase
-              .from('post_tags')
-              .insert({ post_id: post.id, tag_id: tagId });
-          }
-        });
-        
-        await Promise.all(postTagPromises);
+      // Get the public URL from Supabase storage
+      const { data: { publicUrl } } = supabase.storage
+        .from('post-images')
+        .getPublicUrl(fileName)
 
-        // Extract mentions from tags
-        const tagMentions = extractMentionsFromTags(tags);
-        if (tagMentions.length > 0) {
-          const mentionedUsersFromTags = await findUsersByNames(tagMentions);
-          const mentionedUserIdsFromTags = mentionedUsersFromTags.map(u => u.id);
+      // If editing an existing post, update database immediately
+      if (editId) {
+        const { error: dbError } = await supabase
+          .from('posts')
+          .update({ featured_image: publicUrl })
+          .eq('id', editId)
+
+        if (dbError) {
+          console.error('Error storing featured image in database:', dbError)
+          throw dbError
         }
       }
 
-      return post;
-    },
-    onSuccess: (post) => {
-      toast.success(editId ? 'Post updated successfully' : 'Post created successfully');
-      navigate(isPublished ? `/post/${post.slug}` : '/my-posts');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to create post');
-      setUploading(false);
-    },
-  });
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const newFiles = Array.from(e.target.files);
-    
-    const totalImages = images.length + newFiles.length;
-    
-    if (totalImages > 5) {
-      toast.error('Maximum 5 images allowed');
-      return;
+      // Update state with database URL
+      setFeaturedImageUrl(publicUrl)
+      setFeaturedImage(null) // Clear File object, URL is now in database
+      toast.success('Featured image uploaded successfully')
+    } catch (error: any) {
+      console.error('Error uploading featured image:', error)
+      toast.error(error.message || 'Failed to upload featured image')
+    } finally {
+      setUploading(false)
     }
+  }
+
+  const removeImage = async (index: number) => {
+    const imageToRemove = images[index]
     
-    setImages([...images, ...newFiles]);
-  };
-
-  const handleFeaturedImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0]) return;
-    setFeaturedImage(e.target.files[0]);
-    setFeaturedImageUrl(URL.createObjectURL(e.target.files[0]));
-  };
-
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
-
-  const removeFeaturedImage = () => {
-    setFeaturedImage(null);
-    setFeaturedImageUrl('');
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    createPost.mutate();
-  };
-
-  const handleAddComment = () => {
-    if (!commentText.trim()) return;
-    
-    const newComment = {
-      id: Date.now().toString(),
-      content: commentText,
-      created_at: new Date().toISOString(),
-      author: {
-        full_name: 'Anonymous User',
-        profile_image_url: ''
+    // If it's an existing image from database (has id), delete it from storage and database
+    if (typeof imageToRemove === 'object' && 'id' in imageToRemove && imageToRemove.id) {
+      try {
+        // Extract filename from URL to delete from storage
+        const url = imageToRemove.url
+        const urlParts = url.split('/')
+        const fileName = urlParts[urlParts.length - 1].split('?')[0] // Remove query params
+        
+        // Delete from storage
+        await supabase.storage
+          .from('post-images')
+          .remove([fileName])
+        
+        // Delete from database if we're editing a post
+        if (editId) {
+          await supabase
+            .from('post_images')
+            .delete()
+            .eq('id', imageToRemove.id)
+        }
+      } catch (error) {
+        console.warn('Error removing image:', error)
+        // Continue with removing from UI even if deletion fails
       }
-    };
+    }
     
-    setComments([newComment, ...comments]);
-    setCommentText('');
-    toast.success('Comment added successfully');
-  };
+    // Remove from local state
+    setImages(images.filter((_, i) => i !== index))
+  }
 
-  const handleDeleteComment = (commentId: string) => {
-    setComments(comments.filter(comment => comment.id !== commentId));
-    toast.success('Comment deleted successfully');
-  };
+  const removeFeaturedImage = async () => {
+    // If editing a post and featured image exists in database, delete it
+    if (editId && featuredImageUrl && !featuredImage) {
+      try {
+        // Extract filename from URL to delete from storage
+        const urlParts = featuredImageUrl.split('/')
+        const fileName = urlParts[urlParts.length - 1].split('?')[0] // Remove query params
+        
+        // Delete from storage
+        await supabase.storage
+          .from('post-images')
+          .remove([fileName])
+        
+        // Update database
+        await supabase
+          .from('posts')
+          .update({ featured_image: null })
+          .eq('id', editId)
+      } catch (error) {
+        console.warn('Error removing featured image:', error)
+        // Continue with removing from UI even if deletion fails
+      }
+    }
+    
+    setFeaturedImage(null)
+    setFeaturedImageUrl('')
+  }
 
-  // Tag handling functions
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    createPost.mutate()
+  }
+
   const handleAddTag = () => {
-    const trimmedTag = tagInput.trim();
+    const trimmedTag = tagInput.trim()
     if (trimmedTag && !tags.includes(trimmedTag) && tags.length < 10) {
-      const newTags = [...tags, trimmedTag];
-      setTags(newTags);
-      setTagInput('');
+      const newTags = [...tags, trimmedTag]
+      setTags(newTags)
+      setTagInput('')
     } else if (tags.length >= 10) {
-      toast.error('Maximum 10 tags allowed');
+      toast.error('Maximum 10 tags allowed')
     }
-  };
+  }
 
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
+  const handleRemoveTag = (tagToRemove) => {
+    setTags(tags.filter(tag => tag !== tagToRemove))
+  }
 
-  const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
+  const handleTagInputKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      handleAddTag();
+      e.preventDefault()
+      handleAddTag()
     }
-  };
+  }
 
-  const handleSelectExistingTag = (tagName: string) => {
+  const handleSelectExistingTag = (tagName) => {
     if (!tags.includes(tagName) && tags.length < 10) {
-      setTags([...tags, tagName]);
-      setTagInput('');
+      setTags([...tags, tagName])
+      setTagInput('')
     } else if (tags.length >= 10) {
-      toast.error('Maximum 10 tags allowed');
+      toast.error('Maximum 10 tags allowed')
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/20 theme-transition">
-      
       {/* Background Dot Pattern */}
-      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
-           style={{
-             backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
-             backgroundSize: '24px 24px'
-           }}>
-      </div>
-
+      <div
+        className="fixed inset-0 z-0 pointer-events-none dark:opacity-20"
+        style={{
+          backgroundImage:
+            'radial-gradient(#e5e7eb 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}
+      />
+      
       <div className="relative z-10">
         <Header />
         
         <main className="container mx-auto py-12 px-4">
           <div className="max-w-4xl mx-auto">
-            
             {/* Header Section */}
             <div className="mb-8 flex items-center gap-3">
               <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400 theme-transition">
@@ -562,7 +788,9 @@ const CreatePost = () => {
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight theme-transition">
                   {editId ? 'Edit Your Story' : 'Write Your Story'}
                 </h1>
-                <p className="text-slate-500 dark:text-slate-400 theme-transition">Share your thoughts with the world</p>
+                <p className="text-slate-500 dark:text-slate-400 theme-transition">
+                  Share your thoughts with the world
+                </p>
               </div>
             </div>
 
@@ -578,7 +806,9 @@ const CreatePost = () => {
                 <CardContent className="pt-6 space-y-6">
                   {/* Title */}
                   <div className="space-y-2">
-                    <Label htmlFor="title" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">Title</Label>
+                    <Label htmlFor="title" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">
+                      Title
+                    </Label>
                     <Input
                       id="title"
                       value={title}
@@ -592,23 +822,30 @@ const CreatePost = () => {
                   {/* Slug preview */}
                   <div className="space-y-2">
                     <Label className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2 theme-transition">
-                      <Globe className="w-3 h-3 text-slate-400 dark:text-slate-500" /> URL Preview
+                      <Globe className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+                      URL Preview
                     </Label>
                     <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-sm theme-transition">
-                      <span className="select-none text-slate-400 dark:text-slate-500">chronicle.com/post/</span>
+                      <span className="select-none text-slate-400 dark:text-slate-500">
+                        chronicle.com/post/
+                      </span>
                       <span className="text-slate-700 dark:text-slate-300 font-medium truncate ml-1 theme-transition">
-                        {title ? generateSlug() : 'dd/mm/yyyy/your-title'}
+                        {title ? generateSlug() : 'ddmmyyyy-your-title'}
                       </span>
                     </div>
                   </div>
 
                   {/* Excerpt */}
                   <div className="space-y-2">
-                    <Label htmlFor="excerpt" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">Excerpt</Label>
+                    <Label htmlFor="excerpt" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">
+                      Excerpt
+                    </Label>
                     <Textarea
                       id="excerpt"
-                      value={excerpt}
-                      onChange={(e) => setExcerpt(e.target.value)}
+                      value={excerpt} // Display plain text (HTML tags already stripped when loading)
+                      onChange={(e) => {
+                        setExcerpt(e.target.value); // Store plain text
+                      }}
                       placeholder="Write a brief summary of your post..."
                       className="min-h-[80px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 resize-none theme-transition"
                     />
@@ -619,8 +856,9 @@ const CreatePost = () => {
 
                   {/* Featured Image */}
                   <div className="space-y-3">
-                    <Label className="text-slate-700 dark:text-slate-300 font-medium theme-transition">Featured Image</Label>
-                    
+                    <Label className="text-slate-700 dark:text-slate-300 font-medium theme-transition">
+                      Featured Image
+                    </Label>
                     {featuredImageUrl ? (
                       <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 group theme-transition">
                         <img
@@ -636,7 +874,8 @@ const CreatePost = () => {
                             onClick={removeFeaturedImage}
                             className="rounded-full"
                           >
-                            <X className="h-4 w-4 mr-2" /> Remove Image
+                            <X className="h-4 w-4 mr-2" />
+                            Remove Image
                           </Button>
                         </div>
                       </div>
@@ -649,14 +888,19 @@ const CreatePost = () => {
                           onChange={handleFeaturedImageSelect}
                           className="hidden"
                         />
-                        <label htmlFor="featured-upload" className="cursor-pointer flex flex-col items-center gap-3">
+                        <label
+                          htmlFor="featured-upload"
+                          className="cursor-pointer flex flex-col items-center gap-3"
+                        >
                           <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center theme-transition">
                             <ImageIcon className="h-6 w-6" />
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 theme-transition">Click to upload cover image</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 theme-transition">SVG, PNG, JPG or GIF (max. 800x400px)</p>
-                          </div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 theme-transition">
+                            Click to upload cover image
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 theme-transition">
+                            SVG, PNG, JPG or GIF. max. 800x400px
+                          </p>
                         </label>
                       </div>
                     )}
@@ -664,15 +908,16 @@ const CreatePost = () => {
 
                   {/* Settings Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                    {/* Category */}
                     <div className="space-y-2">
-                      <Label htmlFor="category" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">Category</Label>
+                      <Label htmlFor="category" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">
+                        Category
+                      </Label>
                       <Select value={categoryId} onValueChange={setCategoryId}>
                         <SelectTrigger className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 theme-transition">
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories?.map((cat) => (
+                          {(categories as any)?.map((cat: any) => (
                             <SelectItem key={cat.id} value={cat.id}>
                               {cat.name}
                             </SelectItem>
@@ -680,10 +925,10 @@ const CreatePost = () => {
                         </SelectContent>
                       </Select>
                     </div>
-
-                    {/* Read Time */}
                     <div className="space-y-2">
-                      <Label htmlFor="readTime" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">Read Time (minutes)</Label>
+                      <Label htmlFor="readTime" className="text-slate-700 dark:text-slate-300 font-medium theme-transition">
+                        Read Time (minutes)
+                      </Label>
                       <Input
                         id="readTime"
                         type="number"
@@ -700,26 +945,36 @@ const CreatePost = () => {
 
               {/* Editor Section */}
               <div className="space-y-2">
-                <Label htmlFor="content" className="text-lg font-bold text-slate-900 dark:text-slate-100 pl-1 theme-transition">Story Content</Label>
+                <Label htmlFor="content" className="text-lg font-bold text-slate-900 dark:text-slate-100 pl-1 theme-transition">
+                  Story Content
+                </Label>
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm relative theme-transition">
-                  <div ref={editorRef}>
-                    <RichTextEditor
-                      content={content}
-                      onChange={setContent}
-                      placeholder="Start writing your story here... Type @ to mention someone"
-                    />
-                  </div>
-                  {mentionState.active && mentionState.position && (
-                    <>
-                      {console.log('Rendering MentionOverlay with state:', mentionState)}
-                      <MentionOverlay
-                        query={mentionState.query}
-                        onSelect={insertMention}
-                        onClose={closeMentions}
-                        position={mentionState.position}
-                        editorRef={editorRef}
+                  {isLoadingPost ? (
+                    <div className="min-h-[500px] flex items-center justify-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Loading post content...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div ref={editorRef}>
+                      <RichTextEditor
+                        key={editId || 'new'} // Force re-render when switching between edit/create
+                        content={content}
+                        onChange={setContent}
+                        placeholder="Start writing your story here... Type @ to mention someone"
+                        editorRef={editorInstanceRef}
                       />
-                    </>
+                      {mentionState.active && mentionState.position && (
+                        <MentionOverlay
+                          query={mentionState.query}
+                          onSelect={insertMention}
+                          onClose={closeMentions}
+                          position={mentionState.position}
+                          editorRef={editorRef}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -738,7 +993,7 @@ const CreatePost = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  {images.length < 5 && (
+                  {images.length < 5 ? (
                     <div className="mb-4">
                       <input
                         id="image-upload"
@@ -748,40 +1003,47 @@ const CreatePost = () => {
                         onChange={handleImageSelect}
                         className="hidden"
                       />
-                      <label 
-                        htmlFor="image-upload" 
+                      <label
+                        htmlFor="image-upload"
                         className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium transition-colors text-sm shadow-sm theme-transition"
                       >
                         <Upload className="h-4 w-4" />
                         Upload Gallery Images
                       </label>
                     </div>
-                  )}
-
-                  {images.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {images.map((file, index) => (
-                        <div key={index} className="relative group rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm aspect-square theme-transition">
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={`Upload ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <button
-                              type="button"
-                              onClick={() => removeImage(index)}
-                              className="p-1.5 bg-white text-red-500 rounded-full hover:bg-red-50 transition-colors"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
+                  ) : null}
+                  
+                  {images.length === 0 ? (
                     <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm border-2 border-dashed border-slate-100 dark:border-slate-700 rounded-lg theme-transition">
                       No gallery images added yet
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {images.map((img, index) => {
+                        const isFile = img instanceof File
+                        const imageUrl = isFile ? URL.createObjectURL(img) : (img as { url: string }).url
+                        return (
+                          <div
+                            key={index}
+                            className="relative group rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm aspect-square theme-transition"
+                          >
+                            <img
+                              src={imageUrl}
+                              alt={`Image ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="p-1.5 bg-white text-red-500 rounded-full hover:bg-red-50 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -799,9 +1061,6 @@ const CreatePost = () => {
                       {tags.length}/10
                     </span>
                   </div>
-                  <CardDescription className="text-xs text-slate-500 dark:text-slate-400 theme-transition">
-                    Add tags to help readers discover your content. Press Enter or comma to add a tag. Type @ to mention a user.
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   {/* Tag Input */}
@@ -809,13 +1068,10 @@ const CreatePost = () => {
                     <Input
                       ref={tagInputRef}
                       value={tagInput}
-                      onChange={(e) => {
-                        setTagInput(e.target.value);
-                        checkTagMentions();
-                      }}
+                      onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={handleTagInputKeyDown}
                       onFocus={checkTagMentions}
-                      placeholder="Add a tag... Type @ to mention a user"
+                      placeholder="Add a tag... Type @ to mention a tag"
                       className="flex-1 min-w-[200px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 theme-transition"
                     />
                     <Button
@@ -827,7 +1083,7 @@ const CreatePost = () => {
                       <Plus className="h-4 w-4 mr-2" />
                       Add
                     </Button>
-                    
+
                     {/* Tag Mention Overlay */}
                     {tagMentionState.active && tagMentionState.position && (
                       <TagMentionOverlay
@@ -844,7 +1100,9 @@ const CreatePost = () => {
                   {/* Existing Tags Suggestions */}
                   {availableTags.length > 0 && (
                     <div className="space-y-2">
-                      <Label className="text-sm text-slate-600 font-medium">Suggested Tags:</Label>
+                      <Label className="text-sm text-slate-600 font-medium">
+                        Suggested Tags
+                      </Label>
                       <div className="flex flex-wrap gap-2">
                         {availableTags
                           .filter(tag => !tags.includes(tag.name))
@@ -855,7 +1113,10 @@ const CreatePost = () => {
                               type="button"
                               onClick={() => handleSelectExistingTag(tag.name)}
                               className="px-3 py-1 text-xs font-medium rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
-                              style={{ borderColor: tag.color + '40', color: tag.color }}
+                              style={{
+                                borderColor: `${tag.color}40`,
+                                color: tag.color
+                              }}
                             >
                               {tag.name}
                             </button>
@@ -865,19 +1126,27 @@ const CreatePost = () => {
                   )}
 
                   {/* Selected Tags */}
-                  {tags.length > 0 ? (
+                  {tags.length === 0 ? (
+                    <div className="text-center py-4 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
+                      <TagIcon className="w-6 h-6 mx-auto mb-2 text-slate-300" />
+                      <p>No tags added yet</p>
+                      <p className="text-xs mt-1">Add tags to improve discoverability</p>
+                    </div>
+                  ) : (
                     <div className="space-y-2">
-                      <Label className="text-sm text-slate-600 font-medium">Selected Tags:</Label>
+                      <Label className="text-sm text-slate-600 font-medium">
+                        Selected Tags
+                      </Label>
                       <div className="flex flex-wrap gap-2">
                         {tags.map((tag, index) => {
-                          const tagData = availableTags.find(t => t.name === tag);
+                          const tagData = availableTags.find(t => t.name === tag)
                           return (
                             <div
                               key={index}
                               className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700 border border-blue-200"
-                              style={{ 
-                                backgroundColor: tagData?.color + '20' || '#3B82F620',
-                                borderColor: tagData?.color + '40' || '#3B82F640',
+                              style={{
+                                backgroundColor: `${tagData?.color || '#3B82F6'}20`,
+                                borderColor: `${tagData?.color || '#3B82F6'}40`,
                                 color: tagData?.color || '#3B82F6'
                               }}
                             >
@@ -890,15 +1159,9 @@ const CreatePost = () => {
                                 <X className="h-3 w-3" />
                               </button>
                             </div>
-                          );
+                          )
                         })}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-slate-400 text-sm border-2 border-dashed border-slate-100 rounded-lg">
-                      <TagIcon className="w-6 h-6 mx-auto mb-2 text-slate-300" />
-                      <p>No tags added yet</p>
-                      <p className="text-xs mt-1">Add tags to improve discoverability</p>
                     </div>
                   )}
                 </CardContent>
@@ -909,15 +1172,20 @@ const CreatePost = () => {
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                     <div className="space-y-1">
-                      <Label className="text-slate-900 dark:text-slate-100 font-semibold theme-transition">Publish Settings</Label>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 theme-transition">Manage visibility and status</p>
+                      <Label className="text-slate-900 dark:text-slate-100 font-semibold theme-transition">
+                        Publish Settings
+                      </Label>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 theme-transition">
+                        Manage visibility and status
+                      </p>
                     </div>
-                    
                     <div className="flex flex-col sm:flex-row gap-6 sm:justify-end">
-                       {/* Status Dropdown */}
-                       <div className="flex items-center gap-2">
-                        <Label htmlFor="status" className="text-slate-600 dark:text-slate-400 text-sm theme-transition">Status:</Label>
-                        <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+                      {/* Status Dropdown */}
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="status" className="text-slate-600 dark:text-slate-400 text-sm theme-transition">
+                          Status
+                        </Label>
+                        <Select value={status} onValueChange={(value) => setStatus(value)}>
                           <SelectTrigger className="w-[130px] h-9 text-sm bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 theme-transition">
                             <SelectValue />
                           </SelectTrigger>
@@ -934,8 +1202,8 @@ const CreatePost = () => {
                         <Switch
                           checked={isPublished}
                           onCheckedChange={(checked) => {
-                            setIsPublished(checked);
-                            if (checked) setStatus('published');
+                            setIsPublished(checked)
+                            if (checked) setStatus('published')
                           }}
                         />
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300 theme-transition">
@@ -949,7 +1217,7 @@ const CreatePost = () => {
 
               {/* Comments Section */}
               <Card className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden theme-transition">
-                <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 theme-transition">
+                <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 pb-4 theme-transition">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-semibold theme-transition">
                       <MessageCircle className="w-4 h-4 text-green-500 dark:text-green-400" />
@@ -965,103 +1233,17 @@ const CreatePost = () => {
                           {commentsEnabled ? 'Comments Enabled' : 'Comments Disabled'}
                         </span>
                       </div>
-                      {commentsEnabled && (
-                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-full theme-transition">
-                          {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
-                        </span>
-                      )}
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-full theme-transition">
+                        0 comments
+                      </span>
                     </div>
                   </div>
-                  <CardDescription className="text-xs text-slate-500 dark:text-slate-400 theme-transition">
-                    {commentsEnabled 
-                      ? 'Readers can comment on this post. Toggle to disable commenting.'
-                      : 'Comments are disabled for this post. Toggle to enable commenting.'
-                    }
-                  </CardDescription>
                 </CardHeader>
-                
-                {commentsEnabled && (
-                  <CardContent className="pt-6 space-y-6">
-                    {/* Add Comment Form */}
-                    <div className="space-y-4">
-                      <div className="flex gap-3">
-                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm font-bold theme-transition">
-                          AU
-                        </div>
-                        <div className="flex-1">
-                          <Textarea
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            placeholder="Share your thoughts about this post..."
-                            className="min-h-[80px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-blue-500/20 resize-none theme-transition"
-                          />
-                          <div className="mt-2 flex justify-end">
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={handleAddComment}
-                              disabled={!commentText.trim()}
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              Post Comment
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Comments List */}
-                    {comments.length > 0 ? (
-                      <div className="space-y-4">
-                        {comments.map((comment) => (
-                          <div key={comment.id} className="flex gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg theme-transition">
-                            <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 text-sm font-bold flex-shrink-0 theme-transition">
-                              {comment.author.full_name?.[0]?.toUpperCase() || 'A'}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium text-slate-900 dark:text-slate-100 text-sm theme-transition">
-                                    {comment.author.full_name}
-                                  </span>
-                                  <span className="text-xs text-slate-400 dark:text-slate-500 theme-transition">
-                                    {new Date(comment.created_at).toLocaleDateString()}
-                                  </span>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteComment(comment.id)}
-                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 h-6 w-6 p-0"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap theme-transition">
-                                {comment.content}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm border-2 border-dashed border-slate-100 dark:border-slate-700 rounded-lg theme-transition">
-                        No comments yet. Be the first to share your thoughts!
-                      </div>
-                    )}
-                  </CardContent>
-                )}
-                
-                {!commentsEnabled && (
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm border-2 border-dashed border-slate-100 dark:border-slate-700 rounded-lg theme-transition">
-                      <MessageCircle className="w-8 h-8 mx-auto mb-3 text-slate-300 dark:text-slate-600 theme-transition" />
-                      <p className="font-medium text-slate-600 dark:text-slate-400 mb-1 theme-transition">Comments are disabled</p>
-                      <p className="text-slate-500 dark:text-slate-400 theme-transition">The author has disabled commenting for this post.</p>
-                    </div>
-                  </CardContent>
-                )}
+                <CardDescription className="text-xs text-slate-500 dark:text-slate-400 theme-transition">
+                  {commentsEnabled
+                    ? 'Readers can comment on this post. Toggle to disable commenting.'
+                    : 'Comments are disabled for this post. Toggle to enable commenting.'}
+                </CardDescription>
               </Card>
 
               {/* Action Buttons */}
@@ -1081,22 +1263,17 @@ const CreatePost = () => {
                   disabled={uploading || !title.trim() || !content.trim()}
                 >
                   {uploading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {editId ? 'Updating...' : 'Publishing...'}
-                    </>
-                  ) : (
-                    editId ? 'Update Post' : 'Publish Post'
-                  )}
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  {editId ? 'Update Post' : 'Publish Post'}
                 </Button>
               </div>
-
             </form>
           </div>
         </main>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default CreatePost;
+export default CreatePost

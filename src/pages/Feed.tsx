@@ -58,6 +58,8 @@ const Feed = () => {
       if (error) throw error;
       return data;
     },
+    staleTime: 30 * 60 * 1000, // 30 minutes - categories rarely change
+    gcTime: 60 * 60 * 1000, // 1 hour
   });
 
   const {
@@ -71,7 +73,7 @@ const Feed = () => {
     queryFn: async ({ pageParam = 0 }) => {
       let query = supabase
         .from("posts")
-        .select(`*, categories:category_id (name, slug), post_images (url), likes (count), comments (count), profiles:author_id (id, full_name, profile_image_url), featured_image, views`)
+        .select(`*, categories:category_id (name, slug), post_images (url), likes (count), comments (count), profiles:author_id (id, full_name, profile_image_url), featured_image, views, content_markdown`)
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .range(pageParam, pageParam + POSTS_PER_PAGE - 1);
@@ -88,13 +90,15 @@ const Feed = () => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return (data || []) as any[];
     },
     getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < POSTS_PER_PAGE) return undefined;
+      if (!lastPage || lastPage.length < POSTS_PER_PAGE) return undefined;
       return allPages.flat().length;
     },
     initialPageParam: 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Intersection Observer for infinite scroll
@@ -271,7 +275,7 @@ const Feed = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Categories</SelectItem>
-                            {categories?.map((cat) => (
+                            {(categories as any)?.map((cat: any) => (
                               <SelectItem key={cat.id} value={cat.id}>
                                 {cat.name}
                               </SelectItem>
@@ -344,11 +348,34 @@ const Feed = () => {
                   {post.title}
                 </h2>
 
-                {post.excerpt && (
-                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-6 line-clamp-2 text-sm">
-                    {post.excerpt}
-                  </p>
-                )}
+                {/* Show excerpt if available, otherwise show HTML content preview */}
+                {post.excerpt ? (
+                  <div 
+                    className="prose prose-sm prose-slate max-w-none text-slate-500 dark:text-slate-400 leading-relaxed mb-6 line-clamp-2 text-sm prose-p:my-1 prose-p:first:mt-0 prose-p:last:mb-0 prose-headings:my-1 prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-headings:text-base prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-strong:text-slate-900 dark:prose-strong:text-slate-100 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-img:hidden prose-blockquote:hidden prose-pre:hidden prose-code:hidden prose-hr:hidden prose-table:hidden"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                    dangerouslySetInnerHTML={{ 
+                      __html: post.excerpt
+                    }}
+                  />
+                ) : post.content_markdown ? (
+                  <div 
+                    className="prose prose-sm prose-slate max-w-none text-slate-500 dark:text-slate-400 leading-relaxed mb-6 line-clamp-3 text-sm prose-p:my-1 prose-p:first:mt-0 prose-p:last:mb-0 prose-headings:my-1 prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-headings:text-base prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-strong:text-slate-900 dark:prose-strong:text-slate-100 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-img:hidden prose-blockquote:hidden prose-pre:hidden prose-code:hidden prose-hr:hidden prose-table:hidden"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                    dangerouslySetInnerHTML={{ 
+                      __html: post.content_markdown
+                    }}
+                  />
+                ) : null}
 
                 <div className="flex flex-wrap items-center gap-4 mt-auto pt-2">
                   <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">

@@ -107,6 +107,8 @@ const PostDetail = () => {
   const { data: post, isLoading } = useQuery<Post>({
     queryKey: ["post", slug],
     queryFn: async () => {
+      if (!slug) throw new Error('No slug provided');
+      
       const { data, error } = await supabase
         .from("posts")
         .select(
@@ -129,53 +131,61 @@ const PostDetail = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as Post;
+      if (!data) throw new Error('Post not found');
+      return data as unknown as Post;
     },
-    staleTime: 30000, // Cache for 30 seconds
-    gcTime: 300000, // Keep in cache for 5 minutes (gcTime replaces cacheTime)
+    enabled: !!slug,
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Increment view count when post is loaded (works for all users)
+  // Use a ref to track if we've already incremented to prevent multiple increments
+  const hasIncremented = useRef(false);
+  
   useEffect(() => {
     const incrementViews = async () => {
-      if (post?.id) {
-        console.log("=== VIEW INCREMENT DEBUG ===");
-        console.log("Post ID:", post.id);
-        console.log("Current views from post data:", post.views);
-
+      if (post?.id && !hasIncremented.current) {
+        hasIncremented.current = true; // Mark as incremented
+        
         try {
-          // Direct increment without fetch first
-          const { error } = await supabase
-            .from("posts")
-            .update({ views: (post.views || 0) + 1 })
-            .eq("id", post.id);
+          // Try RPC function first, fallback to direct update
+          let result;
+          try {
+            result = await supabase.rpc('increment_post_views', { post_id: post.id });
+          } catch (rpcError) {
+            // Fallback to direct update if RPC doesn't exist
+            result = await supabase
+              .from("posts")
+              .update({ views: (post.views || 0) + 1 })
+              .eq("id", post.id);
+          }
 
-          if (error) {
-            console.error("Failed to increment views:", error);
+          if (result.error) {
+            console.error("Failed to increment views:", result.error);
+            hasIncremented.current = false; // Reset on error to retry
           } else {
-            console.log(
-              "Successfully updated views from",
-              post.views || 0,
-              "to",
-              (post.views || 0) + 1,
-            );
-
-            // Invalidate query to refresh the view count
+            // Invalidate query to refetch updated post data (debounced)
             setTimeout(() => {
-              console.log("Invalidating query cache...");
               queryClient.invalidateQueries({ queryKey: ["post", slug] });
-            }, 500);
+            }, 1000);
           }
         } catch (error) {
           console.error("Error incrementing views:", error);
+          hasIncremented.current = false; // Reset on error
         }
       }
     };
 
-    if (post) {
+    if (post?.id) {
       incrementViews();
     }
-  }, [post?.id, queryClient, slug]);
+    
+    // Reset when post changes
+    return () => {
+      hasIncremented.current = false;
+    };
+  }, [post?.id, slug, queryClient]);
 
   const likePost = useMutation({
     mutationFn: async () => {

@@ -35,6 +35,8 @@ const Analytics = () => {
       return data;
     },
     enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch followers count
@@ -44,8 +46,8 @@ const Analytics = () => {
       if (!user) return { followers: 0, following: 0 };
       
       const [followersResult, followingResult] = await Promise.all([
-        supabase.from('followers').select('id', { count: 'exact' }).eq('following_id', user.id),
-        supabase.from('followers').select('id', { count: 'exact' }).eq('follower_id', user.id),
+        supabase.from('followers').select('id', { count: 'exact', head: true }).eq('following_id', user.id),
+        supabase.from('followers').select('id', { count: 'exact', head: true }).eq('follower_id', user.id),
       ]);
       
       return {
@@ -54,25 +56,28 @@ const Analytics = () => {
       };
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Fetch bookmarks count
+  // Fetch bookmarks count - only when posts are loaded
   const { data: bookmarksCount } = useQuery({
-    queryKey: ['analytics-bookmarks', user?.id],
+    queryKey: ['analytics-bookmarks', user?.id, posts?.length],
     queryFn: async () => {
-      if (!user || !posts) return 0;
+      if (!user || !posts || posts.length === 0) return 0;
       const postIds = posts.map((p: any) => p.id);
-      if (postIds.length === 0) return 0;
       
       const { count, error } = await supabase
         .from('bookmarks')
-        .select('id', { count: 'exact' })
+        .select('id', { count: 'exact', head: true })
         .in('post_id', postIds);
       
       if (error) throw error;
       return count || 0;
     },
-    enabled: !!user && !!posts,
+    enabled: !!user && !!posts && posts.length > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   if (!user) {

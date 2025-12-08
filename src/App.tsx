@@ -33,16 +33,46 @@ const GoogleProfile = lazy(() => import("./pages/GoogleProfile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 
+// Lazy load Analytics with longer delay to prevent initial load bottleneck
+const LazyAnalytics = lazy(() => import("./pages/Analytics"));
+
+// Create QueryClient with optimized cache settings
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000,
-      gcTime: 5 * 60 * 1000,
+      staleTime: 2 * 60 * 1000, // 2 minutes - reduced from 5 minutes
+      gcTime: 5 * 60 * 1000, // 5 minutes - reduced from 10 minutes
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      // Clear cache if it's too old to prevent slow loads
+      structuralSharing: true,
+    },
+    mutations: {
+      retry: 1,
     },
   },
 });
+
+// Clear old React Query cache on app start if needed
+if (typeof window !== 'undefined') {
+  const cacheTimestamp = localStorage.getItem('query_cache_timestamp');
+  const now = Date.now();
+  const CACHE_MAX_AGE = 30 * 60 * 1000; // 30 minutes
+  
+  if (cacheTimestamp) {
+    const cacheAge = now - parseInt(cacheTimestamp);
+    if (cacheAge > CACHE_MAX_AGE) {
+      // Clear React Query cache if it's older than 30 minutes
+      queryClient.clear();
+      localStorage.removeItem('query_cache_timestamp');
+    }
+  }
+  
+  // Update cache timestamp
+  localStorage.setItem('query_cache_timestamp', now.toString());
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -64,7 +94,7 @@ const App = () => (
                     <Route path="/post/*" element={<PostDetail />} />
                     <Route path="/post/:slug" element={<PostDetail />} />
                     <Route path="/my-posts" element={<MyPosts />} />
-                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/analytics" element={<LazyAnalytics />} />
                     <Route path="/bookmarks" element={<Bookmarks />} />
                     <Route path="/author/:username" element={<AuthorProfile />} />
                     <Route path="/google-profile" element={<GoogleProfile />} />

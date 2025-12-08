@@ -32,6 +32,7 @@ interface Comment {
   created_at: string;
   author_id: string;
   parent_comment_id: string | null;
+  approved: boolean;
   profiles: {
     full_name: string;
     profile_image_url: string | null;
@@ -62,9 +63,11 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           comment_likes (user_id)
         `)
         .eq('post_id', postId)
+        // RLS policy handles showing approved comments to everyone and unapproved to authors/post authors
         .order('created_at', { ascending: true });
       
       if (error) throw error;
+      if (!data) return [];
       
       // Build nested comment tree
       const commentMap = new Map<string, Comment>();
@@ -101,6 +104,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           author_id: user.id,
           parent_comment_id: parentId || null,
           content_markdown: content,
+          approved: false, // Comments start unapproved, need moderation
         });
       
       if (error) throw error;

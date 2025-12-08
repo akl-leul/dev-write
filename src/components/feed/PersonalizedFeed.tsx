@@ -31,12 +31,14 @@ export const PersonalizedFeed = () => {
       if (!user) return [];
 
       // Get list of users the current user follows
-      const { data: following } = await supabase
+      const { data: following, error: followingError } = await supabase
         .from('followers')
         .select('following_id')
         .eq('follower_id', user.id);
 
-      const followingIds = following?.map(f => f.following_id) || [];
+      if (followingError) throw followingError;
+
+      const followingIds = (following as any)?.map((f: any) => f.following_id) || [];
       
       if (followingIds.length === 0) return [];
 
@@ -49,14 +51,16 @@ export const PersonalizedFeed = () => {
         .range(pageParam, pageParam + POSTS_PER_PAGE - 1);
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < POSTS_PER_PAGE) return undefined;
+      if (!lastPage || lastPage.length < POSTS_PER_PAGE) return undefined;
       return allPages.flat().length;
     },
     initialPageParam: 0,
     enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {

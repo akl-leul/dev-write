@@ -50,14 +50,16 @@ export const NotificationDropdown = () => {
       return data || [];
     },
     enabled: !!user?.id,
+    staleTime: 30 * 1000, // 30 seconds - notifications should be fresh
+    gcTime: 2 * 60 * 1000, // 2 minutes
   });
 
   // Real-time subscription for notifications
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
     const channel = supabase
-      .channel('notifications-realtime')
+      .channel(`notifications-realtime-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -86,7 +88,8 @@ export const NotificationDropdown = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // Only depend on user.id to prevent re-subscriptions
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {

@@ -13,6 +13,15 @@ export default defineConfig(({ mode }) => ({
       'Pragma': 'no-cache',
       'Expires': '0',
     },
+    // Optimize HMR for faster reloads
+    hmr: {
+      overlay: false, // Disable error overlay for faster reloads
+    },
+    // Reduce file watching overhead
+    watch: {
+      usePolling: false,
+      interval: 100,
+    },
   },
   plugins: [react()].filter(Boolean),
   resolve: {
@@ -23,19 +32,36 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          radix: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-toast'],
-          tiptap: ['@tiptap/react', '@tiptap/starter-kit'],
-          supabase: ['@supabase/supabase-js'],
-          router: ['react-router-dom'],
-          query: ['@tanstack/react-query'],
+        manualChunks: (id) => {
+          // More aggressive code splitting for better cache performance
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'vendor-radix';
+            }
+            if (id.includes('@tiptap')) {
+              return 'vendor-tiptap';
+            }
+            if (id.includes('@supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('react-router')) {
+              return 'vendor-router';
+            }
+            if (id.includes('@tanstack/react-query')) {
+              return 'vendor-query';
+            }
+            if (id.includes('recharts')) {
+              return 'vendor-recharts';
+            }
+            // Group other node_modules
+            return 'vendor-other';
+          }
         },
         // Optimize chunk loading with cache-busting
-        chunkFileNames: (chunkInfo) => {
-          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
-          return `js/[name]-[hash].js`;
-        },
+        chunkFileNames: 'js/[name]-[hash].js',
         entryFileNames: 'js/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
           if (!assetInfo.name) {
@@ -79,6 +105,7 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
     // Pre-bundle dependencies for faster dev server
+    exclude: ['recharts'], // Exclude heavy charting library from pre-bundling
   },
   // Enable experimental features for better performance
   experimental: {

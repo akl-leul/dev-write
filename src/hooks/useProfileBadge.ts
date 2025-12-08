@@ -10,7 +10,9 @@ interface ProfileBadgeHookProps {
 }
 
 export function useProfileBadge({ userId, postsCount, likesCount, followersCount }: ProfileBadgeHookProps) {
-  // If userId is provided, fetch the stats from the database
+  // If userId is provided and stats are not passed, fetch from database
+  const needsStats = !!userId && (postsCount === undefined || likesCount === undefined || followersCount === undefined);
+  
   const { data: stats } = useQuery({
     queryKey: ['user-stats', userId],
     queryFn: async () => {
@@ -23,21 +25,24 @@ export function useProfileBadge({ userId, postsCount, likesCount, followersCount
         .eq('author_id', userId)
         .eq('status', 'published');
       
-      // Get total likes on user's posts
-      const { data: postsData } = await supabase
-        .from('posts')
-        .select('id')
-        .eq('author_id', userId)
-        .eq('status', 'published');
-      
+      // Get total likes on user's posts - only if we have posts
       let totalLikes = 0;
-      if (postsData && postsData.length > 0) {
-        const postIds = postsData.map(p => p.id);
-        const { count: likesCount } = await supabase
-          .from('likes')
-          .select('id', { count: 'exact', head: true })
-          .in('post_id', postIds);
-        totalLikes = likesCount || 0;
+      if (postsCount && postsCount > 0) {
+        const { data: postsData } = await supabase
+          .from('posts')
+          .select('id')
+          .eq('author_id', userId)
+          .eq('status', 'published')
+          .limit(100); // Limit to prevent huge queries
+        
+        if (postsData && postsData.length > 0) {
+          const postIds = postsData.map(p => p.id);
+          const { count: likesCount } = await supabase
+            .from('likes')
+            .select('id', { count: 'exact', head: true })
+            .in('post_id', postIds);
+          totalLikes = likesCount || 0;
+        }
       }
       
       // Get followers count
@@ -52,7 +57,9 @@ export function useProfileBadge({ userId, postsCount, likesCount, followersCount
         followers: followersCount ?? 0,
       };
     },
-    enabled: !!userId && (postsCount === undefined || likesCount === undefined || followersCount === undefined),
+    enabled: needsStats,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const badge = useMemo(() => {

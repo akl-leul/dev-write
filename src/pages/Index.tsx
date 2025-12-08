@@ -26,15 +26,20 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      navigate('/feed');
+    // Only redirect if we have a confirmed user (not just loading state)
+    if (!loading && user) {
+      navigate('/feed', { replace: true });
     }
-  }, [user, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading]); // Remove navigate from deps to prevent re-renders
+
+  // Don't block UI with loading spinner - show content immediately
+  // The auth check happens in background and will redirect if needed
 
   // Function to handle smooth scrolling
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {

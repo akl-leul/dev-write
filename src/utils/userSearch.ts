@@ -6,15 +6,22 @@ export interface UserSearchResult {
   profile_image_url?: string;
 }
 
-export const searchUsers = async (query: string): Promise<UserSearchResult[]> => {
+export const searchUsers = async (query: string, currentUserId?: string): Promise<UserSearchResult[]> => {
   if (query.length < 2 && query.length > 0) return [];
   
-  const { data, error } = await supabase
+  let supabaseQuery = supabase
     .from('profiles')
     .select('id, full_name, profile_image_url')
     .ilike('full_name', query.length > 0 ? `%${query}%` : '%')
     .order('full_name')
     .limit(query.length > 0 ? 10 : 20); // Show more users for empty query
+  
+  // Only exclude current user if provided
+  if (currentUserId) {
+    supabaseQuery = supabaseQuery.neq('id', currentUserId);
+  }
+  
+  const { data, error } = await supabaseQuery;
   
   if (error) {
     console.error('Error searching users:', error);
@@ -38,41 +45,18 @@ export const extractMentions = (content: string): string[] => {
 
 export const findUsersByNames = async (names: string[]): Promise<UserSearchResult[]> => {
   if (names.length === 0) return [];
-
-  // Clean and normalize names (trim whitespace)
-  const cleanedNames = names.map(name => name.trim()).filter(name => name.length > 0);
-  if (cleanedNames.length === 0) return [];
-
-  // Use case-insensitive matching by querying each name separately
-  // This ensures reliable case-insensitive matching
-  const queries = cleanedNames.map(name =>
-    supabase
-      .from('profiles')
-      .select('id, full_name, profile_image_url')
-      .ilike('full_name', name)
-  );
-
-  const results = await Promise.all(queries);
   
-  // Combine all results and remove duplicates
-  const allUsers = new Map<string, UserSearchResult>();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, profile_image_url')
+    .in('full_name', names);
   
-  results.forEach(({ data, error }, index) => {
-    if (error) {
-      console.error(`Error finding user by name "${cleanedNames[index]}":`, error);
-      return;
-    }
-    
-    if (data) {
-      data.forEach(user => {
-        if (!allUsers.has(user.id)) {
-          allUsers.set(user.id, user);
-        }
-      });
-    }
-  });
-
-  return Array.from(allUsers.values());
+  if (error) {
+    console.error('Error finding users by names:', error);
+    return [];
+  }
+  
+  return data || [];
 };
 
 export const extractMentionsFromTags = (tags: string[]): string[] => {

@@ -274,34 +274,29 @@ export const reportMetric = (name: string, value: number) => {
   }
 };
 
-// Initialize performance tracking
+// Initialize performance tracking (optimized for faster loads)
 export const initPerformanceTracking = () => {
   if (typeof window !== 'undefined') {
-    // Track page load with multiple fallbacks
+    // Only track page load, skip heavy web vitals and memory monitoring
     const measureLoad = () => {
-      // Wait a bit for all timing data to be available
       setTimeout(() => {
         measurePageLoad();
       }, 100);
     };
     
-    // Try multiple events to ensure we capture timing
     if (document.readyState === 'complete') {
       measureLoad();
     } else {
       window.addEventListener('load', measureLoad);
-      // Also try on DOMContentLoaded as backup
-      document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(measureLoad, 500);
-      });
     }
     
-    // Track web vitals
-    trackWebVitals();
-    
-    // Check memory usage periodically in development
+    // Only enable detailed tracking in development
     if (process.env.NODE_ENV === 'development') {
-      setInterval(checkMemoryUsage, 30000); // Every 30 seconds
+      // Track web vitals with reduced frequency
+      setTimeout(trackWebVitals, 1000);
+      
+      // Check memory usage less frequently
+      setInterval(checkMemoryUsage, 60000); // Every 60 seconds instead of 30
     }
   }
 };
@@ -357,12 +352,13 @@ export const setCacheTimestamp = () => {
   localStorage.setItem('cache_timestamp', new Date().getTime().toString());
 };
 
-// Auto-refresh cache if stale
+// Auto-refresh cache if stale (disabled for better performance)
 export const autoRefreshCache = () => {
-  if (checkCacheFreshness()) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Cache is stale, refreshing...');
-    }
-    forceReload();
-  }
+  // Disabled to prevent forced reloads that cause slow performance
+  // if (checkCacheFreshness()) {
+  //   if (process.env.NODE_ENV === 'development') {
+  //     console.log('Cache is stale, refreshing...');
+  //   }
+  //   forceReload();
+  // }
 };

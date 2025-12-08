@@ -29,15 +29,27 @@ export const BookmarkButton = ({
     queryFn: async () => {
       if (!user) return false;
       
-      const { data, error } = await supabase
-        .from('bookmarks')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('post_id', postId)
-        .maybeSingle();
-      
-      if (error) throw error;
-      return !!data;
+      try {
+        const { data, error } = await supabase
+          .from('bookmarks')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('post_id', postId)
+          .maybeSingle();
+        
+        if (error) {
+          // Handle table not existing or permission errors gracefully
+          if (error.code === 'PGRST116' || error.code === '42501' || error.code === '400') {
+            console.warn('Bookmarks table not available:', error.message);
+            return false;
+          }
+          throw error;
+        }
+        return !!data;
+      } catch (error) {
+        console.warn('Bookmark check failed:', error);
+        return false;
+      }
     },
     enabled: !!user,
   });
@@ -46,33 +58,51 @@ export const BookmarkButton = ({
     mutationFn: async () => {
       if (!user) throw new Error('Not authenticated');
       
-      if (isBookmarked) {
-        const { error } = await supabase
-          .from('bookmarks')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('post_id', postId);
-        
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('bookmarks')
-          .insert({
-            user_id: user.id,
-            post_id: postId,
-          });
-        
-        if (error) throw error;
+      try {
+        if (isBookmarked) {
+          const { error } = await supabase
+            .from('bookmarks')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('post_id', postId);
+          
+          if (error) {
+            if (error.code === 'PGRST116' || error.code === '42501' || error.code === '400') {
+              throw new Error('Bookmarks not available');
+            }
+            throw error;
+          }
+        } else {
+          const { error } = await supabase
+            .from('bookmarks')
+            .insert({
+              user_id: user.id,
+              post_id: postId,
+            });
+          
+          if (error) {
+            if (error.code === 'PGRST116' || error.code === '42501' || error.code === '400') {
+              throw new Error('Bookmarks not available');
+            }
+            throw error;
+          }
+        }
+      } catch (error) {
+        console.error('Bookmark operation failed:', error);
+        throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['is-bookmarked', user?.id, postId] });
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
-      // Shorter, cleaner toasts
       toast.success(isBookmarked ? 'Removed' : 'Saved');
     },
-    onError: () => {
-      toast.error('Could not update bookmark');
+    onError: (error: any) => {
+      if (error.message === 'Bookmarks not available') {
+        toast.error('Bookmark feature not available');
+      } else {
+        toast.error('Could not update bookmark');
+      }
     },
   });
 

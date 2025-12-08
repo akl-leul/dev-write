@@ -74,22 +74,23 @@ const Profile = () => {
   // Sync form data with profile data when it changes
   useEffect(() => {
     if (profile) {
+      const profileData = profile as any; // Type assertion for profile data
       setFormData({
-        full_name: profile.full_name || '',
-        bio: profile.bio || '',
-        age: profile.age || 18,
-        gender: profile.gender || '',
-        profile_image_url: profile.profile_image_url || '',
-        phone: profile.phone || '',
-        show_phone: (profile as any).show_phone || false,
-        twitter: (profile as any).twitter || '',
-        facebook: (profile as any).facebook || '',
-        linkedin: (profile as any).linkedin || '',
-        instagram: (profile as any).instagram || '',
-        github: (profile as any).github || '',
-        youtube: (profile as any).youtube || '',
-        website: (profile as any).website || '',
-        background_image_url: (profile as any).background_image_url || '',
+        full_name: profileData.full_name || '',
+        bio: profileData.bio || '',
+        age: profileData.age || 18,
+        gender: profileData.gender || '',
+        profile_image_url: profileData.profile_image_url || '',
+        phone: profileData.phone || '',
+        show_phone: profileData.show_phone || false,
+        twitter: profileData.twitter || '',
+        facebook: profileData.facebook || '',
+        linkedin: profileData.linkedin || '',
+        instagram: profileData.instagram || '',
+        github: profileData.github || '',
+        youtube: profileData.youtube || '',
+        website: profileData.website || '',
+        background_image_url: profileData.background_image_url || '',
       });
     }
   }, [profile]);
@@ -100,9 +101,9 @@ const Profile = () => {
     queryFn: async () => {
       if (!user) return null;
       const [postsRes, followersRes, followingRes] = await Promise.all([
-        supabase.from('posts').select('id', { count: 'exact' }).eq('author_id', user.id),
-        supabase.from('followers').select('id', { count: 'exact' }).eq('following_id', user.id),
-        supabase.from('followers').select('id', { count: 'exact' }).eq('follower_id', user.id),
+        supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', user.id),
+        supabase.from('followers').select('id', { count: 'exact', head: true }).eq('following_id', user.id),
+        supabase.from('followers').select('id', { count: 'exact', head: true }).eq('follower_id', user.id),
       ]);
       return {
         posts: postsRes.count || 0,
@@ -111,6 +112,8 @@ const Profile = () => {
       };
     },
     enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Get user badge based on stats
@@ -372,9 +375,9 @@ const Profile = () => {
                     <div className="relative group">
                       <div className="p-1 bg-white rounded-full shadow-sm border border-slate-100">
                         <Avatar className="h-32 w-32 border-4 border-slate-50">
-                          <AvatarImage src={profile?.profile_image_url || ''} />
+                          <AvatarImage src={(profile as any)?.profile_image_url || ''} />
                           <AvatarFallback className="bg-slate-100 text-slate-400 text-3xl font-bold">
-                            {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+                            {(profile as any)?.full_name?.[0]?.toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
                       </div>

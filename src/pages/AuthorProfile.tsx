@@ -118,12 +118,14 @@ const AuthorProfile = () => {
   });
 
   const { data: stats } = useQuery({
-    queryKey: ['author-stats', username],
+    queryKey: ['author-stats', profile?.id],
     queryFn: async () => {
+      if (!profile?.id) return { posts: 0, followers: 0, following: 0 };
+      
       const [postsRes, followersRes, followingRes] = await Promise.all([
-        supabase.from('posts').select('id', { count: 'exact' }).eq('author_id', profile?.id).eq('status', 'published'),
-        supabase.from('followers').select('id', { count: 'exact' }).eq('following_id', profile?.id),
-        supabase.from('followers').select('id', { count: 'exact' }).eq('follower_id', profile?.id),
+        supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', profile.id).eq('status', 'published'),
+        supabase.from('followers').select('id', { count: 'exact', head: true }).eq('following_id', profile.id),
+        supabase.from('followers').select('id', { count: 'exact', head: true }).eq('follower_id', profile.id),
       ]);
       return {
         posts: postsRes.count || 0,
@@ -131,7 +133,10 @@ const AuthorProfile = () => {
         following: followingRes.count || 0,
       };
     },
-    enabled: !!profile,
+    enabled: !!profile?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1, // Only retry once on failure
   });
 
   // Get author badge based on stats
@@ -151,21 +156,27 @@ const AuthorProfile = () => {
   } = useInfiniteQuery({
     queryKey: ['author-posts', profile?.id],
     queryFn: async ({ pageParam = 0 }) => {
-      const { data } = await supabase
+      if (!profile?.id) return [];
+      
+      const { data, error } = await supabase
         .from('posts')
         .select('*, categories:category_id (name, slug), post_images (url), likes (count), comments (count), profiles:author_id (id, full_name, profile_image_url), featured_image, views')
-        .eq('author_id', profile?.id!)
+        .eq('author_id', profile.id)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
         .range(pageParam * POSTS_PER_PAGE, (pageParam + 1) * POSTS_PER_PAGE - 1);
+      
+      if (error) throw error;
       return data || [];
     },
-    enabled: !!profile,
+    enabled: !!profile?.id,
     getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length < POSTS_PER_PAGE) return undefined;
+      if (!lastPage || lastPage.length < POSTS_PER_PAGE) return undefined;
       return allPages.flat().length;
     },
     initialPageParam: 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: followers } = useQuery({
@@ -185,15 +196,19 @@ const AuthorProfile = () => {
   const { data: following } = useQuery({
     queryKey: ['author-following-list', profile?.id],
     queryFn: async () => {
+      if (!profile?.id) return [];
+      
       const { data, error } = await supabase
         .from('followers')
         .select('following_id, profiles:following_id (id, full_name, profile_image_url, bio)')
-        .eq('follower_id', profile?.id!)
+        .eq('follower_id', profile.id)
         .limit(20);
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!profile?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Infinite scroll observer

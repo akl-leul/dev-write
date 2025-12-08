@@ -108,6 +108,7 @@ interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
+  editorRef?: React.RefObject<any>; // For exposing editor instance
 }
 
 const TEXT_COLORS = [
@@ -137,7 +138,7 @@ const FONT_SIZES = [
   '12px', '14px', '16px', '18px', '20px', '24px', '30px', '36px', '48px', '60px', '72px'
 ];
 
-export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEditorProps) => {
+export const RichTextEditor = ({ content, onChange, placeholder, editorRef }: RichTextEditorProps) => {
   // State for popovers
   const [linkUrl, setLinkUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -187,13 +188,27 @@ export const RichTextEditor = ({ content, onChange, placeholder }: RichTextEdito
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    onSelectionUpdate: ({ editor }) => {
+      // This will be handled by the mention hook
+    },
   });
 
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
+    if (editor && content !== undefined && content !== null) {
+      const currentContent = editor.getHTML();
+      // Only update if content actually changed and is not empty, or if editor is empty and we have content
+      if (content !== currentContent && (content.trim() !== '' || currentContent.trim() === '')) {
+        editor.commands.setContent(content || '', false); // false = don't emit update event
+      }
     }
   }, [content, editor]);
+
+  // Expose editor instance via ref
+  useEffect(() => {
+    if (editorRef && editor) {
+      editorRef.current = editor;
+    }
+  }, [editor, editorRef]);
 
   if (!editor) return null;
 
