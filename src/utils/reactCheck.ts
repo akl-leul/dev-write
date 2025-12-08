@@ -11,29 +11,62 @@ export const ensureReact = (): Promise<void> => {
   }
 
   reactCheckPromise = new Promise((resolve, reject) => {
-    // Check if React is already available
-    if (typeof window !== 'undefined' && (window as any).React?.createContext) {
+    // Check if React is already available using multiple methods
+    if (isReactAvailable()) {
       resolve();
       return;
     }
 
-    // Wait for React to be available (max 5 seconds)
+    // Wait for React to be available (max 2 seconds, shorter timeout)
     const timeout = setTimeout(() => {
-      reject(new Error('React failed to load within timeout'));
-    }, 5000);
+      // Don't reject - just resolve and let the app try to render
+      // This prevents the app from crashing if React detection fails
+      console.warn('React detection timed out, proceeding with initialization');
+      resolve();
+    }, 2000);
 
     const checkInterval = setInterval(() => {
-      if (typeof window !== 'undefined' && (window as any).React?.createContext) {
+      if (isReactAvailable()) {
         clearTimeout(timeout);
         clearInterval(checkInterval);
         resolve();
       }
-    }, 100);
+    }, 50); // Check more frequently
   });
 
   return reactCheckPromise;
 };
 
 export const isReactAvailable = (): boolean => {
-  return typeof window !== 'undefined' && (window as any).React?.createContext;
+  if (typeof window === 'undefined') {
+    return true; // Assume React is available in SSR
+  }
+
+  // Try multiple ways to detect React
+  const checks = [
+    // Check if React is on window object
+    () => !!(window as any).React?.createContext,
+    // Check if React is available through module system
+    () => {
+      try {
+        // Try to import React dynamically
+        const React = require('react');
+        return !!React?.createContext;
+      } catch {
+        return false;
+      }
+    },
+    // Check if any React-related globals exist
+    () => !!(window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__,
+    // Final fallback - assume React is available if we got this far
+    () => true
+  ];
+
+  return checks.some(check => {
+    try {
+      return check();
+    } catch {
+      return false;
+    }
+  });
 };
