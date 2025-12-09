@@ -63,18 +63,43 @@ const Auth = () => {
   });
 
   useEffect(() => {
-    if (user) {
+    // Only redirect if user exists and we're not in the middle of an OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasOAuthCallback = urlParams.get('code') || urlParams.get('access_token');
+    
+    // Debug logging
+    console.log('Auth redirect check:', { 
+      user: !!user, 
+      hasOAuthCallback, 
+      loading, 
+      userId: user?.id,
+      userEmail: user?.email
+    });
+    
+    if (user && !hasOAuthCallback && !loading) {
+      console.log('Redirecting to feed - user authenticated');
       navigate('/feed');
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
-  // Handle Google OAuth callback - redirect to feed if user arrives with valid session
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const hasCode = urlParams.get('code') || urlParams.get('access_token');
     
+    // Debug OAuth callback
+    console.log('OAuth callback check:', { 
+      hasCode, 
+      user: !!user, 
+      loading,
+      userId: user?.id,
+      urlParams: Object.fromEntries(urlParams.entries())
+    });
+    
     // If user arrives from OAuth callback and is authenticated, redirect to feed
     if (hasCode && user && !loading) {
+      console.log('OAuth callback successful - redirecting to feed');
+      // Clear the URL parameters to prevent infinite redirects
+      window.history.replaceState({}, document.title, window.location.pathname);
       navigate('/feed', { replace: true });
     }
   }, [user, loading, navigate]);
