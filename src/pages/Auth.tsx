@@ -68,6 +68,17 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
+  // Handle Google OAuth callback - redirect to feed if user arrives with valid session
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasCode = urlParams.get('code') || urlParams.get('access_token');
+    
+    // If user arrives from OAuth callback and is authenticated, redirect to feed
+    if (hasCode && user && !loading) {
+      navigate('/feed', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
   useEffect(() => {
     const mode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
     setActiveTab(mode);
