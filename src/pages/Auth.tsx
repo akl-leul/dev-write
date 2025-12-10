@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -86,7 +87,7 @@ const Auth = () => {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const hasCode = urlParams.get('code') || urlParams.get('access_token');
+    const hasCode = urlParams.get('code') || urlParams.get('access_token') || urlParams.get('error');
     
     // Debug OAuth callback
     console.log('OAuth callback check:', { 
@@ -97,12 +98,44 @@ const Auth = () => {
       urlParams: Object.fromEntries(urlParams.entries())
     });
     
-    // If user arrives from OAuth callback and is authenticated, redirect to feed
-    if (hasCode && user && !loading) {
-      console.log('OAuth callback successful - redirecting to feed');
-      // Clear the URL parameters to prevent infinite redirects
-      window.history.replaceState({}, document.title, window.location.pathname);
-      navigate('/feed', { replace: true });
+    // Process OAuth callback
+    if (hasCode) {
+      console.log('OAuth callback detected - processing session...');
+      
+      // Check if there's an error in the callback
+      const error = urlParams.get('error');
+      const errorDescription = urlParams.get('error_description');
+      
+      if (error) {
+        console.error('OAuth error:', { error, errorDescription });
+        // Clear URL and show error message
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+      
+      // Process the OAuth session
+      const processSession = async () => {
+        try {
+          const { data, error } = await supabase.auth.getSession();
+          console.log('Session after OAuth:', { session: data.session, error });
+          
+          if (data.session?.user && !error) {
+            console.log('OAuth successful - redirecting to feed');
+            // Clear the URL parameters
+            window.history.replaceState({}, document.title, window.location.pathname);
+            navigate('/feed', { replace: true });
+          } else if (error) {
+            console.error('Error getting session after OAuth:', error);
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (err) {
+          console.error('Exception processing OAuth session:', err);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      };
+      
+      // Give Supabase a moment to process the session
+      setTimeout(processSession, 100);
     }
   }, [user, loading, navigate]);
 
