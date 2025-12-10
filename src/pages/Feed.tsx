@@ -43,6 +43,26 @@ const Feed = () => {
   const [activeTab, setActiveTab] = useState<string>("discover");
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
+  // Handle OAuth callback from Google login
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasCode = urlParams.get('code') || urlParams.get('access_token');
+    
+    // Debug OAuth callback
+    console.log('Feed OAuth callback check:', { 
+      hasCode, 
+      user: !!user, 
+      urlParams: Object.fromEntries(urlParams.entries())
+    });
+    
+    // If user arrives from OAuth callback and is authenticated, clear URL parameters
+    if (hasCode && user) {
+      console.log('OAuth callback successful in Feed - clearing URL parameters');
+      // Clear the URL parameters to prevent issues with future navigation
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [user]);
+
   // Calculate posts count per author for first post badge
   const getAuthorPostsCount = useCallback((authorId: string, allPosts: any[]) => {
     return allPosts.filter(post => post.profiles?.id === authorId).length;

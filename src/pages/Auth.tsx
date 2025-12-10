@@ -76,6 +76,8 @@ const Auth = () => {
       userEmail: user?.email
     });
     
+    // Only redirect to feed if user is authenticated and this is not an OAuth callback
+    // OAuth callbacks should be handled by the Feed component, not Auth
     if (user && !hasOAuthCallback && !loading) {
       console.log('Redirecting to feed - user authenticated');
       navigate('/feed');
