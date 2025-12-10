@@ -374,10 +374,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
+      // Use dynamic redirect URI based on current environment
+      const redirectUri = `${window.location.origin}/auth`;
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: redirectUri,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
