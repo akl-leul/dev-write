@@ -33,15 +33,12 @@ import { TrendingPosts } from "@/components/social/TrendingPosts";
 import { PersonalizedFeed } from "@/components/feed/PersonalizedFeed";
 import { PostAuthorBadge } from "@/components/PostAuthorBadge";
 
-const POSTS_PER_PAGE = 10;
-
 const Feed = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("discover");
-  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Handle OAuth callback from Google login
   useEffect(() => {
@@ -82,21 +79,14 @@ const Feed = () => {
     gcTime: 60 * 60 * 1000, // 1 hour
   });
 
-  const {
-    data: postsData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-  } = useInfiniteQuery({
+  const { data: posts, isLoading } = useQuery({
     queryKey: ["posts", searchQuery, selectedCategory],
-    queryFn: async ({ pageParam = 0 }) => {
+    queryFn: async () => {
       let query = supabase
         .from("posts")
         .select(`*, categories:category_id (name, slug), post_images (url), likes (count), comments (count), profiles:author_id (id, full_name, profile_image_url), featured_image, views, content_markdown`)
         .eq("status", "published")
-        .order("created_at", { ascending: false })
-        .range(pageParam, pageParam + POSTS_PER_PAGE - 1);
+        .order("created_at", { ascending: false });
 
       if (searchQuery) {
         query = query.or(
@@ -112,38 +102,9 @@ const Feed = () => {
       if (error) throw error;
       return (data || []) as any[];
     },
-    getNextPageParam: (lastPage, allPages) => {
-      if (!lastPage || lastPage.length < POSTS_PER_PAGE) return undefined;
-      return allPages.flat().length;
-    },
-    initialPageParam: 0,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
-
-  // Intersection Observer for infinite scroll
-  const handleObserver = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const [target] = entries;
-      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    },
-    [fetchNextPage, hasNextPage, isFetchingNextPage],
-  );
-
-  useEffect(() => {
-    const element = loadMoreRef.current;
-    if (!element) return;
-
-    const observer = new IntersectionObserver(handleObserver, {
-      threshold: 0.1,
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [handleObserver]);
-
-  const allPosts = postsData?.pages.flat() || [];
 
   // Loading Skeleton
   if (isLoading) {
@@ -332,14 +293,14 @@ const Feed = () => {
 
                     {/* Feed List */}
                     <div className="space-y-8">
-                      {allPosts.map((post) => (
+                      {posts.map((post) => (
                         <article key={post.id} className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 relative overflow-hidden">
 
           <div className="flex items-center justify-between mb-6">
             <PostAuthorBadge
               author={post.profiles}
               createdAt={post.created_at}
-              postsCount={getAuthorPostsCount(post.profiles?.id || '', allPosts)}
+              postsCount={getAuthorPostsCount(post.profiles?.id || '', posts)}
               likesCount={0}
               followersCount={0}
             />
@@ -422,26 +383,15 @@ const Feed = () => {
                       ))}
 
                       {/* Load More Trigger */}
-                      <div
-                        ref={loadMoreRef}
-                        className="py-8 flex justify-center"
-                      >
-                        {isFetchingNextPage && (
-                          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                            <span className="text-sm font-medium">
-                              Loading more...
-                            </span>
-                          </div>
-                        )}
-                        {!hasNextPage && allPosts.length > 0 && (
+                      <div className="py-8 flex justify-center">
+                        {posts.length > 0 && (
                           <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">
-                            You've reached the end
+                            All posts loaded
                           </p>
                         )}
                       </div>
 
-                      {allPosts.length === 0 && (
+                      {posts.length === 0 && (
                         <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 border-dashed">
                           <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 dark:text-slate-500">
                             <Sparkles className="w-8 h-8" />

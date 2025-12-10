@@ -251,7 +251,7 @@ const MyPosts = () => {
         throw error;
       }
       
-      return (data || []) as Post[];
+      return data as unknown as Post[];
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -260,12 +260,18 @@ const MyPosts = () => {
 
   const approveComment = useMutation({
     mutationFn: async (commentId: string) => {
+      console.log('Approving comment:', commentId);
       const { error } = await supabase
         .from('comments')
         .update({ approved: true })
         .eq('id', commentId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error approving comment:', error);
+        throw error;
+      }
+      
+      console.log('Comment approved successfully');
     },
     onMutate: async (commentId) => {
       // Cancel any outgoing refetches
@@ -289,9 +295,11 @@ const MyPosts = () => {
       return { previousPosts };
     },
     onError: (err, commentId, context) => {
+      console.error('Error in approveComment mutation:', err);
       if (context?.previousPosts) {
         queryClient.setQueryData(['my-posts', user?.id], context.previousPosts);
       }
+      toast.error('Failed to approve comment');
     },
     onSuccess: () => {
       toast.success('Comment approved');
