@@ -211,12 +211,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               // Silently fail, will retry later
             });
             
-            // Update login info on sign in
-            if (event === 'SIGNED_IN') {
-              updateLoginInfo(currentUser.id).catch(() => {
-                // Silently fail
-              });
-            }
+            // Note: Login info tracking removed to prevent 404 errors
+            // The update_user_login RPC function doesn't exist in the database
             
             // Store email for support contact
             if (currentUser.email) {

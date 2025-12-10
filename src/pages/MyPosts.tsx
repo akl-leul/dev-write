@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Check, X, Eye, Edit, Trash2, MessageSquare, AlertCircle, FileText, Calendar, PenLine } from 'lucide-react';
+import { Check, Eye, Edit, Trash2, MessageSquare, AlertCircle, FileText, Calendar, PenLine } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
@@ -30,80 +30,69 @@ interface CommentWithProfile {
 }
 
 // Memoized components for better performance
-const CommentItem = memo(({ comment, onApprove, onReject, isApproving, isRejecting }: {
-  comment: CommentWithProfile;
-  onApprove: (id: string) => void;
-  onReject: (id: string) => void;
-  isApproving: boolean;
-  isRejecting: boolean;
-}) => (
-  <div className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-    <div className="flex flex-col md:flex-row md:items-start gap-4">
-      <div className="flex items-center gap-3 min-w-[200px]">
-        <PostAuthorBadge 
-          author={{
-            id: comment.profiles?.full_name || 'unknown',
-            full_name: comment.profiles?.full_name || 'Unknown',
-            profile_image_url: comment.profiles?.profile_image_url
-          }}
-          createdAt={comment.created_at}
-          postsCount={0}
-          likesCount={0}
-          followersCount={0}
-        />
-      </div>
-      
-      <div className="flex-1 space-y-2">
-        <Link to={`/post/${comment.postSlug}`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
-          On: {comment.postTitle}
-        </Link>
-        <div className="prose prose-sm prose-slate max-w-none text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {comment.content_markdown}
-          </ReactMarkdown>
+const CommentItem = memo(({ comment, onDelete }: {
+  comment: CommentWithProfile & { postTitle: string; postSlug: string };
+  onDelete: (id: string) => void;
+}) => {
+  return (
+    <div className="group bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
+      <div className="flex gap-3">
+        <Avatar className="w-10 h-10 flex-shrink-0 ring-2 ring-slate-100 dark:ring-slate-700">
+          <AvatarImage src={comment.profiles?.profile_image_url} alt={comment.profiles?.full_name} />
+          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+            {comment.profiles?.full_name?.charAt(0).toUpperCase() || 'U'}
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {comment.profiles?.full_name || 'Anonymous'}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+              </span>
+              <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-medium">
+                <Check className="h-3 w-3" />
+                Auto-approved
+              </div>
+            </div>
+            
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onDelete(comment.id)}
+              className="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="space-y-2">
+            <Link to={`/post/${comment.postSlug}`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
+              On: {comment.postTitle}
+            </Link>
+            <div className="prose prose-sm prose-slate max-w-none text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {comment.content_markdown}
+              </ReactMarkdown>
+            </div>
+          </div>
         </div>
       </div>
-
-      <div className="flex gap-2 md:flex-col pt-2 md:pt-0">
-        {!comment.approved ? (
-          <>
-            <Button
-              size="sm"
-              onClick={() => onApprove(comment.id)}
-              disabled={isApproving}
-              className="bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-sm disabled:opacity-50"
-            >
-              <Check className="h-4 w-4 mr-1" /> 
-              {isApproving ? 'Approving...' : 'Approve'}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onReject(comment.id)}
-              disabled={isRejecting}
-              className="text-red-500 dark:text-red-400 border-red-100 dark:border-red-900/20 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-50"
-            >
-              <X className="h-4 w-4 mr-1" /> 
-              {isRejecting ? 'Rejecting...' : 'Reject'}
-            </Button>
-          </>
-        ) : (
-          <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
-            <Check className="h-4 w-4" />
-            Approved
-          </div>
-        )}
-      </div>
     </div>
-  </div>
-));
+  );
+});
 
 CommentItem.displayName = 'CommentItem';
 
-const PostCard = memo(({ post, onDelete }: {
+const PostCard = memo(({ post, onDelete, onDeleteComment }: {
   post: Post;
   onDelete: (id: string) => void;
+  onDeleteComment: (commentId: string) => void;
 }) => {
+  const [showComments, setShowComments] = useState(false);
   const approvedCount = useMemo(() => 
     post.comments.filter(c => c.approved).length, [post.comments]
   );
@@ -175,9 +164,20 @@ const PostCard = memo(({ post, onDelete }: {
               <Link to={`/post/${post.slug}`}>
                 <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
                   <Eye className="h-4 w-4 mr-2" />
-                  View
+                  Read Post
                 </Button>
               </Link>
+              {post.comments.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowComments(!showComments)}
+                  className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  {showComments ? 'Hide' : 'Show'} Comments ({post.comments.length})
+                </Button>
+              )}
               <Link to={`/create?edit=${post.id}`}>
                 <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
                   <Edit className="h-4 w-4 mr-2" />
@@ -197,6 +197,33 @@ const PostCard = memo(({ post, onDelete }: {
             </div>
           </div>
         </div>
+        
+        {/* Comments Section */}
+        {showComments && post.comments.length > 0 && (
+          <div className="border-t border-slate-100 dark:border-slate-700 pt-4 mt-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                Comments ({post.comments.length})
+              </h4>
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                {approvedCount} approved, {pendingCount} pending
+              </div>
+            </div>
+            <div className="space-y-3">
+              {post.comments.map((comment) => (
+                <CommentItem
+                  key={comment.id}
+                  comment={{
+                    ...comment,
+                    postTitle: post.title,
+                    postSlug: post.slug
+                  }}
+                  onDelete={onDeleteComment}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -218,7 +245,6 @@ const MyPosts = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [rejectingComments, setRejectingComments] = useState<Set<string>>(new Set());
 
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['my-posts', user?.id],
@@ -258,20 +284,35 @@ const MyPosts = () => {
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const approveComment = useMutation({
+  const deleteComment = useMutation({
     mutationFn: async (commentId: string) => {
-      console.log('Approving comment:', commentId);
-      const { error } = await supabase
-        .from('comments')
-        .update({ approved: true })
-        .eq('id', commentId);
+      console.log('Deleting comment:', commentId);
+      console.log('Current user:', user?.id);
       
-      if (error) {
-        console.error('Error approving comment:', error);
-        throw error;
+      if (!user?.id) {
+        throw new Error('User not authenticated');
       }
       
-      console.log('Comment approved successfully');
+      // Use RPC function to bypass RLS
+      console.log('Using RPC function to delete comment');
+      const { data: deleteResult, error: rpcError } = await supabase.rpc('delete_comment_as_post_owner', {
+        comment_id: commentId,
+        user_id: user.id
+      });
+      
+      console.log('RPC delete result:', deleteResult);
+      console.log('RPC error:', rpcError);
+      
+      if (rpcError) {
+        console.error('RPC error deleting comment:', rpcError);
+        throw new Error(`Failed to delete comment: ${rpcError.message}`);
+      }
+      
+      if (!deleteResult) {
+        throw new Error('Comment deletion failed - function returned false');
+      }
+      
+      console.log('Comment deleted successfully via RPC');
     },
     onMutate: async (commentId) => {
       // Cancel any outgoing refetches
@@ -280,63 +321,31 @@ const MyPosts = () => {
       // Snapshot the previous value
       const previousPosts = queryClient.getQueryData(['my-posts', user?.id]);
       
-      // Optimistically update the posts data
+      // Optimistically update the posts data (remove the comment)
       queryClient.setQueryData(['my-posts', user?.id], (old: Post[] | undefined) => {
         if (!old) return old;
         
         return old.map((post: Post) => ({
           ...post,
-          comments: post.comments.map((comment: CommentWithProfile) =>
-            comment.id === commentId ? { ...comment, approved: true } : comment
-          )
+          comments: post.comments.filter((comment: CommentWithProfile) => comment.id !== commentId)
         }));
       });
       
       return { previousPosts };
     },
     onError: (err, commentId, context) => {
-      console.error('Error in approveComment mutation:', err);
+      console.error('Error in deleteComment mutation:', err);
       if (context?.previousPosts) {
         queryClient.setQueryData(['my-posts', user?.id], context.previousPosts);
       }
-      toast.error('Failed to approve comment');
+      toast.error(err.message || 'Failed to delete comment');
     },
     onSuccess: () => {
-      toast.success('Comment approved');
+      toast.success('Comment deleted successfully');
     },
     onSettled: () => {
       // Refetch to ensure server state is reflected
       queryClient.invalidateQueries({ queryKey: ['my-posts', user?.id] });
-    },
-  });
-
-  const rejectComment = useMutation({
-    mutationFn: async (commentId: string) => {
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', commentId);
-      
-      if (error) throw error;
-    },
-    onMutate: async (commentId) => {
-      // Add comment to rejecting set
-      setRejectingComments(prev => new Set(prev).add(commentId));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-posts', user?.id] });
-      toast.success('Comment rejected');
-    },
-    onError: () => {
-      toast.error('Failed to reject comment');
-    },
-    onSettled: (_, __, commentId) => {
-      // Remove from rejecting set after completion
-      setRejectingComments(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(commentId);
-        return newSet;
-      });
     },
   });
 
@@ -360,23 +369,11 @@ const MyPosts = () => {
   });
 
   // Memoized values and callbacks must be defined before early returns
-  const pendingComments = useMemo(() => {
-    return posts?.flatMap(post => 
-      post.comments
-        .filter(c => !c.approved)
-        .map(c => ({ ...c, postTitle: post.title, postSlug: post.slug }))
-    ) || [];
-  }, [posts]);
-
-  const handleApproveComment = useCallback((commentId: string) => {
-    approveComment.mutate(commentId);
-  }, [approveComment]);
-
-  const handleRejectComment = useCallback((commentId: string) => {
-    if (confirm('Reject and delete this comment?')) {
-      rejectComment.mutate(commentId);
+  const handleDeleteComment = useCallback((commentId: string) => {
+    if (confirm('Delete this comment? This action cannot be undone.')) {
+      deleteComment.mutate(commentId);
     }
-  }, [rejectComment]);
+  }, [deleteComment]);
 
   const handleDeletePost = useCallback((postId: string) => {
     if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
@@ -444,36 +441,6 @@ const MyPosts = () => {
               </Link>
             </div>
 
-            {pendingComments.length > 0 && (
-              <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
-                <Card className="bg-white dark:bg-slate-900 border-orange-100 dark:border-orange-900/20 shadow-sm rounded-2xl overflow-hidden">
-                  <CardHeader className="bg-orange-50/50 dark:bg-orange-900/10 border-b border-orange-100 dark:border-orange-900/20 py-4">
-                    <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 font-semibold">
-                      <AlertCircle className="w-5 h-5" />
-                      Pending Comments
-                      <span className="bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 text-xs px-2 py-0.5 rounded-full ml-1">
-                        {pendingComments.length} needs action
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {pendingComments.map((comment) => (
-                        <CommentItem
-                          key={comment.id}
-                          comment={comment}
-                          onApprove={handleApproveComment}
-                          onReject={handleRejectComment}
-                          isApproving={approveComment.isPending}
-                          isRejecting={rejectingComments.has(comment.id)}
-                        />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
             <div className="space-y-6">
               {posts && posts.length > 0 ? (
                 posts.map((post) => (
@@ -481,6 +448,7 @@ const MyPosts = () => {
                     key={post.id}
                     post={post}
                     onDelete={handleDeletePost}
+                    onDeleteComment={handleDeleteComment}
                   />
                 ))
               ) : (
