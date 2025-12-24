@@ -37,17 +37,28 @@ export const PWAInstallPrompt: React.FC = () => {
     checkInstalled();
     checkIOS();
 
-    // Listen for beforeinstallprompt event
+    // Check if user dismissed recently (within 7 days)
+    const dismissedTime = localStorage.getItem('pwa-install-dismissed');
+    const wasRecentlyDismissed = dismissedTime && Date.now() - parseInt(dismissedTime) < 7 * 24 * 60 * 60 * 1000;
+
+    // For iOS, always show the prompt (with instructions) if not installed and not recently dismissed
+    if (!isInstalled && !wasRecentlyDismissed && isIOS) {
+      setTimeout(() => {
+        setShowInstallPrompt(true);
+      }, 5000); // Show after 5 seconds for iOS
+    }
+
+    // Listen for beforeinstallprompt event (for Android/Chrome)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       
       // Show install prompt after a delay for better UX
-      setTimeout(() => {
-        if (!isInstalled) {
+      if (!isInstalled && !wasRecentlyDismissed) {
+        setTimeout(() => {
           setShowInstallPrompt(true);
-        }
-      }, 3000);
+        }, 3000);
+      }
     };
 
     // Listen for appinstalled event
@@ -64,7 +75,7 @@ export const PWAInstallPrompt: React.FC = () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [isInstalled]);
+  }, [isInstalled, isIOS]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -88,14 +99,13 @@ export const PWAInstallPrompt: React.FC = () => {
     localStorage.setItem('pwa-install-dismissed', Date.now().toString());
   };
 
-  // Don't show if already installed or no prompt available
-  if (isInstalled || !showInstallPrompt || (!deferredPrompt && !isIOS)) {
+  // Don't show if already installed
+  if (isInstalled || !showInstallPrompt) {
     return null;
   }
 
-  // Check if user dismissed recently (within 7 days)
-  const dismissedTime = localStorage.getItem('pwa-install-dismissed');
-  if (dismissedTime && Date.now() - parseInt(dismissedTime) < 7 * 24 * 60 * 60 * 1000) {
+  // For Android/Chrome, require deferredPrompt to be available
+  if (!isIOS && !deferredPrompt) {
     return null;
   }
 
