@@ -13,6 +13,7 @@ interface UserProfile {
   permissions: Record<string, boolean>;
   last_login_at: string | null;
   login_count: number;
+  profile_image_url: string | null;
 }
 
 interface AuthContextType {
@@ -55,7 +56,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           is_active,
           last_login_at,
           login_count,
-          blocked
+          blocked,
+          profile_image_url
         `)
         .eq('id', userId)
         .single();
@@ -79,12 +81,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userProfile: UserProfile = {
           id: profileData.id,
           full_name: profileData.full_name,
-          email: null, // Email is not stored in profiles table
+          email: profileData.email, // Email is stored in profiles table
           role: profileData.role || 'user',
           is_active: profileData.is_active ?? true,
           permissions: permissions || {},
           last_login_at: profileData.last_login_at,
-          login_count: profileData.login_count || 0
+          login_count: profileData.login_count || 0,
+          profile_image_url: profileData.profile_image_url
         };
         
         setProfile(userProfile);

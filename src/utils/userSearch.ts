@@ -14,7 +14,7 @@ export const searchUsers = async (query: string, currentUserId?: string): Promis
     .select('id, full_name, profile_image_url')
     .ilike('full_name', query.length > 0 ? `%${query}%` : '%')
     .order('full_name')
-    .limit(query.length > 0 ? 10 : 20); // Show more users for empty query
+    .limit(query.length > 0 ? 10 : 20); // Read More users for empty query
   
   // Only exclude current user if provided
   if (currentUserId) {

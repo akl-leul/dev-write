@@ -3,6 +3,24 @@ import App from "./App.tsx";
 import "./index.css";
 import { initPerformanceTracking } from "./utils/performance";
 
+// Register Service Worker for PWA functionality
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('SW registered: ', registration);
+        
+        // Check for updates periodically
+        setInterval(() => {
+          registration.update();
+        }, 60 * 60 * 1000); // Check every hour
+      })
+      .catch((registrationError) => {
+        console.log('SW registration failed: ', registrationError);
+      });
+  });
+}
+
 // Clear stale cache before app loads to prevent slow performance
 if (typeof window !== 'undefined') {
   // Clear service worker cache if it exists

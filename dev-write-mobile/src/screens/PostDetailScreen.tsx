@@ -1,0 +1,477 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  Image,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import { PostWithProfile, CommentWithProfile } from '../lib/supabase';
+import RenderHtml from 'react-native-render-html';
+
+const PostDetailScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
+  const { postId } = route.params;
+  const [post, setPost] = useState<PostWithProfile | null>(null);
+  const [comments, setComments] = useState<CommentWithProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  const { isDark } = useTheme();
+  const { user } = useAuth();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingTop: 50,
+      backgroundColor: isDark ? '#111827' : '#ffffff',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    content: {
+      padding: 20,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: isDark ? '#f9fafb' : '#111827',
+      marginBottom: 16,
+    },
+    authorInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    authorAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      marginRight: 12,
+    },
+    authorDetails: {
+      flex: 1,
+    },
+    authorName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: isDark ? '#f9fafb' : '#111827',
+    },
+    postDate: {
+      fontSize: 14,
+      color: isDark ? '#9ca3af' : '#6b7280',
+    },
+    featuredImage: {
+      width: '100%',
+      height: 200,
+      borderRadius: 12,
+      marginBottom: 20,
+    },
+    contentContainer: {
+      marginBottom: 32,
+    },
+    contentText: {
+      fontSize: 16,
+      color: isDark ? '#f9fafb' : '#111827',
+      lineHeight: 24,
+      marginBottom: 12,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: isDark ? '#f9fafb' : '#111827',
+      marginBottom: 16,
+      marginTop: 32,
+    },
+    commentContainer: {
+      padding: 16,
+      backgroundColor: isDark ? '#1f2937' : '#f9fafb',
+      borderRadius: 12,
+      marginBottom: 12,
+    },
+    commentAuthor: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    commentAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      marginRight: 8,
+    },
+    commentAuthorName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: isDark ? '#f9fafb' : '#111827',
+    },
+    commentDate: {
+      fontSize: 12,
+      color: isDark ? '#9ca3af' : '#6b7280',
+      marginLeft: 8,
+    },
+    commentContent: {
+      fontSize: 14,
+      color: isDark ? '#d1d5db' : '#4b5563',
+      lineHeight: 20,
+    },
+    commentInputContainer: {
+      padding: 20,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? '#374151' : '#e5e7eb',
+    },
+    commentInput: {
+      borderWidth: 1,
+      borderColor: isDark ? '#374151' : '#d1d5db',
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      backgroundColor: isDark ? '#1f2937' : '#ffffff',
+      color: isDark ? '#f9fafb' : '#111827',
+      marginBottom: 12,
+      minHeight: 80,
+    },
+    submitButton: {
+      backgroundColor: '#3b82f6',
+      borderRadius: 8,
+      padding: 12,
+      alignItems: 'center',
+    },
+    submitButtonText: {
+      color: '#ffffff',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 40,
+    },
+    emptyText: {
+      fontSize: 18,
+      color: isDark ? '#9ca3af' : '#6b7280',
+      textAlign: 'center',
+    },
+  });
+
+  const fetchPost = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles!posts_author_id_fkey (
+            id,
+            full_name,
+            profile_image_url
+          )
+        `)
+        .eq('id', postId)
+        .single();
+
+      if (error) throw error;
+      setPost(data);
+    } catch (error) {
+      console.error('Error fetching post:', error);
+      Alert.alert('Error', 'Failed to load post');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchComments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          *,
+          profiles!comments_author_id_fkey (
+            id,
+            full_name,
+            profile_image_url
+          ),
+          posts (
+            id,
+            title
+          )
+        `)
+        .eq('post_id', postId)
+        .eq('approved', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setComments(data || []);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPost();
+    fetchComments();
+  }, [postId]);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const htmlConfig = {
+    baseFontStyle: {
+      fontSize: 16,
+      color: isDark ? '#f9fafb' : '#111827',
+      fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    },
+    tagsStyles: {
+      p: {
+        marginBottom: 12,
+      },
+      strong: {
+        fontWeight: 'bold' as const,
+        color: isDark ? '#f9fafb' : '#111827',
+      },
+      b: {
+        fontWeight: 'bold' as const,
+        color: isDark ? '#f9fafb' : '#111827',
+      },
+      em: {
+        fontStyle: 'italic' as const,
+        color: isDark ? '#f9fafb' : '#111827',
+      },
+      i: {
+        fontStyle: 'italic' as const,
+        color: isDark ? '#f9fafb' : '#111827',
+      },
+      h1: {
+        fontSize: 24,
+        fontWeight: 'bold' as const,
+        color: isDark ? '#f9fafb' : '#111827',
+        marginBottom: 16,
+        marginTop: 16,
+      },
+      h2: {
+        fontSize: 20,
+        fontWeight: 'bold' as const,
+        color: isDark ? '#f9fafb' : '#111827',
+        marginBottom: 12,
+        marginTop: 12,
+      },
+      h3: {
+        fontSize: 18,
+        fontWeight: 'bold' as const,
+        color: isDark ? '#f9fafb' : '#111827',
+        marginBottom: 8,
+        marginTop: 8,
+      },
+      a: {
+        color: '#3b82f6',
+        textDecorationLine: 'underline' as const,
+      },
+     
+      ul: {
+        marginBottom: 12,
+        paddingLeft: 20,
+      },
+ ol: {
+        marginBottom: 12,
+        paddingLeft: 20,
+      },
+     li: {
+        marginBottom: 4,
+        color: isDark ? '#9ca3af' : '#6b7280',
+      },
+        blockquote: {
+        borderLeftWidth: 4,
+        borderLeftColor: '#3b82f6',
+        paddingLeft: 12,
+        marginVertical: 8,
+        fontStyle: 'italic' as const,
+      },
+      code: {
+        backgroundColor: isDark ? '#374151' : '#f3f4f6',
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 3,
+        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+        fontSize: 12,
+      },
+      pre: {
+        backgroundColor: isDark ? '#374151' : '#f3f4f6',
+        padding: 12,
+        borderRadius: 6,
+        marginBottom: 12,
+        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+      },
+      img: {
+        width: '100%',
+        height: 'auto',
+        borderRadius: 6,
+        marginBottom: 12,
+      },
+    },
+  };
+
+  const handleSubmitComment = async () => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to comment');
+      return;
+    }
+
+    if (!commentText.trim()) {
+      Alert.alert('Error', 'Please enter a comment');
+      return;
+    }
+
+    setSubmittingComment(true);
+
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          content: commentText.trim(),
+          approved: true, // Auto-approve for now
+        });
+
+      if (error) throw error;
+
+      setCommentText('');
+      fetchComments(); // Refresh comments
+      Alert.alert('Success', 'Comment posted successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to post comment');
+      console.error('Comment error:', error);
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.emptyState}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
+
+  if (!post) {
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyText}>Post not found</Text>
+      </View>
+    );
+  }
+
+  
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        <Text style={styles.title}>{post.title}</Text>
+        
+        <View style={styles.authorInfo}>
+          {post.profiles?.profile_image_url && (
+            <Image
+              source={{ uri: post.profiles.profile_image_url }}
+              style={styles.authorAvatar}
+            />
+          )}
+          <View style={styles.authorDetails}>
+            <Text style={styles.authorName}>
+              {post.profiles?.full_name || 'Anonymous'}
+            </Text>
+            <Text style={styles.postDate}>
+              {formatDate(post.created_at)}
+            </Text>
+          </View>
+        </View>
+
+        {post.featured_image && (
+          <Image source={{ uri: post.featured_image }} style={styles.featuredImage} />
+        )}
+
+        <View style={styles.contentContainer}>
+          <RenderHtml
+            contentWidth={300}
+            source={{ html: post.content_markdown }}
+            {...htmlConfig}
+          />
+        </View>
+
+        <Text style={styles.sectionTitle}>Comments ({comments.length})</Text>
+        
+        {comments.map((comment) => (
+          <View key={comment.id} style={styles.commentContainer}>
+            <View style={styles.commentAuthor}>
+              {comment.profiles?.profile_image_url && (
+                <Image
+                  source={{ uri: comment.profiles.profile_image_url }}
+                  style={styles.commentAvatar}
+                />
+              )}
+              <Text style={styles.commentAuthorName}>
+                {comment.profiles?.full_name || 'Anonymous'}
+              </Text>
+              <Text style={styles.commentDate}>
+                {formatDate(comment.created_at)}
+              </Text>
+            </View>
+            <View style={styles.contentContainer}>
+              <RenderHtml
+                contentWidth={250}
+                source={{ html: comment.content_markdown }}
+                {...htmlConfig}
+              />
+            </View>
+          </View>
+        ))}
+
+        {comments.length === 0 && (
+          <Text style={styles.emptyText}>No comments yet. Be the first to comment!</Text>
+        )}
+      </ScrollView>
+
+      <View style={styles.commentInputContainer}>
+        <TextInput
+          style={styles.commentInput}
+          placeholder="Add a comment..."
+          placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
+          value={commentText}
+          onChangeText={setCommentText}
+          multiline
+          textAlignVertical="top"
+        />
+        <TouchableOpacity
+          style={styles.submitButton}
+          onPress={handleSubmitComment}
+          disabled={submittingComment}
+        >
+          {submittingComment ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.submitButtonText}>Post Comment</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
+};
+
+export default PostDetailScreen;

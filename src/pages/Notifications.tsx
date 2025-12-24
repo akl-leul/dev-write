@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { Bell, Check, CheckCircle, AlertTriangle, Heart, MessageSquare, Users, FileText, X } from "lucide-react";
+import { Bell, Check, CheckCircle, AlertTriangle, Heart, MessageSquare, Users, FileText, X, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PushNotificationSettings } from "@/components/PushNotificationSettings";
+import { TestNotifications } from "@/components/TestNotifications";
+import { pushNotificationManager, showLikeNotification, showCommentNotification, showFollowNotification, showSystemNotification } from "@/utils/pushNotifications";
 
 interface Notification {
   id: string;
@@ -26,10 +29,24 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAsRead, setMarkingAsRead] = useState<Set<string>>(new Set());
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
+    setupPushNotifications();
   }, []);
+
+  const setupPushNotifications = async () => {
+    // Check if push notifications are supported and permission is granted
+    const isSupported = await pushNotificationManager.checkSupport();
+    if (isSupported && pushNotificationManager.isPermissionGranted()) {
+      const subscription = await pushNotificationManager.getSubscription();
+      if (!subscription) {
+        // Auto-subscribe if permission is granted but not subscribed
+        await pushNotificationManager.subscribeToPush();
+      }
+    }
+  };
 
   const fetchNotifications = async () => {
     try {
@@ -44,16 +61,82 @@ export default function Notifications() {
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(100); // Limit to prevent huge queries
+        .limit(100);
 
       if (error) throw error;
-      setNotifications(data || []);
+      setNotifications((data as any[]) || []);
+      
+      // Show push notifications for unread notifications
+      if (data && Array.isArray(data)) {
+        const unreadNotifications = (data as any[]).filter((n: any) => !n.read);
+        for (const notification of unreadNotifications.slice(0, 3)) { // Limit to 3 to avoid spam
+          await showPushNotificationForType(notification);
+        }
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
       toast.error('Failed to load notifications');
     } finally {
       setLoading(false);
     }
+  };
+
+  const showPushNotificationForType = async (notification: Notification) => {
+    const preferences = getNotificationPreferences();
+    
+    switch (notification.type) {
+      case 'like':
+        if (preferences.likes) {
+          await showLikeNotification(
+            notification.from_user_id || 'Someone',
+            'Your post'
+          );
+        }
+        break;
+      case 'comment':
+        if (preferences.comments) {
+          await showCommentNotification(
+            notification.from_user_id || 'Someone',
+            'Your post',
+            notification.message
+          );
+        }
+        break;
+      case 'follow':
+        if (preferences.follows) {
+          await showFollowNotification(notification.from_user_id || 'Someone');
+        }
+        break;
+      case 'system':
+        if (preferences.system) {
+          await showSystemNotification(notification.title, notification.message);
+        }
+        break;
+      case 'post':
+        if (preferences.posts) {
+          await showSystemNotification(notification.title, notification.message);
+        }
+        break;
+    }
+  };
+
+  const getNotificationPreferences = () => {
+    try {
+      const saved = localStorage.getItem('notificationPreferences');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Failed to load notification preferences:', error);
+    }
+    return {
+      likes: true,
+      comments: true,
+      follows: true,
+      posts: true,
+      system: true,
+      marketing: false
+    };
   };
 
   const markAsRead = async (notificationId: string) => {
@@ -203,14 +286,35 @@ export default function Notifications() {
                 </p>
               </div>
               
-              {unreadCount > 0 && (
-                <Button onClick={markAllAsRead} variant="outline" className="gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Mark All as Read
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  {showSettings ? 'Hide Settings' : 'Notification Settings'}
                 </Button>
-              )}
+                
+                {unreadCount > 0 && (
+                  <Button onClick={markAllAsRead} variant="outline" className="gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Mark All as Read
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Push Notification Settings */}
+          {showSettings && (
+            <div className="mb-8 space-y-6">
+              <PushNotificationSettings />
+              
+              {/* Test Notifications Section */}
+              <TestNotifications />
+            </div>
+          )}
 
           {/* Notifications List */}
           {notifications.length === 0 ? (

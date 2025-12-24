@@ -19,6 +19,7 @@ export const NotificationDropdown = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [hasNewNotification, setHasNewNotification] = useState(false);
+  const [expandedNotifications, setExpandedNotifications] = useState<Set<string>>(new Set());
 
   const { data: notifications, isLoading, error } = useQuery({
     queryKey: ['notifications', user?.id],
@@ -180,6 +181,20 @@ export const NotificationDropdown = () => {
     }
   };
 
+  const toggleNotificationExpansion = (notificationId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedNotifications(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(notificationId)) {
+        newSet.delete(notificationId);
+      } else {
+        newSet.add(notificationId);
+      }
+      return newSet;
+    });
+  };
+
   const handleNotificationClick = (notification: any) => {
     // Only mark as read when the notification is actually clicked
     // and it's not already read
@@ -226,7 +241,7 @@ export const NotificationDropdown = () => {
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-80 sm:w-96 max-h-[85vh] overflow-y-auto rounded-2xl border-slate-200 dark:border-slate-700 shadow-xl p-0 bg-white dark:bg-slate-900">
+      <DropdownMenuContent align="end"  className="w-80 sm:w-96 max-h-[85vh] overflow-y-auto rounded-2xl border-slate-200 dark:border-slate-700 shadow-2xl shadow-black/10 dark:shadow-black/50 p-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl mt-4 ml-20">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-700 p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -282,37 +297,67 @@ export const NotificationDropdown = () => {
                       <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-snug">
                         {notification.title}
                       </h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                      <p 
+                        className={`text-sm text-slate-600 dark:text-slate-300 leading-relaxed cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors ${
+                          expandedNotifications.has(notification.id) ? '' : 'line-clamp-2'
+                        }`}
+                        onClick={(e) => toggleNotificationExpansion(notification.id, e)}
+                      >
                         {notification.message}
                       </p>
+                      {notification.message.length > 100 && (
+                        <button
+                          onClick={(e) => toggleNotificationExpansion(notification.id, e)}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                        >
+                          {expandedNotifications.has(notification.id) ? 'Show less' : 'Show more'}
+                        </button>
+                      )}
                     </>
                   )}
                   
                   {/* Show only message if title and message are the same or title is missing */}
                   {(!notification.title || notification.title === notification.message) && (
-                    <p className="text-sm text-slate-900 dark:text-slate-100 leading-snug">
+                    <p 
+                      className={`text-sm text-slate-900 dark:text-slate-100 leading-snug cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors ${
+                        expandedNotifications.has(notification.id) ? '' : 'line-clamp-2'
+                      }`}
+                      onClick={(e) => toggleNotificationExpansion(notification.id, e)}
+                    >
                       {notification.message}
                     </p>
                   )}
                   
                   {/* Show type-based messages only for standard notifications without custom content */}
                   {!notification.title && notification.type === 'follow' && (
-                    <p><span className="font-semibold">{notification.from_user?.full_name}</span> started following you</p>
+                    <p className="text-sm text-slate-900 dark:text-slate-100 leading-snug">
+                      <span className="font-semibold">{notification.from_user?.full_name}</span> started following you
+                    </p>
                   )}
                   {!notification.title && notification.type === 'like' && (
-                    <p><span className="font-semibold">{notification.from_user?.full_name}</span> liked your post</p>
+                    <p className="text-sm text-slate-900 dark:text-slate-100 leading-snug">
+                      <span className="font-semibold">{notification.from_user?.full_name}</span> liked your post
+                    </p>
                   )}
                   {!notification.title && notification.type === 'comment' && (
-                    <p><span className="font-semibold">{notification.from_user?.full_name}</span> commented on your post</p>
+                    <p className="text-sm text-slate-900 dark:text-slate-100 leading-snug">
+                      <span className="font-semibold">{notification.from_user?.full_name}</span> commented on your post
+                    </p>
                   )}
                   {!notification.title && notification.type === 'mention' && (
-                    <p><span className="font-semibold">{notification.from_user?.full_name}</span> tagged you in a post</p>
+                    <p className="text-sm text-slate-900 dark:text-slate-100 leading-snug">
+                      <span className="font-semibold">{notification.from_user?.full_name}</span> tagged you in a post
+                    </p>
                   )}
                   {!notification.title && notification.type === 'new_post' && notification.from_user?.full_name && (
-                    <p><span className="font-semibold">{notification.from_user.full_name}</span> posted something new</p>
+                    <p className="text-sm text-slate-900 dark:text-slate-100 leading-snug">
+                      <span className="font-semibold">{notification.from_user.full_name}</span> posted something new
+                    </p>
                   )}
                   {!notification.title && notification.type === 'new_post' && !notification.from_user?.full_name && (
-                    <p>New post published</p>
+                    <p className="text-sm text-slate-900 dark:text-slate-100 leading-snug">
+                      New post published
+                    </p>
                   )}
                   
                   <p className="text-xs text-slate-400 dark:text-slate-500 font-medium pt-1">

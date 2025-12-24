@@ -114,9 +114,7 @@
     --shadow-elegant: 0 10px 40px -10px hsl(0 0% 0% / 0.4);
     --shadow-lift: 0 20px 50px -15px hsl(0 0% 0% / 0.6);
   }
-}
 
-@layer base {
   * {
     @apply border-border;
     transition: var(--transition-theme);
@@ -130,6 +128,18 @@
   
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Crimson Pro', Georgia, serif;
+  }
+
+  #root {
+    min-height: 100vh;
+    /* Basic background fallback matching the theme */
+    background-color: hsl(var(--background));
+  }
+}
+
+@layer components {
+  /* Typography components */
+  .heading {
     font-weight: 600;
     transition: var(--transition-theme);
   }
@@ -173,8 +183,6 @@
   
   .gpu-accelerated {
     transform: translateZ(0);
-    backface-visibility: hidden;
-    perspective: 1000px;
   }
   
   .contain-layout {
@@ -198,5 +206,60 @@
     transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
                 color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
                 border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Mobile-specific styles */
+  @media (max-width: 768px) {
+    /* Safe area insets for notched screens */
+    .pb-safe-area-inset-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    /* Adjust body padding for bottom navbar */
+    body {
+      padding-bottom: 0;
+    }
+    
+    /* Bottom navbar animations */
+    .navbar-transition {
+      transition: transform 0.3s ease-in-out;
+    }
+    
+    /* Haptic feedback simulation */
+    .haptic-feedback {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .haptic-feedback::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transform: translate(-50%, -50%);
+      transition: width 0.3s, height 0.3s;
+    }
+    
+    .haptic-feedback:active::after {
+      width: 100px;
+      height: 100px;
+    }
+  }
+  
+  /* Desktop-specific styles */
+  @media (min-width: 769px) {
+    /* Show desktop-specific elements */
+    .desktop-only {
+      display: block;
+    }
+    
+    /* Hide mobile-specific elements */
+    .mobile-only {
+      display: none;
+    }
   }
 }

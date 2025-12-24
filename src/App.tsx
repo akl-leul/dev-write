@@ -8,6 +8,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ThemeInitializer } from "@/components/theme/ThemeInitializer";
 import { BlockGuard } from "@/components/BlockGuard";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { BottomNavbar } from "@/components/BottomNavbar";
 
 // Create future flags for React Router v7 compatibility
 const routerFuture = {
@@ -101,12 +103,14 @@ const App = () => (
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>
+                <BottomNavbar />
               </BlockGuard>
             </AuthProvider>
           </TooltipProvider>
         </ThemeInitializer>
       </ThemeProvider>
     </BrowserRouter>
+    <PWAInstallPrompt />
     <Toaster />
     <Sonner />
   </QueryClientProvider>
