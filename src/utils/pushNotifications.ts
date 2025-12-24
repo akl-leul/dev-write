@@ -50,7 +50,7 @@ class PushNotificationManager {
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(
-          'BLqWY1tC7UmsPRXt4J8e8XqB9J3A6R5S2T8V7N4M1K9P6Q3W2E5R8T1Y4U7I0O3'
+          import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BLqWY1tC7UmsPRXt4J8e8XqB9J3A6R5S2T8V7N4M1K9P6Q3W2E5R8T1Y4U7I0O3'
         ) as BufferSource
       });
 

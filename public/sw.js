@@ -133,8 +133,8 @@ self.addEventListener('push', (event) => {
   console.log('Service Worker: Push event received');
   
   let notificationData = {
-    title: 'Chronicle',
-    body: 'New notification from Chronicle',
+    title: 'DevWrite',
+    body: 'New notification from DevWrite',
     icon: '/favicon-32x32.png',
     badge: '/favicon-16x16.png',
     tag: 'general',
@@ -153,62 +153,24 @@ self.addEventListener('push', (event) => {
       // Customize based on notification type
       switch (data.type) {
         case 'like':
-          notificationData.icon = '/icons/like-notification.png';
-          notificationData.actions = [
-            {
-              action: 'view-post',
-              title: 'View Post',
-              icon: '/icons/eye.png'
-            }
-          ];
+          notificationData.icon = '/icons/like-notification.svg';
           break;
           
         case 'comment':
-          notificationData.icon = '/icons/comment-notification.png';
-          notificationData.actions = [
-            {
-              action: 'view-comment',
-              title: 'View Comment',
-              icon: '/icons/eye.png'
-            },
-            {
-              action: 'reply',
-              title: 'Reply',
-              icon: '/icons/reply.png'
-            }
-          ];
+          notificationData.icon = '/icons/comment-notification.svg';
           break;
           
         case 'follow':
-          notificationData.icon = '/icons/follow-notification.png';
-          notificationData.actions = [
-            {
-              action: 'view-profile',
-              title: 'View Profile',
-              icon: '/icons/user.png'
-            }
-          ];
+          notificationData.icon = '/icons/follow-notification.svg';
           break;
           
         case 'system':
-          notificationData.icon = '/icons/system-notification.png';
+          notificationData.icon = '/icons/system-notification.svg';
           notificationData.requireInteraction = true;
           break;
           
         case 'publish':
-          notificationData.icon = '/icons/publish-notification.png';
-          notificationData.actions = [
-            {
-              action: 'view-post',
-              title: 'View Post',
-              icon: '/icons/eye.png'
-            },
-            {
-              action: 'share',
-              title: 'Share',
-              icon: '/icons/share.png'
-            }
-          ];
+          notificationData.icon = '/icons/publish-notification.svg';
           break;
       }
     } catch (error) {
@@ -223,7 +185,6 @@ self.addEventListener('push', (event) => {
       badge: notificationData.badge,
       tag: notificationData.tag,
       data: notificationData.data,
-      actions: notificationData.actions,
       requireInteraction: notificationData.requireInteraction,
       silent: notificationData.silent,
       vibrate: [200, 100, 200],
@@ -268,24 +229,6 @@ self.addEventListener('notificationclick', (event) => {
       }
       break;
       
-    case 'reply':
-      if (notificationData.postId) {
-        event.waitUntil(
-          clients.openWindow(`/post/${notificationData.postId}#reply`)
-        );
-      }
-      break;
-      
-    case 'share':
-      if (notificationData.postId) {
-        event.waitUntil(
-          clients.openWindow(`/post/${notificationData.postId}`)
-        );
-      }
-      break;
-      
-    case 'explore':
-    case 'close':
     default:
       event.waitUntil(
         clients.matchAll({ type: 'window' })

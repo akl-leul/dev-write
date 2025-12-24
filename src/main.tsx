@@ -4,7 +4,7 @@ import "./index.css";
 import { initPerformanceTracking } from "./utils/performance";
 
 // Register Service Worker for PWA functionality
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
