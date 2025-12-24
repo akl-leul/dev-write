@@ -290,8 +290,7 @@ export const PushNotificationSettings: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <Users className="h-4 w-4 text-purple-500" />
                   <div>
-                    <p className="font-mediumeryone follows you
-                    </p>
+                    <p className="font-medium">Everyone follows you</p>
                   </div>
                 </div>
                 <Switch
