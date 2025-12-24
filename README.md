@@ -359,7 +359,16 @@ Follow these steps to get a local copy up and running.
 | Variable | Description | Required |
 | :--- | :--- | :--- |
 | `VITE_SUPABASE_URL` | Your Supabase Project URL | Yes |
+<<<<<<< HEAD
 | `VITE_SUPABASE_ANON_KEY` | Your Supabase Anonymous Public Key | Yes |
+=======
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Your Supabase Publishable Key | Yes |
+| `VITE_SUPABASE_PROJECT_ID` | Your Supabase Project Id | Yes |
+| `VITE_GOOGLE_CLIENT_ID` | Your Google Client Id | Yes |
+| `VITE_GOOGLE_CLIENT_ID` | Your Google Client Id | Yes |
+| `VITE_GOOGLE_CLIENT_SECRET` | Your Google Client Secret | Yes |
+| `VITE_GOOGLE_REDIRECT_URI` | https://your-project-id.supabase.co/auth/v1/callback | Yes (Optional: Google OAuth redirect URI (should match your Supabase settings) |
+>>>>>>> 8a75406a85325690075ff52a75cc271c8e31c0c5
 
 ---
 
@@ -440,4 +449,8 @@ Contributions make the open-source community such an amazing place to learn, ins
 
 ## 📄 License
 
+<<<<<<< HEAD
 Distributed under the MIT License. See `LICENSE` for more information.
+=======
+Distributed under the MIT License. See `LICENSE` for more information.
+>>>>>>> 8a75406a85325690075ff52a75cc271c8e31c0c5
