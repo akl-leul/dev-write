@@ -5,7 +5,7 @@ import {
   Home, 
   PlusSquare, 
   Bookmark, 
-  User
+  User, Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,12 @@ export const BottomNavbar: React.FC = () => {
       label: 'Home',
       icon: Home,
       path: '/feed'
+    },
+    {
+      id: 'search',
+      label: 'Search',
+      icon: Search,
+      path: '/search'
     },
     {
       id: 'create',

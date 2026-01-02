@@ -24,6 +24,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Feed = lazy(() => import("./pages/Feed"));
+const Search = lazy(() => import("./pages/Search"));
 const Profile = lazy(() => import("./pages/Profile"));
 const CreatePost = lazy(() => import("./pages/CreatePost"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
@@ -79,19 +80,24 @@ if (typeof window !== 'undefined') {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter future={routerFuture}>
-      <ThemeProvider>
-        <ThemeInitializer>
+    <ThemeProvider>
+      <ThemeInitializer>
+        <BrowserRouter future={routerFuture}>
           <TooltipProvider>
             <AuthProvider>
               <BlockGuard>
-                <Suspense fallback={null}>
+                <Suspense fallback={
+                  <div className="min-h-screen flex items-center justify-center bg-background">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                }>
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/feed" element={<Feed />} />
+                    <Route path="/search" element={<Search />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/create" element={<CreatePost />} />
                     <Route path="/post/*" element={<PostDetail />} />
@@ -109,14 +115,14 @@ const App = () => (
                 <BottomNavbar />
               </BlockGuard>
             </AuthProvider>
+            <PWAInstallPrompt />
+            <NotificationPermissionPrompt />
           </TooltipProvider>
-        </ThemeInitializer>
-      </ThemeProvider>
-    </BrowserRouter>
-    <PWAInstallPrompt />
-    <NotificationPermissionPrompt />
-    <Toaster />
-    <Sonner />
+        </BrowserRouter>
+        <Toaster />
+        <Sonner />
+      </ThemeInitializer>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

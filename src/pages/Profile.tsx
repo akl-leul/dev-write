@@ -42,6 +42,7 @@ const Profile = () => {
     youtube: '',
     website: '',
     background_image_url: '',
+    badge: null as string | null,
   });
   const [passwordData, setPasswordData] = useState({
     newPassword: '',
@@ -60,12 +61,12 @@ const Profile = () => {
         .select('*')
         .eq('id', user.id)
         .single();
-      
+
       if (error) {
         console.error('Profile query error:', error);
         throw error;
       }
-      
+
       return data;
     },
     enabled: !!user,
@@ -91,6 +92,7 @@ const Profile = () => {
         youtube: profileData.youtube || '',
         website: profileData.website || '',
         background_image_url: profileData.background_image_url || '',
+        badge: profileData.badge || null,
       });
     }
   }, [profile]);
@@ -100,15 +102,28 @@ const Profile = () => {
     queryKey: ['my-profile-stats', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const [postsRes, followersRes, followingRes] = await Promise.all([
+      const [postsCountRes, followersRes, followingRes, postsDataRes] = await Promise.all([
         supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', user.id),
         supabase.from('followers').select('id', { count: 'exact', head: true }).eq('following_id', user.id),
         supabase.from('followers').select('id', { count: 'exact', head: true }).eq('follower_id', user.id),
+        supabase.from('posts').select('id').eq('author_id', user.id).eq('status', 'published'),
       ]);
+
+      let totalLikes = 0;
+      if (postsDataRes.data && postsDataRes.data.length > 0) {
+        const postIds = postsDataRes.data.map((p: any) => p.id);
+        const { count } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: true })
+          .in('post_id', postIds);
+        totalLikes = count || 0;
+      }
+
       return {
-        posts: postsRes.count || 0,
+        posts: postsCountRes.count || 0,
         followers: followersRes.count || 0,
         following: followingRes.count || 0,
+        likes: totalLikes,
       };
     },
     enabled: !!user,
@@ -121,18 +136,18 @@ const Profile = () => {
     userId: user?.id || '',
     postsCount: stats?.posts || 0,
     followersCount: stats?.followers || 0,
-    likesCount: 0, // We don't have likes data yet
+    likesCount: stats?.likes || 0,
   });
 
   const updateProfile = useMutation({
     mutationFn: async (updates: Partial<typeof formData>) => {
       if (!user) throw new Error('Not authenticated');
-      
+
       const { error } = await supabase
         .from('profiles')
         .update(updates)
         .eq('id', user.id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -147,19 +162,19 @@ const Profile = () => {
   const updatePassword = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Not authenticated');
-      
+
       if (passwordData.newPassword !== passwordData.confirmPassword) {
         throw new Error('Passwords do not match');
       }
-      
+
       if (passwordData.newPassword.length < 6) {
         throw new Error('Password must be at least 6 characters');
       }
-      
+
       const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword
       });
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -173,62 +188,62 @@ const Profile = () => {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
-    
+
     const file = e.target.files[0];
     const reader = new FileReader();
-    
+
     reader.onload = (event) => {
       if (event.target?.result) {
         setSelectedImage(event.target.result as string);
         setShowCropModal(true);
       }
     };
-    
+
     reader.readAsDataURL(file);
   };
 
   const handleBackgroundImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
-    
+
     const file = e.target.files[0];
     const reader = new FileReader();
-    
+
     reader.onload = (event) => {
       if (event.target?.result) {
         setSelectedBackgroundImage(event.target.result as string);
         handleBackgroundImageUpload(event.target.result as string);
       }
     };
-    
+
     reader.readAsDataURL(file);
   };
 
   const handleBackgroundImageUpload = async (imageUrl: string) => {
     if (!user) return;
-    
+
     setUploadingBackground(true);
-    
+
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      
+
       const fileExt = 'jpg'; // We're saving as JPEG
       const fileName = `${user.id}/background_${Date.now()}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('profile-images')
         .upload(fileName, blob, { upsert: true });
-      
+
       if (uploadError) throw uploadError;
-      
+
       const { data: { publicUrl } } = supabase.storage
         .from('profile-images')
         .getPublicUrl(fileName);
-      
+
       await updateProfile.mutateAsync({ background_image_url: publicUrl });
-      
+
       URL.revokeObjectURL(imageUrl);
-      
+
       toast.success('Background image updated successfully');
     } catch (error) {
       console.error('Background upload error:', error);
@@ -240,14 +255,14 @@ const Profile = () => {
 
   const handleDeleteBackgroundImage = async () => {
     if (!user || !(profile as any).background_image_url) return;
-    
+
     try {
       // Delete from database
       await updateProfile.mutateAsync({ background_image_url: '' });
-      
+
       // Optionally delete from storage (more complex, requires extracting file path)
       // For now just remove reference from database
-      
+
       toast.success('Background image removed successfully');
     } catch (error) {
       console.error('Background delete error:', error);
@@ -257,29 +272,29 @@ const Profile = () => {
 
   const handleCroppedImageUpload = async (croppedImageUrl: string) => {
     if (!user) return;
-    
+
     setUploading(true);
-    
+
     try {
       // Convert the cropped image URL back to a blob
       const response = await fetch(croppedImageUrl);
       const blob = await response.blob();
-      
+
       const fileExt = 'jpg'; // We're saving as JPEG
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('profile-images')
         .upload(fileName, blob, { upsert: true });
-      
+
       if (uploadError) throw uploadError;
-      
+
       const { data: { publicUrl } } = supabase.storage
         .from('profile-images')
         .getPublicUrl(fileName);
-      
+
       await updateProfile.mutateAsync({ profile_image_url: publicUrl });
-      
+
       // Clean up the object URL
       URL.revokeObjectURL(croppedImageUrl);
     } catch (error) {
@@ -312,21 +327,21 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background dark:bg-slate-900 font-sans selection:bg-accent/20 dark:selection:bg-blue-900/20">
-      
+
       {/* Background Dot Pattern */}
-      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
-           style={{
-             backgroundImage: 'radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)',
-             backgroundSize: '24px 24px'
-           }}>
+      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20"
+        style={{
+          backgroundImage: 'radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}>
       </div>
 
       <div className="relative z-10">
         <Header />
-        
+
         <main className="container mx-auto py-12 px-4">
           <div className="max-w-3xl mx-auto space-y-8">
-            
+
             {/* Header Title */}
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-blue-600 dark:text-blue-400">
@@ -369,7 +384,7 @@ const Profile = () => {
               </CardHeader>
               <CardContent className="pt-8">
                 <form onSubmit={handleSubmit} className="space-y-8">
-                  
+
                   {/* Avatar Upload Section */}
                   <div className="flex flex-col items-center gap-4">
                     <div className="relative group">
@@ -408,6 +423,7 @@ const Profile = () => {
                     </div>
                   </div>
 
+
                   {/* Background Image Upload Section */}
                   <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
                     <div className="space-y-4">
@@ -440,7 +456,7 @@ const Profile = () => {
                               disabled={uploadingBackground}
                             />
                           </label>
-                          
+
                           {(profile as any).background_image_url && (
                             <Button
                               type="button"
@@ -454,13 +470,13 @@ const Profile = () => {
                           )}
                         </div>
                       </div>
-                      
+
                       {/* Background Image Preview */}
                       {(profile as any).background_image_url && (
                         <div className="relative rounded-lg overflow-hidden border border-slate-200 group">
-                          <img 
-                            src={(profile as any).background_image_url} 
-                            alt="Profile background" 
+                          <img
+                            src={(profile as any).background_image_url}
+                            alt="Profile background"
                             className="w-full h-32 object-cover"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -562,7 +578,7 @@ const Profile = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="age" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
-                           <Calendar className="w-3 h-3 text-slate-400" /> Age
+                          <Calendar className="w-3 h-3 text-slate-400" /> Age
                         </Label>
                         <Input
                           id="age"
@@ -575,7 +591,7 @@ const Profile = () => {
 
                       <div className="space-y-2">
                         <Label htmlFor="gender" className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-2">
-                           <User className="w-3 h-3 text-slate-400" /> Gender
+                          <User className="w-3 h-3 text-slate-400" /> Gender
                         </Label>
                         <Input
                           id="gender"

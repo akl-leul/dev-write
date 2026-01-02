@@ -1,139 +1,168 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Repeat, MessageSquare, Share2 } from 'lucide-react';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Repeat, Quote, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 
 interface RepostButtonProps {
   postId: string;
-  postAuthorId: string;
   postTitle: string;
-  postSlug: string;
-  className?: string;
+  authorName: string;
 }
 
-export const RepostButton = ({ 
-  postId, 
-  postAuthorId, 
-  postTitle, 
-  postSlug,
-  className = '' 
-}: RepostButtonProps) => {
+export const RepostButton = ({ postId, postTitle, authorName }: RepostButtonProps) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(false);
+  const [quoteText, setQuoteText] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const { data: hasReposted } = useQuery({
+    queryKey: ['has-reposted', user?.id, postId],
+    queryFn: async () => {
+      if (!user) return false;
+
+      const { data } = await supabase
+        .from('reposts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('original_post_id', postId)
+        .maybeSingle();
+
+      return !!data;
+    },
+    enabled: !!user,
+  });
 
   const repostMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error('Must be logged in');
+    mutationFn: async (withQuote: boolean) => {
+      if (!user) throw new Error('Not authenticated');
 
-      // Check if already reposted
-      const { data: existingRepost } = await supabase
-        .from('posts')
-        .select('id')
-        .eq('author_id', user.id)
-        .eq('original_post_id', postId)
-        .single();
+      if (hasReposted) {
+        // Remove repost
+        await supabase
+          .from('reposts')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('original_post_id', postId);
+      } else {
+        // Create repost
+        await supabase
+          .from('reposts')
+          .insert({
+            user_id: user.id,
+            original_post_id: postId,
+            quote_text: withQuote ? quoteText : null,
+          });
 
-      if (existingRepost) {
-        throw new Error('You have already reposted this post');
+        // Create notification for original author
+        const { data: originalPost } = await supabase
+          .from('posts')
+          .select('author_id')
+          .eq('id', postId)
+          .single();
+
+        if (originalPost && originalPost.author_id !== user.id) {
+          await supabase.from('notifications').insert({
+            user_id: originalPost.author_id,
+            type: 'repost',
+            title: withQuote ? 'Your post was quoted' : 'Your post was reposted',
+            message: `${user.user_metadata?.full_name || 'Someone'} ${withQuote ? 'quoted' : 'reposted'} "${postTitle}"`,
+            post_id: postId,
+            from_user_id: user.id,
+          });
+        }
       }
-
-      // Create repost
-      const { data, error } = await supabase
-        .from('posts')
-        .insert({
-          author_id: user.id,
-          title: `Repost: ${postTitle}`,
-          slug: `repost-${postId}-${user.id}-${Date.now()}`,
-          content_markdown: `> Originally posted by [author](${postAuthorId})\n\n[View Original Post](${postSlug})`,
-          status: 'published',
-          original_post_id: postId,
-          is_repost: true,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
     },
     onSuccess: () => {
-      toast.success('Post reposted successfully!');
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-      setIsOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['has-reposted', user?.id, postId] });
+      queryClient.invalidateQueries({ queryKey: ['reposts'] });
+      setIsDialogOpen(false);
+      setQuoteText('');
+      toast.success(hasReposted ? 'Repost removed' : 'Reposted successfully!');
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to repost post');
+    onError: () => {
+      toast.error('Failed to repost');
     },
   });
 
-  const handleRepost = () => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    repostMutation.mutate();
-  };
-
-  const handleQuote = () => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    navigate(`/create?quote=${postId}`);
-  };
+  if (!user) return null;
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogTrigger asChild>
         <Button
           variant="ghost"
           size="sm"
-          className={`text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg h-8 w-8 p-0 ${className}`}
+          className={`gap-1.5 ${hasReposted ? 'text-green-600 dark:text-green-400' : 'text-slate-500 hover:text-green-600'}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (hasReposted) {
+              repostMutation.mutate(false);
+            }
+          }}
         >
           <Repeat className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="rounded-xl border-slate-200 dark:border-slate-700 shadow-lg p-2"
-      >
-        <DropdownMenuItem
-          onClick={handleRepost}
-          className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-          disabled={repostMutation.isPending}
-        >
-          <Repeat className="h-4 w-4 text-slate-500 dark:text-slate-400" />
           <span className="text-sm">Repost</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={handleQuote}
-          className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-        >
-          <MessageSquare className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-          <span className="text-sm">Quote Post</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            navigator.clipboard.writeText(window.location.origin + `/post/${postSlug}`);
-            toast.success('Link copied to clipboard!');
-          }}
-          className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-        >
-          <Share2 className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-          <span className="text-sm">Copy Link</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Repost "{postTitle}"</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Originally by {authorName}
+          </p>
+
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Add your thoughts (optional)..."
+              value={quoteText}
+              onChange={(e) => setQuoteText(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              onClick={() => repostMutation.mutate(false)}
+              disabled={repostMutation.isPending}
+              variant="outline"
+              className="flex-1"
+            >
+              {repostMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Repeat className="h-4 w-4 mr-2" />
+              )}
+              Repost
+            </Button>
+            <Button
+              onClick={() => repostMutation.mutate(true)}
+              disabled={repostMutation.isPending || !quoteText.trim()}
+              className="flex-1"
+            >
+              {repostMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Quote className="h-4 w-4 mr-2" />
+              )}
+              Quote
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };

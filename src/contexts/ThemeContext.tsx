@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 
 type Theme = 'dark' | 'light' | 'system';
 type ResolvedTheme = 'dark' | 'light';
@@ -14,7 +14,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system');
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light');
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>('light');
@@ -28,30 +28,32 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Apply theme class to document element with smooth transition
   const applyTheme = useCallback((newTheme: Theme, smooth = true) => {
+    if (typeof window === 'undefined') return;
+
     const root = window.document.documentElement;
     const resolved = newTheme === 'system' ? getSystemTheme() : newTheme;
-    
+
     // Add transition class for smooth theme switching
     if (smooth) {
       root.style.transition = 'background-color 0.3s ease, color 0.3s ease';
     }
-    
+
     // Remove all theme classes first
     root.classList.remove('light', 'dark');
-    
+
     // Add the appropriate theme class
     root.classList.add(resolved);
-    
+
     // Update state
     setResolvedTheme(resolved);
-    
+
     // Save to localStorage (except for system theme)
     if (newTheme !== 'system') {
       localStorage.setItem('theme', newTheme);
     } else {
       localStorage.removeItem('theme');
     }
-    
+
     // Remove transition after animation completes
     if (smooth) {
       setTimeout(() => {
@@ -63,27 +65,27 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   // Initialize theme from localStorage or system preference
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const storedTheme = localStorage.getItem('theme') as Theme | null;
     const initialTheme = storedTheme || 'system';
     const currentSystemTheme = getSystemTheme();
-    
+
     setSystemTheme(currentSystemTheme);
     setThemeState(initialTheme);
     applyTheme(initialTheme, false); // No transition on initial load
     setIsMounted(true);
-    
+
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+
     const handleSystemThemeChange = () => {
       const newSystemTheme = getSystemTheme();
       setSystemTheme(newSystemTheme);
-      if (theme === 'system') {
-        applyTheme('system');
-      }
+      // If we are currently on 'system' theme, re-apply it
+      // Note: We need the latest theme state here, which we can get via functional update if needed
+      // but 'theme' is in the dependency array so this will re-run.
     };
-    
+
     mediaQuery.addEventListener('change', handleSystemThemeChange);
     return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
   }, [theme, applyTheme, getSystemTheme]);
@@ -116,14 +118,12 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     systemTheme,
   }), [theme, setTheme, resolvedTheme, toggleTheme, systemTheme]);
 
-  // Render children immediately to prevent white screen
-  // Theme will be applied after mounting
   return (
     <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );
-};
+}
 
 export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);

@@ -10,16 +10,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { 
-  PenLine, 
-  User, 
-  LogOut, 
-  Home, 
-  FileText, 
-  Search, 
-  Menu, 
-  X, 
-  BarChart3, 
+import {
+  PenLine,
+  User,
+  LogOut,
+  Home,
+  FileText,
+  Search,
+  Menu,
+  X,
+  BarChart3,
   Bookmark,
   Settings,
   Sparkles,
@@ -31,8 +31,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { ProfileBadge } from '@/components/ProfileBadge';
+import { useProfileBadge } from '@/hooks/useProfileBadge';
 
-export const Header = () => {
+interface HeaderProps {
+  className?: string;
+}
+
+export const Header = ({ className }: HeaderProps) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,15 +50,17 @@ export const Header = () => {
       if (!user) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, profile_image_url, bio')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: !!user,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
+
+  const { badge } = useProfileBadge({ userId: user?.id });
 
   const handleSignOut = async () => {
     await signOut();
@@ -71,11 +79,11 @@ export const Header = () => {
 
   return (
     // Floating Header Wrapper
-    <div className="sticky top-4 z-50 px-4 md:px-0 mb-8 pointer-events-none">
+    <div className={`sticky top-4 z-50 px-4 md:px-0 mb-8 pointer-events-none ${className || ''}`}>
       <div className="max-w-6xl mx-auto pointer-events-auto">
         <header className="bg-background/85 backdrop-blur-xl border border-border/50 shadow-xl shadow-foreground/5 rounded-2xl supports-[backdrop-filter]:bg-background/60 relative">
           <div className="container mx-auto flex h-16 items-center justify-between px-4">
-            
+
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
               <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-primary-foreground shadow-sm group-hover:scale-105 transition-transform duration-200">
@@ -101,7 +109,14 @@ export const Header = () => {
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-1">
               <ThemeToggle />
-              
+
+              <Link to="/search">
+                <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg">
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </Button>
+              </Link>
+
               <Link to="/feed">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg">
                   <Home className="mr-2 h-4 w-4" />
@@ -117,7 +132,7 @@ export const Header = () => {
                       My Posts
                     </Button>
                   </Link>
-                  
+
                   <Link to="/bookmarks">
                     <Button variant="ghost" size="icon" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg" title="Bookmarks">
                       <Bookmark className="h-5 w-5" />
@@ -155,16 +170,19 @@ export const Header = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col overflow-hidden">
-                          <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{profile?.full_name}</p>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{profile?.full_name}</p>
+                            {badge && <ProfileBadge badge={badge} size="sm" />}
+                          </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
                         </div>
                       </div>
-                      
+
                       <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-lg cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800">
                         <User className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
                         Profile Settings
                       </DropdownMenuItem>
-                      
+
                       {/* Prominent Edit Profile for Google users */}
                       {user?.identities?.some(identity => identity.provider === 'google') && (
                         <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-lg cursor-pointer focus:bg-blue-50 dark:focus:bg-blue-900/20 text-blue-600 dark:text-blue-400">
@@ -180,7 +198,7 @@ export const Header = () => {
                         <Bookmark className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
                         Saved Stories
                       </DropdownMenuItem>
-                      
+
                       {/* Show Google Profile link only for Google users */}
                       {user?.identities?.some(identity => identity.provider === 'google') && (
                         <DropdownMenuItem onClick={() => navigate('/google-profile')} className="rounded-lg cursor-pointer focus:bg-slate-100 dark:focus:bg-slate-800">
@@ -188,9 +206,9 @@ export const Header = () => {
                           Google Profile Data
                         </DropdownMenuItem>
                       )}
-                      
+
                       <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-700 my-2" />
-                      
+
                       <DropdownMenuItem onClick={handleSignOut} className="rounded-lg cursor-pointer focus:bg-red-50 focus:text-red-600 text-red-500">
                         <LogOut className="mr-2 h-4 w-4" />
                         Sign out
@@ -213,7 +231,7 @@ export const Header = () => {
 
             {/* Mobile Menu Button */}
             <div className="flex items-center gap-2 md:hidden">
-               <ThemeToggle />
+              <ThemeToggle />
               {user && <NotificationDropdown />}
               <Button
                 variant="ghost"
@@ -246,6 +264,13 @@ export const Header = () => {
               </form>
 
               <nav className="flex flex-col gap-1">
+                <Link to="/search" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl h-10">
+                    <Search className="mr-3 h-5 w-5 text-slate-400 dark:text-slate-500" />
+                    Search
+                  </Button>
+                </Link>
+
                 <Link to="/feed" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl h-10">
                     <Home className="mr-3 h-5 w-5 text-slate-400 dark:text-slate-500" />
@@ -272,7 +297,7 @@ export const Header = () => {
                         My Posts
                       </Button>
                     </Link>
-                    
+
                     <Link to="/bookmarks" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl h-10">
                         <Bookmark className="mr-3 h-5 w-5 text-slate-400 dark:text-slate-500" />
@@ -283,7 +308,7 @@ export const Header = () => {
                     <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 py-2 mt-2">
                       Account
                     </div>
-                    
+
                     <Link to="/analytics" onClick={() => setMobileMenuOpen(false)}>
                       <Button variant="ghost" size="sm" className="w-full justify-start text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl h-10">
                         <BarChart3 className="mr-3 h-5 w-5 text-slate-400 dark:text-slate-500" />

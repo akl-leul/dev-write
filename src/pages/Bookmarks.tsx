@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, MessageCircle, Eye, Clock, BookmarkX, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import { PostAuthorBadge } from '@/components/PostAuthorBadge';
 
 const Bookmarks = () => {
   const { user } = useAuth();
@@ -16,7 +17,7 @@ const Bookmarks = () => {
     queryKey: ['bookmarks', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      
+
       try {
         const { data, error } = await supabase
           .from('bookmarks')
@@ -25,7 +26,7 @@ const Bookmarks = () => {
             created_at,
             posts (
               *,
-              profiles:author_id (full_name, profile_image_url),
+              profiles:author_id (id, full_name, profile_image_url, badge),
               likes (count),
               comments (count),
               post_images (url),
@@ -35,7 +36,7 @@ const Bookmarks = () => {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(100); // Limit to prevent huge queries
-        
+
         if (error) {
           // Handle table not existing or permission errors gracefully
           if (error.code === 'PGRST116' || error.code === '42501' || error.code === '400') {
@@ -87,21 +88,21 @@ const Bookmarks = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/20">
-      
+
       {/* Background Dot Pattern */}
-      <div className="fixed inset-0 z-0 pointer-events-none" 
-           style={{
-             backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
-             backgroundSize: '24px 24px'
-           }}>
+      <div className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}>
       </div>
 
       <div className="relative z-10">
         <Header />
-        
+
         <main className="container mx-auto py-12 px-4">
           <div className="max-w-4xl mx-auto">
-            
+
             {/* Page Header */}
             <div className="mb-10 text-center md:text-left">
               <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-4 tracking-tight">
@@ -111,35 +112,29 @@ const Bookmarks = () => {
                 A collection of stories you've saved for later inspiration.
               </p>
             </div>
-            
+
             <div className="space-y-8">
               {bookmarks?.map((bookmark: any) => {
                 const post = bookmark.posts;
                 if (!post) return null;
-                
+
                 return (
                   <Link key={bookmark.id} to={`/post/${post.slug}`} className="block group">
                     <article className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 relative overflow-hidden">
-                      
+
                       {/* Top Meta: Author & Category */}
                       <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-900 shadow-sm">
-                            <AvatarImage src={post.profiles?.profile_image_url || ''} />
-                            <AvatarFallback className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold">
-                              {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">{post.profiles?.full_name}</p>
-                            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                            </p>
-                          </div>
-                        </div>
-                        
+                        <PostAuthorBadge
+                          author={{
+                            id: post.profiles?.id || '',
+                            full_name: post.profiles?.full_name || '',
+                            profile_image_url: post.profiles?.profile_image_url || '',
+                          }}
+                          createdAt={post.created_at}
+                        />
+
                         {post.categories && (
-                          <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700 rounded-full text-xs font-semibold tracking-wide">
+                          <span className="inline-block px-3 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700 rounded-full text-xs font-semibold tracking-wide">
                             {post.categories.name}
                           </span>
                         )}
@@ -151,16 +146,16 @@ const Bookmarks = () => {
                           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
                             {post.title}
                           </h2>
-                          
+
                           {post.excerpt && (
                             <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-6 line-clamp-3">
                               {post.excerpt}
                             </p>
                           )}
 
-                          {/* Mobile Category Badge */}
+                          {/* Category Badge */}
                           {post.categories && (
-                            <span className="sm:hidden inline-block mb-4 px-3 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs font-medium">
+                            <span className="inline-block mb-4 px-3 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs font-medium">
                               {post.categories.name}
                             </span>
                           )}
@@ -189,21 +184,21 @@ const Bookmarks = () => {
                         {/* Right Side Image */}
                         {(post.featured_image || post.post_images?.[0]) && (
                           <div className="hidden md:block w-full h-28 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
-                            <img 
-                              src={post.featured_image || post.post_images[0].url} 
-                              alt={post.title} 
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                            <img
+                              src={post.featured_image || post.post_images[0].url}
+                              alt={post.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />
                           </div>
                         )}
-                        
+
                         {/* Mobile Image */}
                         {(post.featured_image || post.post_images?.[0]) && (
                           <div className="md:hidden w-full h-40 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 mb-4 order-first">
-                            <img 
-                              src={post.featured_image || post.post_images[0].url} 
-                              alt={post.title} 
-                              className="w-full h-full object-cover" 
+                            <img
+                              src={post.featured_image || post.post_images[0].url}
+                              alt={post.title}
+                              className="w-full h-full object-cover"
                             />
                           </div>
                         )}
@@ -212,7 +207,7 @@ const Bookmarks = () => {
                   </Link>
                 );
               })}
-              
+
               {bookmarks?.length === 0 && (
                 <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 border-dashed shadow-sm">
                   <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400 dark:text-slate-500">

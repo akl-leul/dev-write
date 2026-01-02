@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { FollowButton } from './FollowButton';
 import { Link } from 'react-router-dom';
 import { Users, Loader2 } from 'lucide-react';
+import { UserBadge } from '@/components/UserBadge';
 
 export const SuggestedAuthors = () => {
   const { user } = useAuth();
@@ -13,41 +14,51 @@ export const SuggestedAuthors = () => {
   const { data: suggestedAuthors, isLoading } = useQuery({
     queryKey: ['suggested-authors', user?.id],
     queryFn: async () => {
-      // Get authors with most followers that the current user doesn't follow
-      let query = supabase
-        .from('profiles')
-        .select(`
-          id,
-          full_name,
-          profile_image_url,
-          bio,
-          followers:followers!followers_following_id_fkey(count),
-          posts:posts!posts_author_id_fkey(count)
-        `)
-        .limit(5);
-
-      // If user is logged in, exclude authors they already follow
+      // First, get authors the user already follows
+      let excludeIds: string[] = [];
       if (user) {
         const { data: following } = await supabase
           .from('followers')
           .select('following_id')
           .eq('follower_id', user.id);
-        
-        const followingIds = following?.map(f => f.following_id) || [];
-        followingIds.push(user.id); // Exclude self
-        
-        if (followingIds.length > 0) {
-          query = query.not('id', 'in', `(${followingIds.join(',')})`);
-        }
+
+        excludeIds = (following || []).map((f: any) => f.following_id);
+        excludeIds.push(user.id); // Exclude self
       }
 
-      const { data, error } = await query;
+      // Get all profiles
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, profile_image_url, bio, badge')
+        .limit(20);
+
       if (error) throw error;
 
+      // Filter out followed users
+      const filteredProfiles = (profiles || []).filter(
+        (p: any) => !excludeIds.includes(p.id)
+      );
+
+      // Get follower and post counts for each author
+      const authorsWithStats = await Promise.all(
+        filteredProfiles.slice(0, 5).map(async (author: any) => {
+          const [{ count: followersCount }, { count: postsCount }] = await Promise.all([
+            supabase.from('followers').select('id', { count: 'exact', head: true }).eq('following_id', author.id),
+            supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', author.id).eq('status', 'published')
+          ]);
+
+          return {
+            ...author,
+            followers: [{ count: followersCount || 0 }],
+            posts: [{ count: postsCount || 0 }]
+          };
+        })
+      );
+
       // Sort by follower count
-      return data?.sort((a: any, b: any) => 
+      return authorsWithStats.sort((a: any, b: any) =>
         (b.followers?.[0]?.count || 0) - (a.followers?.[0]?.count || 0)
-      ) || [];
+      );
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -75,7 +86,7 @@ export const SuggestedAuthors = () => {
         </div>
         <h3 className="font-bold text-slate-900 dark:text-slate-100">Suggested Authors</h3>
       </div>
-      
+
       <div className="space-y-4">
         {suggestedAuthors.map((author: any) => (
           <div key={author.id} className="flex items-center gap-3">
@@ -87,16 +98,17 @@ export const SuggestedAuthors = () => {
                 </AvatarFallback>
               </Avatar>
             </Link>
-            
+
             <div className="flex-1 min-w-0">
-              <Link to={`/author/${author.id}`} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              <Link to={`/author/${author.id}`} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 min-w-0">
                 <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate">{author.full_name}</p>
+                <UserBadge userId={author.id} />
               </Link>
               <p className="text-xs text-slate-400 dark:text-slate-500">
                 {author.followers?.[0]?.count || 0} followers · {author.posts?.[0]?.count || 0} posts
               </p>
             </div>
-            
+
             <FollowButton userId={author.id} size="sm" variant="outline" />
           </div>
         ))}

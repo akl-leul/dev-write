@@ -1,15 +1,43 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
-import { TrendingUp, Eye, Heart, Loader2, Flame } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
+import { TrendingUp, Eye, Heart, Flame } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import { FollowButton } from './FollowButton';
 
 export const TrendingPosts = () => {
   const { user } = useAuth();
-  
+  const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const handleViewAllPosts = () => {
+    // On mobile, navigate to discover tab
+    if (isMobile) {
+      navigate('/feed?tab=discover');
+    } else {
+      // On desktop, still navigate to discover tab
+      navigate('/feed?tab=discover');
+    }
+  };
+
   const { data: trendingPosts, isLoading } = useQuery({
     queryKey: ['trending-posts'],
     queryFn: async () => {
@@ -70,27 +98,26 @@ export const TrendingPosts = () => {
         <h3 className="font-bold text-slate-900 dark:text-slate-100">Trending This Week</h3>
         <Flame className="h-4 w-4 text-orange-400 animate-pulse" />
       </div>
-      
+
       <div className="space-y-4">
         {trendingPosts.map((post: any, index: number) => (
-          <Link 
-            key={post.id} 
+          <Link
+            key={post.id}
             to={`/post/${post.slug}`}
             className="group flex gap-4 items-start hover:bg-slate-50 dark:hover:bg-slate-800 -mx-2 px-2 py-2 rounded-xl transition-colors"
           >
-            <span className={`text-2xl font-bold shrink-0 w-8 ${
-              index === 0 ? 'text-orange-500' : 
-              index === 1 ? 'text-slate-400' : 
-              index === 2 ? 'text-amber-600' : 'text-slate-300'
-            }`}>
+            <span className={`text-2xl font-bold shrink-0 w-8 ${index === 0 ? 'text-orange-500' :
+                index === 1 ? 'text-slate-400' :
+                  index === 2 ? 'text-amber-600' : 'text-slate-300'
+              }`}>
               {String(index + 1).padStart(2, '0')}
             </span>
-            
+
             <div className="flex-1 min-w-0">
               <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug mb-1">
                 {post.title}
               </h4>
-              
+
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
                   <span className="truncate">{post.profiles?.full_name}</span>
@@ -103,12 +130,12 @@ export const TrendingPosts = () => {
                     {post.likes?.[0]?.count || 0}
                   </span>
                 </div>
-                
+
                 {/* Follow Button for Trending Posts */}
                 {user && post.author_id !== user.id && (
-                  <FollowButton 
-                    userId={post.author_id} 
-                    size="sm" 
+                  <FollowButton
+                    userId={post.author_id}
+                    size="sm"
                     variant="outline"
                   />
                 )}
@@ -117,14 +144,14 @@ export const TrendingPosts = () => {
           </Link>
         ))}
       </div>
-      
+
       <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700">
-        <Link 
-          to="/feed?tab=discover" 
+        <button
+          onClick={handleViewAllPosts}
           className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:underline"
         >
           View all posts →
-        </Link>
+        </button>
       </div>
     </Card>
   );

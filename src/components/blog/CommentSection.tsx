@@ -11,6 +11,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { ProfileBadge } from '@/components/ProfileBadge';
+import { useProfileBadge } from '@/hooks/useProfileBadge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +43,21 @@ interface Comment {
   replies?: Comment[];
 }
 
+interface CommentAuthorProps {
+  userId: string;
+  fullName: string;
+}
+
+const CommentAuthor = ({ userId, fullName }: CommentAuthorProps) => {
+  const { badge } = useProfileBadge({ userId });
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">{fullName}</span>
+      {badge && <ProfileBadge badge={badge} size="sm" />}
+    </div>
+  );
+};
+
 export const CommentSection = ({ postId }: CommentSectionProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -65,18 +82,18 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
         .eq('post_id', postId)
         // RLS policy handles showing approved comments to everyone and unapproved to authors/post authors
         .order('created_at', { ascending: true });
-      
+
       if (error) throw error;
       if (!data) return [];
-      
+
       // Build nested comment tree
       const commentMap = new Map<string, Comment>();
       const rootComments: Comment[] = [];
-      
+
       data.forEach((comment: any) => {
         commentMap.set(comment.id, { ...comment, replies: [] });
       });
-      
+
       data.forEach((comment: any) => {
         const commentNode = commentMap.get(comment.id)!;
         if (comment.parent_comment_id) {
@@ -88,7 +105,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           rootComments.push(commentNode);
         }
       });
-      
+
       return rootComments;
     },
   });
@@ -96,7 +113,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
   const createComment = useMutation({
     mutationFn: async ({ content, parentId }: { content: string; parentId?: string }) => {
       if (!user) throw new Error('Must be logged in');
-      
+
       const { error } = await supabase
         .from('comments')
         .insert({
@@ -106,7 +123,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           content_markdown: content,
           approved: false, // Comments start unapproved, need moderation
         });
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -128,7 +145,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
         .update({ content_markdown: content })
         .eq('id', id)
         .eq('author_id', user?.id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -149,7 +166,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
         .delete()
         .eq('id', id)
         .eq('author_id', user?.id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -164,23 +181,23 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
   const likeComment = useMutation({
     mutationFn: async (commentId: string) => {
       if (!user) throw new Error('Must be logged in');
-      
+
       const comment = findComment(comments || [], commentId);
       const isLiked = comment?.comment_likes?.some(like => like.user_id === user.id);
-      
+
       if (isLiked) {
         const { error } = await supabase
           .from('comment_likes')
           .delete()
           .eq('comment_id', commentId)
           .eq('user_id', user.id);
-        
+
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('comment_likes')
           .insert({ comment_id: commentId, user_id: user.id });
-        
+
         if (error) throw error;
       }
     },
@@ -240,15 +257,15 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
               {comment.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-2 mb-1">
-              <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">{comment.profiles?.full_name}</span>
+              <CommentAuthor userId={comment.author_id} fullName={comment.profiles?.full_name} />
               <span className="text-xs text-slate-400 dark:text-slate-500">
                 {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
               </span>
             </div>
-            
+
             {isEditing ? (
               <div className="space-y-3 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                 <Textarea
@@ -257,7 +274,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                   className="min-h-[80px] bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                 />
                 <div className="flex gap-2 justify-end">
-                   <Button
+                  <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => {
@@ -284,20 +301,19 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                 </ReactMarkdown>
               </div>
             )}
-            
+
             <div className="flex items-center gap-4 text-xs font-medium">
               <button
                 onClick={() => handleLikeClick(comment.id)}
-                className={`flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ${
-                  isLiked 
-                    ? 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20' 
-                    : 'text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
-                }`}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ${isLiked
+                  ? 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                  }`}
               >
                 <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-current' : ''}`} />
                 <span>{comment.comment_likes?.length || 0}</span>
               </button>
-              
+
               <button
                 onClick={() => handleReplyClick(comment.id)}
                 className="flex items-center gap-1.5 px-2 py-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
@@ -305,7 +321,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                 <Reply className="h-3.5 w-3.5" />
                 Reply
               </button>
-              
+
               {isAuthor && (
                 <>
                   <button
@@ -332,7 +348,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                 </>
               )}
             </div>
-            
+
             {isReplying && (
               <div className="mt-4 space-y-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-2">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
@@ -347,7 +363,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
                   autoFocus
                 />
                 <div className="flex gap-2 justify-end">
-                   <Button
+                  <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => {
@@ -371,10 +387,10 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
             )}
           </div>
         </div>
-        
+
         {comment.replies && comment.replies.length > 0 && (
           <div className="mt-4 relative">
-             {/* Visual connector line for nested comments could go here if desired */}
+            {/* Visual connector line for nested comments could go here if desired */}
             {comment.replies.map(reply => renderComment(reply, depth + 1))}
           </div>
         )}
@@ -386,13 +402,13 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
     <div className="py-6 sm:py-10 px-6 sm:px-10">
       <div className="flex items-center gap-3 mb-8">
         <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-xl text-blue-600 dark:text-blue-400">
-           <MessageCircle className="w-6 h-6" />
+          <MessageCircle className="w-6 h-6" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
           Comments <span className="text-slate-400 dark:text-slate-500 text-lg font-normal ml-1">({comments?.length || 0})</span>
         </h2>
       </div>
-      
+
       {/* Comment input - show for all users */}
       <div className="mb-10 relative">
         <Textarea
@@ -403,7 +419,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           onClick={() => !user && setShowAuthDialog(true)}
         />
         <div className="absolute bottom-4 right-4">
-           <Button
+          <Button
             onClick={handleCommentAction}
             disabled={!newComment.trim()}
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md shadow-blue-600/20"
@@ -413,7 +429,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           </Button>
         </div>
       </div>
-      
+
       {isLoading ? (
         <div className="space-y-6">
           {[...Array(3)].map((_, i) => (
@@ -450,7 +466,7 @@ export const CommentSection = ({ postId }: CommentSectionProps) => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl border-slate-200 dark:border-slate-700">Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => navigate('/auth')}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
             >

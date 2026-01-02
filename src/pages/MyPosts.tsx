@@ -14,6 +14,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useState, useMemo, useCallback, memo } from 'react';
 import { PostAuthorBadge } from '@/components/PostAuthorBadge';
+import { UserBadge } from '@/components/UserBadge';
 import { PageLoader } from '@/components/ui/page-loader';
 
 interface CommentWithProfile {
@@ -26,12 +27,14 @@ interface CommentWithProfile {
   profiles?: {
     full_name: string;
     profile_image_url: string;
+    badge?: string | null;
+    id: string;
   };
 }
 
 // Memoized components for better performance
 const CommentItem = memo(({ comment, onDelete }: {
-  comment: CommentWithProfile & { postTitle: string; postSlug: string };
+  comment: CommentWithProfile;
   onDelete: (id: string) => void;
 }) => {
   return (
@@ -43,13 +46,18 @@ const CommentItem = memo(({ comment, onDelete }: {
             {comment.profiles?.full_name?.charAt(0).toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-slate-900 dark:text-slate-100">
-                {comment.profiles?.full_name || 'Anonymous'}
-              </span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                  {comment.profiles?.full_name || 'Anonymous'}
+                </span>
+                {comment.profiles?.id && (
+                  <UserBadge userId={comment.profiles.id} />
+                )}
+              </div>
               <span className="text-xs text-slate-500 dark:text-slate-400">
                 {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
               </span>
@@ -58,7 +66,7 @@ const CommentItem = memo(({ comment, onDelete }: {
                 Auto-approved
               </div>
             </div>
-            
+
             <Button
               size="sm"
               variant="ghost"
@@ -68,7 +76,7 @@ const CommentItem = memo(({ comment, onDelete }: {
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-          
+
           <div className="space-y-2">
             <Link to={`/post/${comment.postSlug}`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
               On: {comment.postTitle}
@@ -93,18 +101,18 @@ const PostCard = memo(({ post, onDelete, onDeleteComment }: {
   onDeleteComment: (commentId: string) => void;
 }) => {
   const [showComments, setShowComments] = useState(false);
-  const approvedCount = useMemo(() => 
+  const approvedCount = useMemo(() =>
     post.comments.filter(c => c.approved).length, [post.comments]
   );
-  const pendingCount = useMemo(() => 
+  const pendingCount = useMemo(() =>
     post.comments.filter(c => !c.approved).length, [post.comments]
   );
-  
-  const featuredImage = useMemo(() => 
+
+  const featuredImage = useMemo(() =>
     post.post_images?.find(img => img.order_index === 0) || post.post_images?.[0],
     [post.post_images]
   );
-  
+
   return (
     <Card className="group bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 rounded-2xl overflow-hidden">
       <CardContent className="p-6">
@@ -124,25 +132,24 @@ const PostCard = memo(({ post, onDelete, onDeleteComment }: {
               <AlertCircle className="w-10 h-10" /> <p>No featured image</p>
             </div>
           )}
-          
+
           <div className="flex-1 min-w-0 flex flex-col justify-between">
             <div>
               <div className="flex items-start justify-between gap-4 mb-2">
                 <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
                   {post.title}
                 </h3>
-                <Badge 
-                  variant="outline" 
-                  className={`rounded-full px-3 py-0.5 border-0 font-medium ${
-                    post.status === 'published' 
-                      ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' 
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}
+                <Badge
+                  variant="outline"
+                  className={`rounded-full px-3 py-0.5 border-0 font-medium ${post.status === 'published'
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
                 >
                   {post.status === 'published' ? 'Published' : 'Draft'}
                 </Badge>
               </div>
-              
+
               <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-4">
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" />
@@ -159,7 +166,7 @@ const PostCard = memo(({ post, onDelete, onDeleteComment }: {
                 )}
               </div>
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-50 dark:border-slate-700 mt-2">
               <Link to={`/post/${post.slug}`}>
                 <Button variant="ghost" size="sm" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg">
@@ -197,7 +204,7 @@ const PostCard = memo(({ post, onDelete, onDeleteComment }: {
             </div>
           </div>
         </div>
-        
+
         {/* Comments Section */}
         {showComments && post.comments.length > 0 && (
           <div className="border-t border-slate-100 dark:border-slate-700 pt-4 mt-4">
@@ -250,7 +257,7 @@ const MyPosts = () => {
     queryKey: ['my-posts', user?.id],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
-      
+
       const { data, error } = await supabase
         .from('posts')
         .select(`
@@ -265,18 +272,18 @@ const MyPosts = () => {
             content_markdown,
             created_at,
             approved,
-            profiles:author_id (full_name, profile_image_url)
+            profiles:author_id (id, full_name, profile_image_url, badge)
           )
         `)
         .eq('author_id', user.id)
         .order('created_at', { ascending: false })
         .limit(100); // Increased limit but still bounded
-      
+
       if (error) {
         console.error('Query error:', error);
         throw error;
       }
-      
+
       return data as unknown as Post[];
     },
     enabled: !!user,
@@ -288,49 +295,41 @@ const MyPosts = () => {
     mutationFn: async (commentId: string) => {
       console.log('Deleting comment:', commentId);
       console.log('Current user:', user?.id);
-      
+
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
-      
-      // Use RPC function to bypass RLS
-      console.log('Using RPC function to delete comment');
-      const { data: deleteResult, error: rpcError } = await supabase.rpc('delete_comment_as_post_owner', {
-        comment_id: commentId,
-        user_id: user.id
-      });
-      
-      console.log('RPC delete result:', deleteResult);
-      console.log('RPC error:', rpcError);
-      
-      if (rpcError) {
-        console.error('RPC error deleting comment:', rpcError);
-        throw new Error(`Failed to delete comment: ${rpcError.message}`);
+
+      // Try direct delete first (as comment author)
+      const { error: deleteError } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (deleteError) {
+        console.error('Error deleting comment:', deleteError);
+        throw new Error(`Failed to delete comment: ${deleteError.message}`);
       }
-      
-      if (!deleteResult) {
-        throw new Error('Comment deletion failed - function returned false');
-      }
-      
-      console.log('Comment deleted successfully via RPC');
+
+      console.log('Comment deleted successfully');
     },
     onMutate: async (commentId) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['my-posts', user?.id] });
-      
+
       // Snapshot the previous value
       const previousPosts = queryClient.getQueryData(['my-posts', user?.id]);
-      
+
       // Optimistically update the posts data (remove the comment)
       queryClient.setQueryData(['my-posts', user?.id], (old: Post[] | undefined) => {
         if (!old) return old;
-        
+
         return old.map((post: Post) => ({
           ...post,
           comments: post.comments.filter((comment: CommentWithProfile) => comment.id !== commentId)
         }));
       });
-      
+
       return { previousPosts };
     },
     onError: (err, commentId, context) => {
@@ -356,7 +355,7 @@ const MyPosts = () => {
         .delete()
         .eq('id', postId)
         .eq('author_id', user?.id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -410,16 +409,16 @@ const MyPosts = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/20">
-      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
-           style={{
-             backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
-             backgroundSize: '24px 24px'
-           }}>
+      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20"
+        style={{
+          backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}>
       </div>
 
       <div className="relative z-10">
         <Header />
-        
+
         <main className="container mx-auto py-12 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-10">
@@ -435,8 +434,7 @@ const MyPosts = () => {
               <Link to="/create">
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 px-4 py-2 sm:px-6 text-sm sm:text-base">
                   <PenLine className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Write New Story</span>
-                  <span className="sm:hidden">Write</span>
+                  Write New Story
                 </Button>
               </Link>
             </div>

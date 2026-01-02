@@ -37,12 +37,21 @@ export const createMentionNotifications = async (
   if (mentionedUserIds.length === 0) return [];
 
   try {
-    const { data, error } = await supabase.rpc('create_mention_notifications', {
-      user_ids: mentionedUserIds,
-      post_uuid: postId,
-      post_name: postTitle,
-      sender_uuid: fromUserId,
-    });
+    // Create notifications directly instead of using RPC
+    const notifications = mentionedUserIds.map(userId => ({
+      user_id: userId,
+      type: 'mention',
+      title: 'You were mentioned in a post',
+      message: `You were mentioned in "${postTitle}"`,
+      post_id: postId,
+      from_user_id: fromUserId,
+      read: false
+    }));
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert(notifications)
+      .select();
 
     if (error) {
       console.error('Error creating mention notifications:', error);

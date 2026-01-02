@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { UserSearchResult } from '@/utils/userSearch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserBadge } from '@/components/UserBadge';
 
 interface TagMentionOverlayProps {
   query: string;
@@ -79,25 +80,24 @@ export const TagMentionOverlay: React.FC<TagMentionOverlayProps> = ({
       >
         {searchResults.length === 0 ? (
           <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
-            {query.length === 0 ? 'Start typing to search users...' : 
-             query.length < 2 ? 'Type at least 2 characters' : 'No users found'}
+            {query.length === 0 ? 'Start typing to search users...' :
+              query.length < 2 ? 'Type at least 2 characters' : 'No users found'}
           </div>
         ) : (
           searchResults.map((user, index) => (
             <div
               key={user.id}
               data-index={index}
-              className={`flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors ${
-                index === selectedIndexRef.current
-                  ? 'bg-slate-100 dark:bg-slate-800'
-                  : ''
-              }`}
+              className={`flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors ${index === selectedIndexRef.current
+                ? 'bg-slate-100 dark:bg-slate-800'
+                : ''
+                }`}
               onClick={() => handleUserClick(user)}
               onMouseEnter={() => handleMouseEnter(index)}
             >
               <Avatar className="h-8 w-8 flex-shrink-0">
-                <AvatarImage 
-                  src={user.profile_image_url || ''} 
+                <AvatarImage
+                  src={user.profile_image_url || ''}
                   alt={user.full_name}
                 />
                 <AvatarFallback className="bg-slate-900 text-white text-xs">
@@ -105,9 +105,12 @@ export const TagMentionOverlay: React.FC<TagMentionOverlayProps> = ({
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                  {user.full_name}
-                </p>
+                <div className="flex items-center gap-1.5 truncate">
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                    {user.full_name}
+                  </p>
+                  <UserBadge userId={user.id} />
+                </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                   @{user.full_name.replace(/\s+/g, '').toLowerCase()}
                 </p>

@@ -8,12 +8,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FollowButton } from '@/components/social/FollowButton';
-import { Heart, MessageCircle, Eye, Clock, Users, FileText, Calendar, Loader2, Share2, Copy, Twitter, Facebook, Linkedin, User, Instagram, Github, Youtube, Globe, Phone } from 'lucide-react';
+import { Heart, MessageCircle, Eye, Clock, Users, FileText, Calendar, Loader2, Share2, Copy, Twitter, Facebook, Linkedin, User, Instagram, Github, Youtube, Globe, Phone, Repeat } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { ProfileBadge } from '@/components/ProfileBadge';
 import { useProfileBadge } from '@/hooks/useProfileBadge';
+import { UserBadge } from '@/components/UserBadge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,36 +44,36 @@ const AuthorProfile = () => {
     queryKey: ['author-profile', username],
     queryFn: async () => {
       console.log('Fetching author profile for username:', username);
-      
+
       if (!username) {
         throw new Error('No username provided');
       }
-      
+
       // First, let's try a broader query to see if we can find any profiles
       console.log('Testing with broader query...');
       const { data: allProfiles, error: allProfilesError } = await supabase
         .from('profiles')
         .select('id, full_name')
         .limit(5);
-      
+
       console.log('All profiles test:', { allProfiles, allProfilesError });
-      
+
       // Check if the username is actually a UUID
       const isUuid = isUUID(username);
       console.log('Is username a UUID:', isUuid);
-      
+
       // Try the specific author query
       let { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq(isUuid ? 'id' : 'full_name', username)
         .single();
-      
+
       console.log(`Profile query by ${isUuid ? 'ID' : 'username'} result:`, { data, error });
-      
+
       if (error) {
         console.error('Profile query error:', error);
-        
+
         // Try fallback with admin client (bypasses RLS)
         console.log('Trying fallback with admin client...');
         let { data: adminData, error: adminError } = await supabaseAdmin
@@ -80,34 +81,34 @@ const AuthorProfile = () => {
           .select('*')
           .eq(isUuid ? 'id' : 'full_name', username)
           .single();
-        
+
         console.log(`Admin client query result (by ${isUuid ? 'ID' : 'username'}):`, { adminData, adminError });
-        
+
         if (adminError) {
           console.error('Admin client also failed:', adminError);
-          
+
           // If single() fails, try without .single() to see if there are multiple results
           const { data: multipleData, error: multipleError } = await supabaseAdmin
             .from('profiles')
             .select('*')
             .eq(isUuid ? 'id' : 'full_name', username);
-          
+
           console.log('Multiple results query (admin):', { multipleData, multipleError });
-          
+
           throw adminError;
         }
-        
+
         if (!adminData) {
           throw new Error('Author not found in database (admin client)');
         }
-        
+
         return adminData;
       }
-      
+
       if (!data) {
         throw new Error('Author not found in database');
       }
-      
+
       return data;
     },
     enabled: !!username,
@@ -121,16 +122,29 @@ const AuthorProfile = () => {
     queryKey: ['author-stats', profile?.id],
     queryFn: async () => {
       if (!profile?.id) return { posts: 0, followers: 0, following: 0 };
-      
-      const [postsRes, followersRes, followingRes] = await Promise.all([
+
+      const [postsCountRes, followersRes, followingRes, postsDataRes] = await Promise.all([
         supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', profile.id).eq('status', 'published'),
         supabase.from('followers').select('id', { count: 'exact', head: true }).eq('following_id', profile.id),
         supabase.from('followers').select('id', { count: 'exact', head: true }).eq('follower_id', profile.id),
+        supabase.from('posts').select('id').eq('author_id', profile.id).eq('status', 'published'),
       ]);
+
+      let totalLikes = 0;
+      if (postsDataRes.data && postsDataRes.data.length > 0) {
+        const postIds = postsDataRes.data.map((p: any) => p.id);
+        const { count } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: true })
+          .in('post_id', postIds);
+        totalLikes = count || 0;
+      }
+
       return {
-        posts: postsRes.count || 0,
+        posts: postsCountRes.count || 0,
         followers: followersRes.count || 0,
         following: followingRes.count || 0,
+        likes: totalLikes,
       };
     },
     enabled: !!profile?.id,
@@ -144,7 +158,36 @@ const AuthorProfile = () => {
     userId: profile?.id || '',
     postsCount: stats?.posts || 0,
     followersCount: stats?.followers || 0,
-    likesCount: 0, // We don't have likes data yet
+    likesCount: stats?.likes || 0,
+  });
+
+  // Get unfollowed authors for logged-in users
+  const { data: unfollowedAuthors, isLoading: unfollowedLoading } = useQuery({
+    queryKey: ['unfollowed-authors', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      // Get all authors the user is not following
+      const { data: following } = await supabase
+        .from('followers')
+        .select('following_id')
+        .eq('follower_id', user.id);
+
+      const followingIds = following?.map(f => f.following_id) || [];
+      followingIds.push(user.id); // Exclude self
+
+      const { data: authors } = await supabase
+        .from('profiles')
+        .select('id, full_name, profile_image_url, bio')
+        .not('id', 'in', `(${followingIds.join(',')})`)
+        .order('full_name')
+        .limit(20);
+
+      return authors || [];
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const {
@@ -157,17 +200,68 @@ const AuthorProfile = () => {
     queryKey: ['author-posts', profile?.id],
     queryFn: async ({ pageParam = 0 }) => {
       if (!profile?.id) return [];
-      
-      const { data, error } = await supabase
+
+      // Fetch direct posts by author
+      const { data: directPosts, error: postsError } = await supabase
         .from('posts')
-        .select('*, categories:category_id (name, slug), post_images (url), likes (count), comments (count), profiles:author_id (id, full_name, profile_image_url), featured_image, views')
+        .select(`
+          *,
+          categories:category_id (name, slug),
+          post_images (url),
+          likes (count),
+          comments (count),
+          profiles:author_id (id, full_name, profile_image_url),
+          featured_image,
+          views
+        `)
         .eq('author_id', profile.id)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
         .range(pageParam * POSTS_PER_PAGE, (pageParam + 1) * POSTS_PER_PAGE - 1);
-      
-      if (error) throw error;
-      return data || [];
+
+      // Fetch reposts by author
+      const { data: repostsData, error: repostsError } = await supabase
+        .from('reposts')
+        .select(`
+          *,
+          posts:original_post_id (
+            *,
+            categories:category_id (name, slug),
+            post_images (url),
+            likes (count),
+            comments (count),
+            profiles:author_id (id, full_name, profile_image_url)
+          ),
+          profiles:user_id (id, full_name, profile_image_url)
+        `)
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .range(pageParam * POSTS_PER_PAGE, (pageParam + 1) * POSTS_PER_PAGE - 1);
+
+      if (postsError) throw postsError;
+      if (repostsError) throw repostsError;
+
+      // Format reposts
+      const formattedReposts = (repostsData || [])
+        .filter(r => r.posts)
+        .map(r => ({
+          ...(r.posts as any),
+          reposted_by: r.profiles,
+          repost_id: r.id,
+          repost_created_at: r.created_at,
+          quote_text: r.quote_text
+        }));
+
+      // Combine and sort
+      const combined = [...(directPosts || []), ...formattedReposts]
+        .sort((a, b) => {
+          const timeA = new Date(a.repost_created_at || a.created_at).getTime();
+          const timeB = new Date(b.repost_created_at || b.created_at).getTime();
+          return timeB - timeA;
+        })
+        .slice(0, POSTS_PER_PAGE);
+
+      return combined;
     },
     enabled: !!profile?.id,
     getNextPageParam: (lastPage, allPages) => {
@@ -184,7 +278,7 @@ const AuthorProfile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('followers')
-        .select('follower_id, profiles:follower_id (id, full_name, profile_image_url, bio)')
+        .select('follower_id, profiles:follower_id (id, full_name, profile_image_url, bio, badge)')
         .eq('following_id', profile?.id!)
         .limit(20);
       if (error) throw error;
@@ -197,10 +291,10 @@ const AuthorProfile = () => {
     queryKey: ['author-following-list', profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
-      
+
       const { data, error } = await supabase
         .from('followers')
-        .select('following_id, profiles:following_id (id, full_name, profile_image_url, bio)')
+        .select('following_id, profiles:following_id (id, full_name, profile_image_url, bio, badge)')
         .eq('follower_id', profile.id)
         .limit(20);
       if (error) throw error;
@@ -233,9 +327,9 @@ const AuthorProfile = () => {
   // Generate random background image for each page load
   const generateProfileBackground = () => {
     const backgrounds = [
-      'https://images.unsplash.com/photo-1707759642885-42994e023046?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGFic3RyYWN0JTIwaW1hZ2VzfGVufDB8fDB8fHww', 
-      'https://images.unsplash.com/photo-1755534015012-a9c9dbc53d4b?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGFic3RyYWN0JTIwaW1hZ2VzfGVufDB8MHwwfHx8MA%3D%3D',  
-      'https://images.unsplash.com/photo-1690049121171-7cdbf383533b?q=80&w=2215&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3Dt',  
+      'https://images.unsplash.com/photo-1707759642885-42994e023046?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGFic3RyYWN0JTIwaW1hZ2VzfGVufDB8fDB8fHww',
+      'https://images.unsplash.com/photo-1755534015012-a9c9dbc53d4b?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGFic3RyYWN0JTIwaW1hZ2VzfGVufDB8MHwwfHx8MA%3D%3D',
+      'https://images.unsplash.com/photo-1690049121171-7cdbf383533b?q=80&w=2215&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3Dt',
       'https://images.unsplash.com/photo-1690049098415-29f96fca22c0?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTZ8fGFic3RyYWN0JTIwaW1hZ2VzfGVufDB8MHwwfHx8MA%3D%3D',
       'https://plus.unsplash.com/premium_photo-1667119472093-242b3e2c501f?q=80&w=2800&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
       'https://images.unsplash.com/vector-1753855748130-7a97b4c15e22?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDR8SWY2NUF1Tk9PeFF8fGVufDB8fHx8fA%3D%3D',
@@ -251,7 +345,7 @@ const AuthorProfile = () => {
       'https://plus.unsplash.com/premium_vector-1762359738304-cae7571f2220?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8NDd8fHxlbnwwfHx8fHw%3D',
       'https://images.unsplash.com/vector-1763266642857-589735840399?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxpbGx1c3RyYXRpb25zLWZlZWR8NjB8fHxlbnwwfHx8fHw%3D',
     ];
-    
+
     // Generate random index for variety on each page load
     const randomIndex = Math.floor(Math.random() * backgrounds.length);
     return backgrounds[randomIndex];
@@ -263,13 +357,13 @@ const AuthorProfile = () => {
   const handleShare = (platform: string) => {
     const profileUrl = window.location.href;
     const shareText = `Check out ${profile.full_name}'s profile on Chronicle!`;
-    
+
     const shareUrls = {
       x: `https://x.com/intent/tweet?url=${encodeURIComponent(profileUrl)}&text=${encodeURIComponent(shareText)}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(profileUrl)}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(profileUrl)}`,
     };
-    
+
     if (platform === 'copy') {
       navigator.clipboard.writeText(profileUrl);
       toast.success('Profile link copied to clipboard!');
@@ -312,21 +406,21 @@ const AuthorProfile = () => {
 
   return (
     <div className="min-h-screen bg-background dark:bg-slate-900 font-sans">
-      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20" 
-           style={{ backgroundImage: 'radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+      <div className="fixed inset-0 z-0 pointer-events-none dark:opacity-20"
+        style={{ backgroundImage: 'radial-gradient(hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
       <div className="relative z-10">
         <Header />
-        
+
         <main className="container mx-auto py-8 px-4">
           <div className="max-w-4xl mx-auto">
-            
+
             {/* Profile Header Card */}
             <Card className="bg-card dark:bg-slate-900 rounded-3xl border border-border dark:border-slate-800 shadow-sm overflow-hidden mb-8">
               <div className="h-48 relative">
-                <img 
-                  src={profileBackground} 
-                  alt="Profile background" 
+                <img
+                  src={profileBackground}
+                  alt="Profile background"
                   className="w-full h-full object-cover"
                 />
 
@@ -344,24 +438,21 @@ const AuthorProfile = () => {
                         {profile.full_name?.[0]?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                   </div>
-                  
+
                   <div className="flex-1 text-center sm:text-left sm:ml-4">
                     <div className="flex flex-col items-center sm:flex-row sm:items-center justify-center sm:justify-start gap-2 mb-2">
                       <div className="flex items-center gap-2">
                         <h1 className="text-2xl sm:text-3xl text-slate-900 dark:text-slate-100 md:text-white font-bold drop-shadow-sm flex items-center gap-2">
                           {profile.full_name || 'Unknown User'}
-
-                          {badge && (
-                            <span className="inline-flex items-center justify-center bg-white rounded-full p-1 shadow-lg ring-2 ring-white">
-                              <ProfileBadge badge={badge} size="sm" />
-                            </span>
-                          )}
+                          <span className="inline-flex items-center justify-center bg-white rounded-full p-1 shadow-lg ring-2 ring-white">
+                            <ProfileBadge badge={badge} size="sm" />
+                          </span>
                         </h1>
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 text-sm text-slate-600 dark:text-slate-400 mb-3">
                       {profile.gender ? (
                         <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full">
@@ -389,12 +480,12 @@ const AuthorProfile = () => {
                         </div>
                       )}
                     </div>
-                    
+
                     <p className="text-slate-700 dark:text-slate-300 line-clamp-2 max-w-md bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm px-3 py-2 rounded-lg">
                       {profile.bio && !profile.bio.startsWith('Google user') ? profile.bio : 'No bio added yet'}
                     </p>
                   </div>
-                  
+
                   <div className="flex flex-col sm:flex-row gap-2">
                     {!isOwnProfile && <FollowButton userId={profile?.id!} size="default" />}
                     <DropdownMenu>
@@ -459,7 +550,7 @@ const AuthorProfile = () => {
                     <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Connect</p>
                     <div className="flex flex-wrap gap-3">
                       {(profile as any).twitter && (
-                        <a 
+                        <a
                           href={`https://twitter.com/${(profile as any).twitter.replace('@', '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -470,7 +561,7 @@ const AuthorProfile = () => {
                         </a>
                       )}
                       {(profile as any).facebook && (
-                        <a 
+                        <a
                           href={(profile as any).facebook.startsWith('http') ? (profile as any).facebook : `https://facebook.com/${(profile as any).facebook}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -481,7 +572,7 @@ const AuthorProfile = () => {
                         </a>
                       )}
                       {(profile as any).linkedin && (
-                        <a 
+                        <a
                           href={(profile as any).linkedin.startsWith('http') ? (profile as any).linkedin : `https://linkedin.com/in/${(profile as any).linkedin}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -492,7 +583,7 @@ const AuthorProfile = () => {
                         </a>
                       )}
                       {(profile as any).instagram && (
-                        <a 
+                        <a
                           href={`https://instagram.com/${(profile as any).instagram.replace('@', '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -503,7 +594,7 @@ const AuthorProfile = () => {
                         </a>
                       )}
                       {(profile as any).github && (
-                        <a 
+                        <a
                           href={(profile as any).github.startsWith('http') ? (profile as any).github : `https://github.com/${(profile as any).github}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -514,7 +605,7 @@ const AuthorProfile = () => {
                         </a>
                       )}
                       {(profile as any).youtube && (
-                        <a 
+                        <a
                           href={(profile as any).youtube.startsWith('http') ? (profile as any).youtube : `https://youtube.com/${(profile as any).youtube}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -525,7 +616,7 @@ const AuthorProfile = () => {
                         </a>
                       )}
                       {(profile as any).website && (
-                        <a 
+                        <a
                           href={(profile as any).website.startsWith('http') ? (profile as any).website : `https://${(profile as any).website}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -548,12 +639,14 @@ const AuthorProfile = () => {
                 <TabsTrigger value="posts" className="rounded-xl data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400">
                   Posts ({stats?.posts || 0})
                 </TabsTrigger>
-                <TabsTrigger value="followers" className="rounded-xl data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400">
-                  Followers ({stats?.followers || 0})
-                </TabsTrigger>
                 <TabsTrigger value="following" className="rounded-xl data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400">
                   Following ({stats?.following || 0})
                 </TabsTrigger>
+                {user && (
+                  <TabsTrigger value="discover" className="rounded-xl data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400">
+                    Discover Authors
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="posts" className="space-y-6">
@@ -569,27 +662,41 @@ const AuthorProfile = () => {
                 ) : (
                   <>
                     {allPosts.map((post: any) => (
-                      <Link key={post.id} to={`/post/${post.slug}`} className="block group">
+                      <Link key={post.repost_id || post.id} to={`/post/${post.slug}`} className="block group">
                         <article className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:border-blue-100 dark:hover:border-blue-900/50 transition-all overflow-hidden">
+                          {/* Repost Header */}
+                          {post.reposted_by && (
+                            <div className="flex items-center gap-2 m-4 mb-2 text-emerald-600 dark:text-emerald-400 font-medium text-xs sm:text-sm bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full w-fit">
+                              <Repeat className="w-3.5 h-3.5" />
+                              <span>{isOwnProfile ? 'You' : post.reposted_by.full_name} reposted</span>
+                            </div>
+                          )}
+
+                          {post.quote_text && (
+                            <div className="mx-6 mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 italic text-slate-700 dark:text-slate-300">
+                              "{post.quote_text}"
+                            </div>
+                          )}
+
                           {/* Post Image */}
                           {(post.post_images && post.post_images.length > 0) ? (
                             <div className="aspect-video overflow-hidden">
-                              <img 
-                                src={post.post_images[0].url} 
+                              <img
+                                src={post.post_images[0].url}
                                 alt={post.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             </div>
                           ) : post.featured_image ? (
                             <div className="aspect-video overflow-hidden">
-                              <img 
-                                src={post.featured_image} 
+                              <img
+                                src={post.featured_image}
                                 alt={post.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             </div>
                           ) : null}
-                          
+
                           <div className="p-6">
                             <div className="flex items-center justify-between mb-3">
                               {post.categories && (
@@ -601,14 +708,14 @@ const AuthorProfile = () => {
                                 {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
                               </span>
                             </div>
-                            
+
                             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                               {post.title}
                             </h3>
                             {post.excerpt && (
                               <p className="text-slate-500 dark:text-slate-400 line-clamp-2 mb-4">{post.excerpt}</p>
                             )}
-                            
+
                             <div className="flex items-center gap-4 text-sm text-slate-400 dark:text-slate-500">
                               <span className="flex items-center gap-1"><Heart className="w-4 h-4" /> {post.likes?.[0]?.count || 0}</span>
                               <span className="flex items-center gap-1"><MessageCircle className="w-4 h-4" /> {post.comments?.[0]?.count || 0}</span>
@@ -619,7 +726,7 @@ const AuthorProfile = () => {
                         </article>
                       </Link>
                     ))}
-                    
+
                     <div ref={loadMoreRef} className="py-4 flex justify-center">
                       {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin text-blue-600" />}
                     </div>
@@ -646,7 +753,10 @@ const AuthorProfile = () => {
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{f.profiles.full_name}</p>
+                              <div className="flex items-center gap-1.5 truncate">
+                                <p className="font-semibold text-slate-900 dark:text-slate-100">{f.profiles.full_name}</p>
+                                <UserBadge userId={f.profiles.id} />
+                              </div>
                               {f.profiles.bio && <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{f.profiles.bio}</p>}
                             </div>
                             <FollowButton userId={f.profiles.id} size="sm" />
@@ -677,10 +787,56 @@ const AuthorProfile = () => {
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{f.profiles.full_name}</p>
+                              <div className="flex items-center gap-1.5 truncate">
+                                <p className="font-semibold text-slate-900 dark:text-slate-100">{f.profiles.full_name}</p>
+                                <UserBadge userId={f.profiles.id} />
+                              </div>
                               {f.profiles.bio && <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{f.profiles.bio}</p>}
                             </div>
                             <FollowButton userId={f.profiles.id} size="sm" />
+                          </div>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="discover" className="space-y-4">
+                {!user ? (
+                  <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <Users className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+                    <p className="text-slate-500 dark:text-slate-400">Please log in to discover new authors</p>
+                  </div>
+                ) : unfollowedLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  </div>
+                ) : unfollowedAuthors?.length === 0 ? (
+                  <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <Users className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+                    <p className="text-slate-500 dark:text-slate-400">No new authors to discover</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {unfollowedAuthors?.map((author: any) => (
+                      <Link key={author.id} to={`/author/${author.id}`} className="block">
+                        <Card className="p-4 bg-white dark:bg-slate-900 hover:shadow-md transition-shadow rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center gap-4">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={author.profile_image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author.full_name || 'user'}`} />
+                              <AvatarFallback className="bg-slate-100 dark:bg-slate-800 font-bold">
+                                {author.full_name?.[0]?.toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 truncate">
+                                <p className="font-semibold text-slate-900 dark:text-slate-100">{author.full_name}</p>
+                                <UserBadge userId={author.id} />
+                              </div>
+                              {author.bio && <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{author.bio}</p>}
+                            </div>
+                            <FollowButton userId={author.id} size="sm" />
                           </div>
                         </Card>
                       </Link>

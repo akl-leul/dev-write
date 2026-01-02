@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Calendar, Shield, User as UserIcon, Globe, Phone, MapPin, Cake, Users } from 'lucide-react';
+import { UserBadge } from '@/components/UserBadge';
 
 interface GoogleProfileDisplayProps {
   user: User;
@@ -13,24 +14,25 @@ interface GoogleProfileDisplayProps {
 export const GoogleProfileDisplay: React.FC<GoogleProfileDisplayProps> = ({ user }) => {
   const userMetadata = user.user_metadata;
   const identities = user.identities?.[0];
-  
+
   return (
     <Card className="w-full max-w-4xl mx-auto bg-white shadow-lg border-slate-200">
       <CardHeader className="text-center pb-4">
         <div className="flex flex-col items-center space-y-4">
           <Avatar className="w-24 h-24 ring-4 ring-slate-100">
-            <AvatarImage 
-              src={userMetadata?.avatar_url || userMetadata?.picture} 
-              alt={userMetadata?.full_name || userMetadata?.name || 'User avatar'} 
+            <AvatarImage
+              src={userMetadata?.avatar_url || userMetadata?.picture}
+              alt={userMetadata?.full_name || userMetadata?.name || 'User avatar'}
             />
             <AvatarFallback className="text-2xl bg-slate-100">
               {userMetadata?.full_name?.[0] || userMetadata?.name?.[0] || user.email?.[0]?.toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="space-y-2">
-            <CardTitle className="text-2xl font-bold text-slate-900">
+            <CardTitle className="text-2xl font-bold text-slate-900 flex items-center justify-center gap-2">
               {userMetadata?.full_name || userMetadata?.name || 'Google User'}
+              <UserBadge userId={user.id} size="md" />
             </CardTitle>
             <CardDescription className="text-slate-500">
               {user.email}
@@ -68,7 +70,7 @@ export const GoogleProfileDisplay: React.FC<GoogleProfileDisplayProps> = ({ user
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
               <Mail className="w-4 h-4 text-slate-400" />
               <div>
@@ -76,7 +78,7 @@ export const GoogleProfileDisplay: React.FC<GoogleProfileDisplayProps> = ({ user
                 <p className="text-sm font-medium text-slate-900">{user.email}</p>
               </div>
             </div>
-            
+
             {userMetadata?.phone && (
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                 <Phone className="w-4 h-4 text-slate-400" />
@@ -86,7 +88,7 @@ export const GoogleProfileDisplay: React.FC<GoogleProfileDisplayProps> = ({ user
                 </div>
               </div>
             )}
-            
+
             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
               <Calendar className="w-4 h-4 text-slate-400" />
               <div>
@@ -118,7 +120,7 @@ export const GoogleProfileDisplay: React.FC<GoogleProfileDisplayProps> = ({ user
                     </div>
                   </div>
                 )}
-                
+
                 {userMetadata?.gender && (
                   <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                     <Users className="w-4 h-4 text-slate-400" />
@@ -129,7 +131,7 @@ export const GoogleProfileDisplay: React.FC<GoogleProfileDisplayProps> = ({ user
                   </div>
                 )}
               </div>
-              
+
               {userMetadata?.bio && (
                 <div className="p-3 bg-slate-50 rounded-lg">
                   <p className="text-sm text-slate-500 mb-2">Bio</p>
@@ -158,7 +160,7 @@ export const GoogleProfileDisplay: React.FC<GoogleProfileDisplayProps> = ({ user
                 </p>
               </div>
             </div>
-            
+
             {userMetadata?.locale && (
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                 <Globe className="w-4 h-4 text-slate-400" />
@@ -168,7 +170,7 @@ export const GoogleProfileDisplay: React.FC<GoogleProfileDisplayProps> = ({ user
                 </div>
               </div>
             )}
-            
+
             {userMetadata?.hd && (
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                 <Globe className="w-4 h-4 text-slate-400" />
@@ -178,7 +180,7 @@ export const GoogleProfileDisplay: React.FC<GoogleProfileDisplayProps> = ({ user
                 </div>
               </div>
             )}
-            
+
             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
               <Shield className="w-4 h-4 text-slate-400" />
               <div>
@@ -207,7 +209,7 @@ export const GoogleProfileDisplay: React.FC<GoogleProfileDisplayProps> = ({ user
                     </div>
                   </div>
                 )}
-                
+
                 {userMetadata?.family_name && (
                   <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                     <UserIcon className="w-4 h-4 text-slate-400" />

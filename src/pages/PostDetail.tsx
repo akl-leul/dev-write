@@ -27,11 +27,14 @@ import { useState } from "react";
 import { Lightbox } from "@/components/ui/lightbox";
 import { PostMetaTags } from "@/components/seo/PostMetaTags";
 import { ReadingProgressBar } from "@/components/ui/reading-progress";
-import { usePostViews } from "@/hooks/usePostViews";
+import { useViewTracking } from "@/hooks/useViewTracking";
 import { BookmarkButton } from "@/components/social/BookmarkButton";
 import { FollowButton } from "@/components/social/FollowButton";
+import { RepostButton } from "@/components/social/RepostButton";
+import { ImageWithFallback } from "@/components/ui/image-fallback";
 import { getImageDisplayLogic, getGalleryImages, shouldShowGallery } from "@/utils/imageLogic";
 import { FallbackImage } from "@/components/ui/FallbackImage";
+import { PostAuthorBadge } from "@/components/PostAuthorBadge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,7 +114,7 @@ const PostDetail = () => {
     queryKey: ["post", slug],
     queryFn: async () => {
       if (!slug) throw new Error('No slug provided');
-      
+
       const { data, error } = await supabase
         .from("posts")
         .select(
@@ -142,12 +145,8 @@ const PostDetail = () => {
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Use the new post views hook for deduplication
-  usePostViews({ 
-    postId: post?.id || '', 
-    slug, 
-    enabled: !!post?.id 
-  });
+  // Use view tracking hook for deduplication
+  useViewTracking(post?.id);
 
   const likePost = useMutation({
     mutationFn: async () => {
@@ -366,6 +365,41 @@ const PostDetail = () => {
                 </div>
               </div>
 
+              {/* Featured Image */}
+              {imageDisplay.featuredImage && (
+                <div className="mb-8">
+                  <div className="aspect-video overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-700">
+                    <ImageWithFallback
+                      src={imageDisplay.featuredImage}
+                      alt={post.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Gallery Section */}
+              {showGallery && galleryImages.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">Gallery</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {galleryImages.map((image, index) => (
+                      <div
+                        key={index}
+                        className="aspect-video overflow-hidden rounded-xl border border-slate-100 dark:border-slate-700 cursor-pointer group"
+                        onClick={() => openLightbox(index)}
+                      >
+                        <ImageWithFallback
+                          src={image.url}
+                          alt={image.alt_text || `Gallery image ${index + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Title */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 mb-8 leading-tight tracking-tight">
                 {post.title}
@@ -373,26 +407,14 @@ const PostDetail = () => {
 
               {/* Author & Actions Row */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-6 border-t border-slate-50 dark:border-slate-700">
-                <Link
-                  to={`/author/${post.author_id}`}
-                  className="flex items-center gap-4 group"
-                >
-                  <Avatar className="h-12 w-12 border-2 border-white dark:border-slate-900 shadow-sm ring-2 ring-slate-50 dark:ring-slate-700 group-hover:ring-blue-100 dark:group-hover:ring-blue-900/20 transition-all">
-                    <AvatarImage src={post.profiles?.profile_image_url || ""} />
-                    <AvatarFallback className="bg-slate-900 text-white font-bold">
-                      {post.profiles?.full_name?.[0]?.toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="flex items-center gap-3 mb-1">
-                      <p className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {post.profiles?.full_name}
-                      </p>
-                      <FollowButton userId={post.author_id} />
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Author</p>
-                  </div>
-                </Link>
+                <PostAuthorBadge
+                  author={{
+                    id: post.author_id,
+                    full_name: post.profiles?.full_name || '',
+                    profile_image_url: post.profiles?.profile_image_url || '',
+                  }}
+                  createdAt={post.created_at}
+                />
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <BookmarkButton postId={post.id} />
@@ -501,11 +523,10 @@ const PostDetail = () => {
                 variant={isLiked ? "default" : "outline"}
                 onClick={() => (user ? likePost.mutate() : navigate("/auth"))}
                 size="lg"
-                className={`rounded-full px-8 h-12 shadow-lg transition-all ${
-                  isLiked
+                className={`rounded-full px-8 h-12 shadow-lg transition-all ${isLiked
                     ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20 border-red-500"
                     : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-red-800 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                }`}
+                  }`}
               >
                 <Heart
                   className={`h-5 w-5 mr-2 ${isLiked ? "fill-current" : ""}`}

@@ -10,78 +10,73 @@ import { FollowButton } from '@/components/social/FollowButton';
 import { Users, Loader2, Search, User, FileText, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { UserBadge } from '@/components/UserBadge';
 
 const DiscoverAuthors = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: allAuthors, isLoading } = useQuery({
+  const { data: authors, isLoading } = useQuery({
     queryKey: ['discover-authors', searchQuery],
     queryFn: async () => {
-      // Get all authors who have published posts
-      const { data: authorsWithPosts, error: postsError } = await supabase
-        .from('posts')
-        .select('author_id')
-        .eq('status', 'published')
-        .neq('author_id', user?.id || 'anonymous');
+      if (!user) return [];
 
-      if (postsError) throw postsError;
+      // Get all profiles except current user and those already followed
+      const { data: followingList, error: followingError } = await supabase
+        .from('followers')
+        .select('following_id')
+        .eq('follower_id', user.id);
 
-      // Get unique author IDs
-      const authorIds = [...new Set(authorsWithPosts?.map(p => p.author_id) || [])];
+      if (followingError) throw followingError;
 
-      if (authorIds.length === 0) return [];
+      const followingIds = new Set(followingList?.map(f => f.following_id) || []);
+      followingIds.add(user.id); // Exclude self
 
-      // Get author profiles
+      // Get all profiles that user doesn't follow
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .in('id', authorIds)
-        .order('created_at', { ascending: false });
+        .not('id', 'in', `(${Array.from(followingIds).join(',')})`)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (profilesError) throw profilesError;
 
       // Get posts count for each author
-      const { data: postsCount, error: countError } = await supabase
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select('author_id, count', { count: 'exact' })
+        .select('author_id')
         .eq('status', 'published')
-        .in('author_id', authorIds)
-        .group('author_id');
+        .in('author_id', profiles?.map(p => p.id) || []);
 
-      if (countError) throw countError;
+      if (postsError) throw postsError;
 
       // Get followers count for each author
-      const { data: followersCount, error: followersError } = await supabase
+      const { data: followersData, error: followersError } = await supabase
         .from('followers')
-        .select('following_id, count', { count: 'exact' })
-        .in('following_id', authorIds)
-        .group('following_id');
+        .select('following_id')
+        .in('following_id', profiles?.map(p => p.id) || []);
 
       if (followersError) throw followersError;
 
-      // Get current user's following list
-      const { data: followingList, error: followingError } = await supabase
-        .from('followers')
-        .select('following_id')
-        .eq('follower_id', user?.id || '');
+      // Count posts and followers manually
+      const postsCountMap = postsData?.reduce((acc, post) => {
+        acc[post.author_id] = (acc[post.author_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
 
-      if (followingError && user) throw followingError;
-
-      const followingIds = new Set(followingList?.map(f => f.following_id) || []);
+      const followersCountMap = followersData?.reduce((acc, follower) => {
+        acc[follower.following_id] = (acc[follower.following_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
 
       // Combine data
-      const authorsWithStats = profiles?.map(profile => {
-        const postsCountData = postsCount?.find(p => p.author_id === profile.id);
-        const followersCountData = followersCount?.find(f => f.following_id === profile.id);
-        
-        return {
-          ...profile,
-          posts_count: postsCountData?.count || 0,
-          followers_count: followersCountData?.count || 0,
-          is_following: followingIds.has(profile.id),
-        };
-      }) || [];
+      const authorsWithStats = profiles?.map(profile => ({
+        ...profile,
+        posts_count: postsCountMap[profile.id] || 0,
+        followers_count: followersCountMap[profile.id] || 0,
+        is_following: false, // All are unfollowed by definition
+      })) || [];
 
       // Filter by search query
       if (searchQuery) {
@@ -175,7 +170,7 @@ const DiscoverAuthors = () => {
               <div className="flex justify-center py-20">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
-            ) : !allAuthors || allAuthors.length === 0 ? (
+            ) : !authors || authors.length === 0 ? (
               <div className="text-center py-20">
                 <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                   <User className="w-8 h-8 text-slate-400 dark:text-slate-500" />
@@ -184,7 +179,7 @@ const DiscoverAuthors = () => {
                   {searchQuery ? 'No authors found' : 'No authors available'}
                 </h3>
                 <p className="text-slate-600 dark:text-slate-400">
-                  {searchQuery 
+                  {searchQuery
                     ? 'Try adjusting your search terms to find more authors.'
                     : 'Be the first to publish content and become discoverable!'
                   }
@@ -192,23 +187,26 @@ const DiscoverAuthors = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {allAuthors.map((author) => (
+                {authors.map((author) => (
                   <Card key={author.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
                     <div className="p-6">
                       <div className="flex items-start gap-4 mb-4">
                         <Avatar className="h-12 w-12 border-2 border-slate-100 dark:border-slate-700">
-                          <AvatarImage 
-                            src={author.profile_image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author.full_name || 'user'}`} 
+                          <AvatarImage
+                            src={author.profile_image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author.full_name || 'user'}`}
                           />
                           <AvatarFallback className="bg-slate-900 text-white font-bold">
                             {author.full_name?.[0]?.toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        
+
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                            {author.full_name || 'Unknown Author'}
-                          </h3>
+                          <div className="flex items-center gap-1.5 truncate">
+                            <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+                              {author.full_name || 'Unknown Author'}
+                            </h3>
+                            <UserBadge userId={author.id} />
+                          </div>
                           <p className="text-sm text-slate-500 dark:text-slate-400">
                             Joined {author.created_at ? format(new Date(author.created_at), 'MMM yyyy') : 'Unknown'}
                           </p>
@@ -226,21 +224,20 @@ const DiscoverAuthors = () => {
                         <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                           <FileText className="w-4 h-4" />
                           <span>{author.posts_count}</span>
-                          <span className="hidden sm:inline">posts</span>
+                          <span>posts</span>
                         </div>
                         <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                           <Users className="w-4 h-4" />
                           <span>{author.followers_count}</span>
-                          <span className="hidden sm:inline">followers</span>
+                          <span>followers</span>
                         </div>
                       </div>
 
                       {/* Follow Button */}
                       <div className="flex gap-2">
-                        <FollowButton 
-                          userId={author.id} 
+                        <FollowButton
+                          userId={author.id}
                           size="sm"
-                          className="flex-1"
                         />
                         <Button
                           variant="outline"
