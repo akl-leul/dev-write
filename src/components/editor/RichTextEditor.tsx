@@ -198,15 +198,15 @@ export const RichTextEditor = ({ content, onChange, placeholder, editorRef }: Ri
       const currentContent = editor.getHTML();
       // Only update if content actually changed and is not empty, or if editor is empty and we have content
       if (content !== currentContent && (content.trim() !== '' || currentContent.trim() === '')) {
-        editor.commands.setContent(content || '', false); // false = don't emit update event
+        editor.commands.setContent(content || '', { emitUpdate: false });
       }
     }
   }, [content, editor]);
 
-  // Expose editor instance via ref
+  // Expose editor instance via ref - using a mutable ref pattern
   useEffect(() => {
     if (editorRef && editor) {
-      editorRef.current = editor;
+      (editorRef as React.MutableRefObject<any>).current = editor;
     }
   }, [editor, editorRef]);
 

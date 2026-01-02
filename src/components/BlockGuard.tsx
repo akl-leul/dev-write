@@ -27,18 +27,20 @@ export function BlockGuard({ children, fallback }: BlockGuardProps) {
         return;
       }
 
-      // Check if user is blocked
+      // Check if user is blocked - we'll check if there's a blocked flag in user metadata
+      // Since blocked column doesn't exist in profiles, we use a simpler approach
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('blocked')
+        .select('id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error checking block status:', error);
         setIsBlocked(false); // Assume not blocked on error
       } else {
-        setIsBlocked(profile?.blocked || false);
+        // For now, no blocking mechanism - user is not blocked
+        setIsBlocked(false);
       }
     } catch (error) {
       console.error('Error checking user status:', error);

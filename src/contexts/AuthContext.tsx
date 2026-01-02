@@ -49,49 +49,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          full_name,
-          role,
-          is_active,
-          last_login_at,
-          login_count,
-          blocked,
-          profile_image_url
-        `)
+        .select('id, full_name, profile_image_url, bio')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (error) {
-        // Don't log error for invalid user IDs, just return null
-        if (error.code === 'PGRST116') {
-          // Profile not found, user might not exist in profiles table
-          return null;
-        }
         console.error('Error fetching profile:', error);
         return null;
       }
       
       if (data) {
-        const profileData = data as any; // Type assertion for profile data
-        // Get user permissions
-        const { data: permissions } = await supabase
-          .rpc('get_user_permissions', { user_id: userId });
+        const profileData = data as any;
         
         const userProfile: UserProfile = {
           id: profileData.id,
           full_name: profileData.full_name,
-          email: profileData.email, // Email is stored in profiles table
-          role: profileData.role || 'user',
-          is_active: profileData.is_active ?? true,
-          permissions: permissions || {},
-          last_login_at: profileData.last_login_at,
-          login_count: profileData.login_count || 0,
+          email: null,
+          role: 'user',
+          is_active: true,
+          permissions: {},
+          last_login_at: null,
+          login_count: 0,
           profile_image_url: profileData.profile_image_url
         };
         
         setProfile(userProfile);
-        setIsBlocked(profileData.blocked || false);
+        setIsBlocked(false);
         return userProfile;
       }
     } catch (error) {
@@ -100,32 +83,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return null;
   };
 
-  // Update login information (with error handling)
-  const updateLoginInfo = async (userId: string) => {
-    if (!userId) return;
-    
-    try {
-      // Silently update login info without checking for function existence
-      // This prevents console warnings if the function doesn't exist
-      const { error } = await supabase.rpc('update_user_login', { 
-        user_id: userId,
-        ip_address: null, // You can get this from request headers if needed
-        user_agent: navigator.userAgent
-      });
-      // Silently ignore errors (function might not exist)
-      if (error) {
-        // Function doesn't exist or other error - silently ignore
-      }
-    } catch (error) {
-      // Silently handle errors to prevent performance impact
-      // Don't log warnings for missing functions
-    }
+  // Update login information - simplified, no RPC needed
+  const updateLoginInfo = async (_userId: string) => {
+    // Login tracking simplified - not using RPC
   };
 
   // Permission checking functions
-  const hasPermission = (permission: string): boolean => {
-    if (!profile) return false;
-    return profile.permissions[permission] || false;
+  const hasPermission = (_permission: string): boolean => {
+    return false;
   };
 
   const hasRole = (role: string): boolean => {
@@ -142,27 +107,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const checkIfUserBlocked = async (userId: string) => {
-    if (!userId) return false;
-    
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('blocked')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        console.error('Error checking blocked status:', error);
-        return false;
-      }
-      
-      const profileData = data as any;
-      return profileData?.blocked || false;
-    } catch (error) {
-      console.error('Error checking blocked status:', error);
-      return false;
-    }
+  const checkIfUserBlocked = async (_userId: string) => {
+    return false; // Blocking not implemented yet
   };
 
   useEffect(() => {

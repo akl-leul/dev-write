@@ -99,9 +99,10 @@ export function ImageCropModal({ isOpen, onClose, onCropComplete, imageSrc }: Im
         {
           unit: '%',
           width: 90,
-          height: 90,
         },
         1, // aspect ratio (1:1 for square)
+        width,
+        height
       ),
       width,
       height

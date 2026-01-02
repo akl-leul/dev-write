@@ -28,7 +28,7 @@ export const searchUsers = async (query: string, currentUserId?: string): Promis
     return [];
   }
   
-  return data || [];
+  return (data as UserSearchResult[]) || [];
 };
 
 export const extractMentions = (content: string): string[] => {
@@ -56,7 +56,7 @@ export const findUsersByNames = async (names: string[]): Promise<UserSearchResul
     return [];
   }
   
-  return data || [];
+  return (data as UserSearchResult[]) || [];
 };
 
 export const extractMentionsFromTags = (tags: string[]): string[] => {

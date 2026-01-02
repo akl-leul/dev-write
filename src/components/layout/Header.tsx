@@ -44,9 +44,9 @@ export const Header = () => {
       if (!user) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, profile_image_url, bio')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: !!user,
