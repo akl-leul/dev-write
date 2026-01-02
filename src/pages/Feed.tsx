@@ -24,6 +24,7 @@ import {
   Users,
   TrendingUp,
   UserCheck,
+  UserPlus,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
@@ -32,6 +33,9 @@ import { SuggestedAuthors } from "@/components/social/SuggestedAuthors";
 import { TrendingPosts } from "@/components/social/TrendingPosts";
 import { PersonalizedFeed } from "@/components/feed/PersonalizedFeed";
 import { PostAuthorBadge } from "@/components/PostAuthorBadge";
+import { FollowButton } from "@/components/social/FollowButton";
+import { ImageWithFallback } from "@/components/ui/image-fallback";
+import { RepostButton } from "@/components/social/RepostButton";
 
 const Feed = () => {
   const { user } = useAuth();
@@ -291,94 +295,88 @@ const Feed = () => {
                       </div>
                     )}
 
-                    {/* Feed List */}
-                    <div className="space-y-8">
+                    {/* Feed Grid - Responsive 1-2-3 columns */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
                       {posts.map((post) => (
-                        <article key={post.id} className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 relative overflow-hidden">
+                        <article key={post.id} className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 relative overflow-hidden flex flex-col">
 
-          <div className="flex items-center justify-between mb-6">
-            <PostAuthorBadge
-              author={post.profiles}
-              createdAt={post.created_at}
-              postsCount={getAuthorPostsCount(post.profiles?.id || '', posts)}
-              likesCount={0}
-              followersCount={0}
-            />
-
-            {post.categories && (
-              <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700 rounded-full text-xs font-semibold tracking-wide">
-                {post.categories.name}
-              </span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Link to={`/author/${post.profiles?.id}`} className="shrink-0">
+                <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-sm">
+                  <AvatarImage src={post.profiles?.profile_image_url || ''} />
+                  <AvatarFallback className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm font-medium">
+                    {post.profiles?.full_name?.[0]?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+              <div className="min-w-0 flex-1">
+                <Link to={`/author/${post.profiles?.id}`} className="font-semibold text-slate-900 dark:text-slate-100 text-sm hover:text-blue-600 dark:hover:text-blue-400 truncate block">
+                  {post.profiles?.full_name}
+                </Link>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                </p>
+              </div>
+            </div>
+            
+            {/* Follow Button */}
+            {post.profiles?.id && (
+              <FollowButton userId={post.profiles.id} size="sm" variant="outline" />
             )}
           </div>
 
-          <Link to={`/post/${post.slug}`} className="block group ">
-            <div className="space-y-6">
-              {(post.featured_image || post.post_images?.[0]) && (
-                <div className="w-full h-48 sm:h-80 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
-                  <img
-                    src={post.featured_image || post.post_images[0].url}
-                    alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-              )}
+          <Link to={`/post/${post.slug}`} className="block group flex-1">
+            <div className="space-y-4">
+              <div className="w-full h-40 sm:h-48 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-700">
+                <ImageWithFallback
+                  src={post.featured_image || post.post_images?.[0]?.url}
+                  alt={post.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  fallbackClassName="w-full h-full"
+                />
+              </div>
               
               <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight line-clamp-2">
                   {post.title}
                 </h2>
 
-                {/* Show excerpt if available, otherwise show HTML content preview */}
-                {post.excerpt ? (
-                  <div 
-                    className="prose prose-sm prose-slate max-w-none text-slate-500 dark:text-slate-400 leading-relaxed mb-6 line-clamp-2 text-sm prose-p:my-1 prose-p:first:mt-0 prose-p:last:mb-0 prose-headings:my-1 prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-headings:text-base prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-strong:text-slate-900 dark:prose-strong:text-slate-100 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-img:hidden prose-blockquote:hidden prose-pre:hidden prose-code:hidden prose-hr:hidden prose-table:hidden"
-                    style={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                    dangerouslySetInnerHTML={{ 
-                      __html: post.excerpt
-                    }}
-                  />
-                ) : post.content_markdown ? (
-                  <div 
-                    className="prose prose-sm prose-slate max-w-none text-slate-500 dark:text-slate-400 leading-relaxed mb-6 line-clamp-3 text-sm prose-p:my-1 prose-p:first:mt-0 prose-p:last:mb-0 prose-headings:my-1 prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-headings:text-base prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-strong:text-slate-900 dark:prose-strong:text-slate-100 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-img:hidden prose-blockquote:hidden prose-pre:hidden prose-code:hidden prose-hr:hidden prose-table:hidden"
-                    style={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                    dangerouslySetInnerHTML={{ 
-                      __html: post.content_markdown
-                    }}
-                  />
-                ) : null}
-
-                <div className="flex flex-wrap items-center gap-4 mt-auto pt-2">
-                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
-                    <Heart className="h-4 w-4" />
-                    <span>{post.likes?.[0]?.count || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
-                    <MessageCircle className="h-4 w-4" />
-                    <span>{post.comments?.[0]?.count || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
-                    <Eye className="h-4 w-4" />
-                    <span>{post.views || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400 text-xs font-bold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md ml-auto sm:ml-0">
-                    <Clock className="h-3 w-3" />
-                    <span>{post.read_time || 5} min</span>
-                  </div>
-                </div>
+                {post.excerpt && (
+                  <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2 mb-2">
+                    {post.excerpt.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                  </p>
+                )}
               </div>
             </div>
           </Link>
+          
+          {/* Post Actions */}
+          <div className="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm">
+              <Heart className="h-4 w-4" />
+              <span>{post.likes?.[0]?.count || 0}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm">
+              <MessageCircle className="h-4 w-4" />
+              <span>{post.comments?.[0]?.count || 0}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm">
+              <Eye className="h-4 w-4" />
+              <span>{post.views || 0}</span>
+            </div>
+            
+            <div className="ml-auto flex items-center gap-2">
+              <RepostButton 
+                postId={post.id}
+                postTitle={post.title}
+                authorName={post.profiles?.full_name || 'Unknown'}
+              />
+              <span className="text-xs text-blue-500 dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md">
+                {post.read_time || 5} min
+              </span>
+            </div>
+          </div>
         </article>
                       ))}
 
