@@ -32,6 +32,7 @@ import { SuggestedAuthors } from "@/components/social/SuggestedAuthors";
 import { TrendingPosts } from "@/components/social/TrendingPosts";
 import { PersonalizedFeed } from "@/components/feed/PersonalizedFeed";
 import { PostAuthorBadge } from "@/components/PostAuthorBadge";
+import { FollowButton } from "@/components/social/FollowButton";
 
 const Feed = () => {
   const { user } = useAuth();
@@ -39,6 +40,14 @@ const Feed = () => {
   const searchQuery = searchParams.get("search") || "";
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("discover");
+
+  // Handle tab parameter from URL
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['discover', 'following', 'trending', 'authors'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   // Handle OAuth callback from Google login
   useEffect(() => {
@@ -291,31 +300,43 @@ const Feed = () => {
                       </div>
                     )}
 
-                    {/* Feed List */}
-                    <div className="space-y-8">
+                    {/* Feed List - Responsive Grid */}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8">
                       {posts.map((post) => (
                         <article key={post.id} className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 relative overflow-hidden">
 
           <div className="flex items-center justify-between mb-6">
-            <PostAuthorBadge
-              author={post.profiles}
-              createdAt={post.created_at}
-              postsCount={getAuthorPostsCount(post.profiles?.id || '', posts)}
-              likesCount={0}
-              followersCount={0}
-            />
-
-            {post.categories && (
-              <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700 rounded-full text-xs font-semibold tracking-wide">
-                {post.categories.name}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              <PostAuthorBadge 
+                author={post.profiles}
+                createdAt={post.created_at}
+                postsCount={getAuthorPostsCount(post.profiles?.id || '', posts)}
+                likesCount={0}
+                followersCount={0}
+              />
+              
+              {/* Follow Button next to author profile */}
+              {user && post.profiles?.id !== user.id && (
+                <FollowButton 
+                  userId={post.profiles.id} 
+                  size="sm"
+                />
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {post.categories && (
+                <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700 rounded-full text-xs font-semibold tracking-wide">
+                  {post.categories.name}
+                </span>
+              )}
+            </div>
           </div>
 
           <Link to={`/post/${post.slug}`} className="block group ">
             <div className="space-y-6">
               {(post.featured_image || post.post_images?.[0]) && (
-                <div className="w-full h-48 sm:h-80 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
+                <div className="w-full h-48 sm:h-64 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
                   <img
                     src={post.featured_image || post.post_images[0].url}
                     alt={post.title}

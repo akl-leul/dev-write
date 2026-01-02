@@ -23,10 +23,15 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { CommentSection } from "@/components/blog/CommentSection";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Lightbox } from "@/components/ui/lightbox";
 import { PostMetaTags } from "@/components/seo/PostMetaTags";
 import { ReadingProgressBar } from "@/components/ui/reading-progress";
+import { usePostViews } from "@/hooks/usePostViews";
+import { BookmarkButton } from "@/components/social/BookmarkButton";
+import { FollowButton } from "@/components/social/FollowButton";
+import { getImageDisplayLogic, getGalleryImages, shouldShowGallery } from "@/utils/imageLogic";
+import { FallbackImage } from "@/components/ui/FallbackImage";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,8 +45,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { BookmarkButton } from "@/components/social/BookmarkButton";
-import { FollowButton } from "@/components/social/FollowButton";
 
 // Define the post type for better TypeScript support
 type Post = {
@@ -139,53 +142,12 @@ const PostDetail = () => {
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Increment view count when post is loaded (works for all users)
-  // Use a ref to track if we've already incremented to prevent multiple increments
-  const hasIncremented = useRef(false);
-  
-  useEffect(() => {
-    const incrementViews = async () => {
-      if (post?.id && !hasIncremented.current) {
-        hasIncremented.current = true; // Mark as incremented
-        
-        try {
-          // Try RPC function first, fallback to direct update
-          let result;
-          try {
-            result = await supabase.rpc('increment_post_views', { post_id: post.id });
-          } catch (rpcError) {
-            // Fallback to direct update if RPC doesn't exist
-            result = await supabase
-              .from("posts")
-              .update({ views: (post.views || 0) + 1 })
-              .eq("id", post.id);
-          }
-
-          if (result.error) {
-            console.error("Failed to increment views:", result.error);
-            hasIncremented.current = false; // Reset on error to retry
-          } else {
-            // Invalidate query to refetch updated post data (debounced)
-            setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ["post", slug] });
-            }, 1000);
-          }
-        } catch (error) {
-          console.error("Error incrementing views:", error);
-          hasIncremented.current = false; // Reset on error
-        }
-      }
-    };
-
-    if (post?.id) {
-      incrementViews();
-    }
-    
-    // Reset when post changes
-    return () => {
-      hasIncremented.current = false;
-    };
-  }, [post?.id, slug, queryClient]);
+  // Use the new post views hook for deduplication
+  usePostViews({ 
+    postId: post?.id || '', 
+    slug, 
+    enabled: !!post?.id 
+  });
 
   const likePost = useMutation({
     mutationFn: async () => {
@@ -288,15 +250,10 @@ const PostDetail = () => {
   const postUrl = window.location.href;
   const postDate = new Date(post.created_at);
 
-  // Prepare images for lightbox
-  const lightboxImages =
-    post.post_images?.length > 0
-      ? post.post_images
-          .sort((a: any, b: any) => a.order_index - b.order_index)
-          .map((img: any) => ({ url: img.url, alt: img.alt_text }))
-      : post.featured_image
-        ? [{ url: post.featured_image, alt: post.title }]
-        : [];
+  // Use image logic utility to determine image display
+  const imageDisplay = getImageDisplayLogic(post.featured_image, post.post_images);
+  const galleryImages = getGalleryImages(post.featured_image, post.post_images);
+  const showGallery = shouldShowGallery(post.featured_image, post.post_images);
 
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
@@ -335,7 +292,7 @@ const PostDetail = () => {
 
       {/* Image Lightbox */}
       <Lightbox
-        images={lightboxImages}
+        images={galleryImages.map(img => ({ url: img.url, alt: img.alt_text || post.title }))}
         initialIndex={lightboxIndex}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
@@ -516,79 +473,18 @@ const PostDetail = () => {
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Featured Image / Carousel */}
-            {(post.post_images ||
-              (post.post_images && post.post_images.length > 0)) && (
-              <div className="mb-10 sm:mb-12">
-                {post.post_images ? (
-                  <div
-                    className="rounded-3xl overflow-hidden shadow-xl shadow-blue-900/5 border border-slate-100 dark:border-slate-700 cursor-pointer group"
-                    onClick={() => openLightbox(0)}
-                  >
-                    <img
-                      src={post.post_images && post.post_images.length > 0 ? post.post_images.sort((a: any, b: any) => a.order_index - b.order_index)[0].url : ''}
-                      alt={post.title}
-                      className="w-full h-auto max-h-[600px] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                    />
-                    <div className=" mt-[-20px] z-10 inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center text-center">
-                      <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity">
-                        Click to expand
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  post.post_images &&
-                  post.post_images.length > 0 && (
-                    <div className="bg-white dark:bg-slate-800 p-2 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
-                      <Carousel className="w-full rounded-2xl overflow-hidden">
-                        <CarouselContent>
-                          {post.post_images
-                            .sort(
-                              (a: any, b: any) => a.order_index - b.order_index,
-                            )
-                            .map((image: any, index: number) => (
-                              <CarouselItem key={index}>
-                                <div
-                                  className="aspect-video w-full overflow-hidden cursor-pointer group relative"
-                                  onClick={() => openLightbox(index)}
-                                >
-                                  <img
-                                    src={image.url}
-                                    alt={
-                                      image.alt_text ||
-                                      `${post.title} - Image ${index + 1}`
-                                    }
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                                  />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                                    <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full transition-opacity">
-                                      Click to expand
-                                    </span>
-                                  </div>
-                                </div>
-                              </CarouselItem>
-                            ))}
-                        </CarouselContent>
-                        {post.post_images.length > 1 && (
-                          <>
-                            <CarouselPrevious className="left-4 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border-0 shadow-lg" />
-                            <CarouselNext className="right-4 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border-0 shadow-lg" />
-                          </>
-                        )}
-                      </Carousel>
-                      {post.post_images.length > 1 && (
-                        <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-2 font-medium">
-                          {post.post_images.length} images in gallery • Click to
-                          expand
-                        </p>
-                      )}
-                    </div>
-                  )
-                )}
+              <div className="flex items-center gap-4 text-sm text-slate-400 dark:text-slate-500 font-medium">
+                <div className="flex items-center gap-1.5">
+                  <Eye className="w-4 h-4" />
+                  <span>{post.views || 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4" />
+                  <span>{format(postDate, "MMM dd, yyyy")}</span>
+                </div>
               </div>
-            )}
+            </div>
 
             {/* Content Body */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-100 dark:border-slate-800 shadow-sm mb-12">

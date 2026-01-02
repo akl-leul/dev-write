@@ -34,6 +34,7 @@ const AuthorProfile = lazy(() => import("./pages/AuthorProfile"));
 const GoogleProfile = lazy(() => import("./pages/GoogleProfile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const TestPushNotifications = lazy(() => import("./components/TestPushNotifications"));
 
 // Lazy load Analytics with longer delay to prevent initial load bottleneck
 const LazyAnalytics = lazy(() => import("./pages/Analytics"));
@@ -101,6 +102,7 @@ const App = () => (
                     <Route path="/author/:username" element={<AuthorProfile />} />
                     <Route path="/google-profile" element={<GoogleProfile />} />
                     <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/test-notifications" element={<TestPushNotifications />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

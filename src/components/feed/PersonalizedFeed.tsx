@@ -1,7 +1,9 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getPrimaryImage } from "@/utils/imageLogic";
+import { FallbackImage } from "@/components/ui/FallbackImage";
+import { FollowButton } from "@/components/social/FollowButton";
 import { Heart, MessageCircle, Eye, Clock, Sparkles, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -115,30 +117,42 @@ export const PersonalizedFeed = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="">
       {allPosts.map((post: any) => (
         <article key={post.id} className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 dark:hover:border-blue-900/50 transition-all duration-300 relative overflow-hidden">
           
           <div className="flex items-center justify-between mb-6">
-            <PostAuthorBadge 
-              author={post.profiles}
-              createdAt={post.created_at}
-              postsCount={getAuthorPostsCount(post.profiles?.id || '', allPosts)}
-              likesCount={0}
-              followersCount={0}
-            />
+            <div className="flex items-center gap-3">
+              <PostAuthorBadge 
+                author={post.profiles}
+                createdAt={post.created_at}
+                postsCount={getAuthorPostsCount(post.profiles?.id || '', allPosts)}
+                likesCount={0}
+                followersCount={0}
+              />
+              
+              {/* Follow Button next to author profile */}
+              {user && post.profiles?.id !== user.id && (
+                <FollowButton 
+                  userId={post.profiles.id} 
+                  size="sm"
+                />
+              )}
+            </div>
             
-            {post.categories && (
-              <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700 rounded-full text-xs font-semibold tracking-wide">
-                {post.categories.name}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {post.categories && (
+                <span className="hidden sm:inline-block px-3 py-1 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700 rounded-full text-xs font-semibold tracking-wide">
+                  {post.categories.name}
+                </span>
+              )}
+            </div>
           </div>
 
           <Link to={`/post/${post.slug}`} className="block group">
             {/* Featured Image */}
             {(post.featured_image || post.post_images?.[0]) && (
-              <div className="w-full h-52 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 mb-6">
+              <div className="w-full h-48 sm:h-64 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 mb-6">
                 <img 
                   src={post.featured_image || post.post_images[0].url} 
                   alt={post.title} 
@@ -147,39 +161,35 @@ export const PersonalizedFeed = () => {
               </div>
             )}
             
-            <div className="grid md:grid-cols-[1fr_180px] gap-6">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
-                  {post.title}
-                </h2>
-                
-                {post.excerpt && (
-                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-6 line-clamp-2 text-sm">
-                    {post.excerpt}
-                  </p>
-                )}
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
+                {post.title}
+              </h2>
+              
+              {post.excerpt && (
+                <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-6 line-clamp-2 text-sm">
+                  {post.excerpt}
+                </p>
+              )}
 
-                <div className="flex flex-wrap items-center gap-4 mt-auto pt-2">
-                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
-                    <Heart className="h-4 w-4" />
-                    <span>{post.likes?.[0]?.count || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
-                    <MessageCircle className="h-4 w-4" />
-                    <span>{post.comments?.[0]?.count || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
-                    <Eye className="h-4 w-4" />
-                    <span>{post.views || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400 text-xs font-bold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md ml-auto sm:ml-0">
-                    <Clock className="h-3 w-3" />
-                    <span>{post.read_time || 5} min</span>
-                  </div>
+              <div className="flex flex-wrap items-center gap-4 mt-auto pt-2">
+                <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
+                  <Heart className="h-4 w-4" />
+                  <span>{post.likes?.[0]?.count || 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
+                  <MessageCircle className="h-4 w-4" />
+                  <span>{post.comments?.[0]?.count || 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm font-medium">
+                  <Eye className="h-4 w-4" />
+                  <span>{post.views || 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400 text-xs font-bold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md ml-auto sm:ml-0">
+                  <Clock className="h-3 w-3" />
+                  <span>{post.read_time || 5} min</span>
                 </div>
               </div>
-
-             
             </div>
           </Link>
         </article>

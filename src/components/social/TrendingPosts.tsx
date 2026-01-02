@@ -4,8 +4,12 @@ import { Card } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { TrendingUp, Eye, Heart, Loader2, Flame } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { FollowButton } from './FollowButton';
 
 export const TrendingPosts = () => {
+  const { user } = useAuth();
+  
   const { data: trendingPosts, isLoading } = useQuery({
     queryKey: ['trending-posts'],
     queryFn: async () => {
@@ -21,6 +25,7 @@ export const TrendingPosts = () => {
           slug,
           views,
           created_at,
+          author_id,
           profiles:author_id (full_name),
           likes (count)
         `)
@@ -86,16 +91,27 @@ export const TrendingPosts = () => {
                 {post.title}
               </h4>
               
-              <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
-                <span className="truncate">{post.profiles?.full_name}</span>
-                <span className="flex items-center gap-1">
-                  <Eye className="h-3 w-3" />
-                  {post.views || 0}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Heart className="h-3 w-3" />
-                  {post.likes?.[0]?.count || 0}
-                </span>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
+                  <span className="truncate">{post.profiles?.full_name}</span>
+                  <span className="flex items-center gap-1">
+                    <Eye className="h-3 w-3" />
+                    {post.views || 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Heart className="h-3 w-3" />
+                    {post.likes?.[0]?.count || 0}
+                  </span>
+                </div>
+                
+                {/* Follow Button for Trending Posts */}
+                {user && post.author_id !== user.id && (
+                  <FollowButton 
+                    userId={post.author_id} 
+                    size="sm" 
+                    variant="outline"
+                  />
+                )}
               </div>
             </div>
           </Link>
@@ -104,7 +120,7 @@ export const TrendingPosts = () => {
       
       <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-700">
         <Link 
-          to="/feed" 
+          to="/feed?tab=discover" 
           className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:underline"
         >
           View all posts →
