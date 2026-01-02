@@ -42,6 +42,9 @@ import {
 } from "@/components/ui/carousel";
 import { BookmarkButton } from "@/components/social/BookmarkButton";
 import { FollowButton } from "@/components/social/FollowButton";
+import { RepostButton } from "@/components/social/RepostButton";
+import { useViewTracking } from "@/hooks/useViewTracking";
+import { ImageWithFallback } from "@/components/ui/image-fallback";
 
 // Define the post type for better TypeScript support
 type Post = {
@@ -139,47 +142,8 @@ const PostDetail = () => {
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Increment view count when post is loaded (works for all users)
-  // Use a ref to track if we've already incremented to prevent multiple increments
-  const hasIncremented = useRef(false);
-  
-  useEffect(() => {
-    const incrementViews = async () => {
-      if (post?.id && !hasIncremented.current) {
-        hasIncremented.current = true; // Mark as incremented
-        
-        try {
-          // Direct update - no RPC needed
-          const result = await supabase
-            .from("posts")
-            .update({ views: (post.views || 0) + 1 })
-            .eq("id", post.id);
-
-          if (result.error) {
-            console.error("Failed to increment views:", result.error);
-            hasIncremented.current = false; // Reset on error to retry
-          } else {
-            // Invalidate query to refetch updated post data (debounced)
-            setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ["post", slug] });
-            }, 1000);
-          }
-        } catch (error) {
-          console.error("Error incrementing views:", error);
-          hasIncremented.current = false; // Reset on error
-        }
-      }
-    };
-
-    if (post?.id) {
-      incrementViews();
-    }
-    
-    // Reset when post changes
-    return () => {
-      hasIncremented.current = false;
-    };
-  }, [post?.id, slug, queryClient]);
+  // Use view tracking hook for deduplication
+  useViewTracking(post?.id);
 
   const likePost = useMutation({
     mutationFn: async () => {

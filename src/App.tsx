@@ -78,13 +78,17 @@ if (typeof window !== 'undefined') {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter future={routerFuture}>
-      <ThemeProvider>
-        <ThemeInitializer>
+    <ThemeProvider>
+      <ThemeInitializer>
+        <BrowserRouter future={routerFuture}>
           <TooltipProvider>
             <AuthProvider>
               <BlockGuard>
-                <Suspense fallback={null}>
+                <Suspense fallback={
+                  <div className="min-h-screen flex items-center justify-center bg-background">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                }>
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
@@ -107,14 +111,14 @@ const App = () => (
                 <BottomNavbar />
               </BlockGuard>
             </AuthProvider>
+            <PWAInstallPrompt />
+            <NotificationPermissionPrompt />
           </TooltipProvider>
-        </ThemeInitializer>
-      </ThemeProvider>
-    </BrowserRouter>
-    <PWAInstallPrompt />
-    <NotificationPermissionPrompt />
-    <Toaster />
-    <Sonner />
+        </BrowserRouter>
+        <Toaster />
+        <Sonner />
+      </ThemeInitializer>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
