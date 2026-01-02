@@ -149,17 +149,11 @@ const PostDetail = () => {
         hasIncremented.current = true; // Mark as incremented
         
         try {
-          // Try RPC function first, fallback to direct update
-          let result;
-          try {
-            result = await supabase.rpc('increment_post_views', { post_id: post.id });
-          } catch (rpcError) {
-            // Fallback to direct update if RPC doesn't exist
-            result = await supabase
-              .from("posts")
-              .update({ views: (post.views || 0) + 1 })
-              .eq("id", post.id);
-          }
+          // Direct update - no RPC needed
+          const result = await supabase
+            .from("posts")
+            .update({ views: (post.views || 0) + 1 })
+            .eq("id", post.id);
 
           if (result.error) {
             console.error("Failed to increment views:", result.error);

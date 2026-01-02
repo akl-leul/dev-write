@@ -13,41 +13,51 @@ export const SuggestedAuthors = () => {
   const { data: suggestedAuthors, isLoading } = useQuery({
     queryKey: ['suggested-authors', user?.id],
     queryFn: async () => {
-      // Get authors with most followers that the current user doesn't follow
-      let query = supabase
-        .from('profiles')
-        .select(`
-          id,
-          full_name,
-          profile_image_url,
-          bio,
-          followers:followers!followers_following_id_fkey(count),
-          posts:posts!posts_author_id_fkey(count)
-        `)
-        .limit(5);
-
-      // If user is logged in, exclude authors they already follow
+      // First, get authors the user already follows
+      let excludeIds: string[] = [];
       if (user) {
         const { data: following } = await supabase
           .from('followers')
           .select('following_id')
           .eq('follower_id', user.id);
         
-        const followingIds = following?.map(f => f.following_id) || [];
-        followingIds.push(user.id); // Exclude self
-        
-        if (followingIds.length > 0) {
-          query = query.not('id', 'in', `(${followingIds.join(',')})`);
-        }
+        excludeIds = (following || []).map((f: any) => f.following_id);
+        excludeIds.push(user.id); // Exclude self
       }
 
-      const { data, error } = await query;
+      // Get all profiles
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, profile_image_url, bio')
+        .limit(20);
+      
       if (error) throw error;
 
+      // Filter out followed users
+      const filteredProfiles = (profiles || []).filter(
+        (p: any) => !excludeIds.includes(p.id)
+      );
+
+      // Get follower and post counts for each author
+      const authorsWithStats = await Promise.all(
+        filteredProfiles.slice(0, 5).map(async (author: any) => {
+          const [{ count: followersCount }, { count: postsCount }] = await Promise.all([
+            supabase.from('followers').select('id', { count: 'exact', head: true }).eq('following_id', author.id),
+            supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', author.id).eq('status', 'published')
+          ]);
+          
+          return {
+            ...author,
+            followers: [{ count: followersCount || 0 }],
+            posts: [{ count: postsCount || 0 }]
+          };
+        })
+      );
+
       // Sort by follower count
-      return data?.sort((a: any, b: any) => 
+      return authorsWithStats.sort((a: any, b: any) => 
         (b.followers?.[0]?.count || 0) - (a.followers?.[0]?.count || 0)
-      ) || [];
+      );
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

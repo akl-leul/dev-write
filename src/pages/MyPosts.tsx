@@ -293,26 +293,18 @@ const MyPosts = () => {
         throw new Error('User not authenticated');
       }
       
-      // Use RPC function to bypass RLS
-      console.log('Using RPC function to delete comment');
-      const { data: deleteResult, error: rpcError } = await supabase.rpc('delete_comment_as_post_owner', {
-        comment_id: commentId,
-        user_id: user.id
-      });
+      // Try direct delete first (as comment author)
+      const { error: deleteError } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
       
-      console.log('RPC delete result:', deleteResult);
-      console.log('RPC error:', rpcError);
-      
-      if (rpcError) {
-        console.error('RPC error deleting comment:', rpcError);
-        throw new Error(`Failed to delete comment: ${rpcError.message}`);
+      if (deleteError) {
+        console.error('Error deleting comment:', deleteError);
+        throw new Error(`Failed to delete comment: ${deleteError.message}`);
       }
       
-      if (!deleteResult) {
-        throw new Error('Comment deletion failed - function returned false');
-      }
-      
-      console.log('Comment deleted successfully via RPC');
+      console.log('Comment deleted successfully');
     },
     onMutate: async (commentId) => {
       // Cancel any outgoing refetches

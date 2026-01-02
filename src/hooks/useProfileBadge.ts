@@ -36,7 +36,7 @@ export function useProfileBadge({ userId, postsCount, likesCount, followersCount
           .limit(100); // Limit to prevent huge queries
         
         if (postsData && postsData.length > 0) {
-          const postIds = postsData.map(p => p.id);
+          const postIds = (postsData as { id: string }[]).map(p => p.id);
           const { count: likesCount } = await supabase
             .from('likes')
             .select('id', { count: 'exact', head: true })
