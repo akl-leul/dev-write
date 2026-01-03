@@ -16,8 +16,10 @@ export const usePostViews = ({ postId, slug, enabled = true }: PostViewsHookOpti
     if (!enabled || !postId) return;
 
     const incrementViews = async () => {
-      // Check if user has already viewed this post
-      const userId = getCurrentUserId();
+      // Get current session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      
       if (!userId) return; // Don't track views for anonymous users
       
       const viewKey = `post_view_${postId}_${userId}`;
@@ -32,27 +34,20 @@ export const usePostViews = ({ postId, slug, enabled = true }: PostViewsHookOpti
       hasIncremented.current = true;
 
       try {
-        // Try RPC function first, fallback to direct update
-        let result;
-        try {
-          result = await supabase.rpc('increment_post_views', { post_id: postId });
-        } catch (rpcError) {
-          // Fallback to direct update if RPC doesn't exist
-          // First get current view count, then increment
-          const { data: currentPost } = await supabase
-            .from("posts")
-            .select("views")
-            .eq("id", postId)
-            .single();
-          
-          result = await supabase
-            .from("posts")
-            .update({ views: (currentPost?.views || 0) + 1 })
-            .eq("id", postId);
-        }
+        // First get current view count, then increment
+        const { data: currentPost } = await supabase
+          .from("posts")
+          .select("views")
+          .eq("id", postId)
+          .single();
+        
+        const { error } = await supabase
+          .from("posts")
+          .update({ views: (currentPost?.views || 0) + 1 })
+          .eq("id", postId);
 
-        if (result.error) {
-          console.error("Failed to increment views:", result.error);
+        if (error) {
+          console.error("Failed to increment views:", error);
           // Remove the view flag on error so it can be retried
           localStorage.removeItem(viewKey);
           hasIncremented.current = false;
@@ -77,21 +72,6 @@ export const usePostViews = ({ postId, slug, enabled = true }: PostViewsHookOpti
       hasIncremented.current = false;
     };
   }, [postId, slug, enabled, queryClient]);
-
-  // Helper function to get current user ID
-  const getCurrentUserId = (): string | null => {
-    // Try to get from auth context first
-    try {
-      const session = supabase.auth.getSession();
-      if (session && typeof session.then === 'function') {
-        // It's a promise, handle asynchronously
-        return null;
-      }
-      return session?.data?.session?.user?.id || null;
-    } catch {
-      return null;
-    }
-  };
 
   // Function to check if user has viewed post
   const hasUserViewedPost = (userId: string): boolean => {
