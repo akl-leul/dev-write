@@ -53,18 +53,10 @@ export function useProfileBadge({
         .select('id', { count: 'exact', head: true })
         .eq('following_id', userId);
 
-      // Also fetch the badge from profile as fallback
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('badge')
-        .eq('id', userId)
-        .maybeSingle();
-
       return {
         posts: postsCount ?? 0,
         likes: totalLikes,
         followers: followersCount ?? 0,
-        initialBadge: profile?.badge
       };
     },
     enabled: needsStats,
@@ -90,9 +82,6 @@ export function useProfileBadge({
     if (counts.likes >= 10) return 'heart';
     if (counts.posts >= 3) return 'medal';
     if (counts.posts >= 1) return 'star';
-
-    // Fallback to manual badge from stats
-    if ((counts as any).initialBadge) return (counts as any).initialBadge;
 
     return null;
   }, [stats, postsCount, likesCount, followersCount]);
