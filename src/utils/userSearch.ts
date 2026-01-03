@@ -12,10 +12,10 @@ export const searchUsers = async (query: string, currentUserId?: string): Promis
 
   let supabaseQuery = supabase
     .from('profiles')
-    .select('id, full_name, profile_image_url, badge')
+    .select('id, full_name, profile_image_url')
     .ilike('full_name', query.length > 0 ? `%${query}%` : '%')
     .order('full_name')
-    .limit(query.length > 0 ? 10 : 20); // Read More users for empty query
+    .limit(query.length > 0 ? 10 : 20);
 
   // Only exclude current user if provided
   if (currentUserId) {
@@ -49,7 +49,7 @@ export const findUsersByNames = async (names: string[]): Promise<UserSearchResul
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, profile_image_url, badge')
+    .select('id, full_name, profile_image_url')
     .in('full_name', names);
 
   if (error) {
