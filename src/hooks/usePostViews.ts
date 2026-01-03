@@ -32,39 +32,29 @@ export const usePostViews = ({ postId, slug, enabled = true }: PostViewsHookOpti
       hasIncremented.current = true;
 
       try {
-        // Try RPC function first, fallback to direct update
-        let result;
-        try {
-          result = await supabase.rpc('increment_post_views', { post_id: postId });
-        } catch (rpcError) {
-          // Fallback to direct update if RPC doesn't exist
-          // First get current view count, then increment
-          const { data: currentPost } = await supabase
-            .from("posts")
-            .select("views")
-            .eq("id", postId)
-            .single();
-          
-          result = await supabase
-            .from("posts")
-            .update({ views: (currentPost?.views || 0) + 1 })
-            .eq("id", postId);
-        }
+        // Direct update - get current view count, then increment
+        const { data: currentPost } = await supabase
+          .from("posts")
+          .select("views")
+          .eq("id", postId)
+          .single();
+        
+        const result = await supabase
+          .from("posts")
+          .update({ views: (currentPost?.views || 0) + 1 })
+          .eq("id", postId);
 
         if (result.error) {
           console.error("Failed to increment views:", result.error);
-          // Remove the view flag on error so it can be retried
           localStorage.removeItem(viewKey);
           hasIncremented.current = false;
         } else {
-          // Invalidate query to refetch updated post data (debounced)
           setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ["post", slug] });
           }, 1000);
         }
       } catch (error) {
         console.error("Error incrementing views:", error);
-        // Remove the view flag on error so it can be retried
         localStorage.removeItem(viewKey);
         hasIncremented.current = false;
       }
@@ -72,25 +62,13 @@ export const usePostViews = ({ postId, slug, enabled = true }: PostViewsHookOpti
 
     incrementViews();
     
-    // Reset when post changes
     return () => {
       hasIncremented.current = false;
     };
   }, [postId, slug, enabled, queryClient]);
 
-  // Helper function to get current user ID
   const getCurrentUserId = (): string | null => {
-    // Try to get from auth context first
-    try {
-      const session = supabase.auth.getSession();
-      if (session && typeof session.then === 'function') {
-        // It's a promise, handle asynchronously
-        return null;
-      }
-      return session?.data?.session?.user?.id || null;
-    } catch {
-      return null;
-    }
+    return null; // Will be handled async in the effect
   };
 
   // Function to check if user has viewed post
