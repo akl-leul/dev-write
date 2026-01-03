@@ -25,6 +25,7 @@ export const AllAuthors = ({ showSearch = true }: { showSearch?: boolean }) => {
           full_name, 
           profile_image_url, 
           bio,
+          badge,
           followers:followers!following_id(count),
           posts:posts(count)
         `)
